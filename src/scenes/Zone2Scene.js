@@ -82,10 +82,12 @@ export class Zone2Scene extends Phaser.Scene {
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
-    this._nearPlant  = null;
-    this._nearPortal = null;
-    this._currentArea = '';
-    this._spellCooldown = 0;
+    this._nearPlant      = null;
+    this._nearPortal     = null;
+    this._currentArea    = '';
+    this._spellCooldown  = 0;
+    this._proximityTimer = 0;
+    this._timedPlant     = null;
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
     this.game.events.on('plantStolen', this._onPlantStolen, this);
@@ -178,7 +180,7 @@ export class Zone2Scene extends Phaser.Scene {
     GameState.playerY = this.player.y;
 
     this._checkAreaChange();
-    this._checkPlantProximity(time);
+    this._checkPlantProximity(time, delta);
     this._checkPortalProximity();
     this._handleKeys(time, delta);
     this._checkZoneUnlocks();
@@ -199,14 +201,34 @@ export class Zone2Scene extends Phaser.Scene {
     }
   }
 
-  _checkPlantProximity(time) {
+  _checkPlantProximity(time, delta) {
     this._nearPlant = null;
-    this.plants.forEach(p => {
-      if (p.isCollected || !p.isVisible) return;
-      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, p.x, p.y);
-      p.showHint(dist < PLAYER_INTERACTION_RADIUS);
-      if (dist < PLAYER_INTERACTION_RADIUS) this._nearPlant = p;
+    let foundNear = false;
+
+    this.plants.forEach(plant => {
+      if (plant.isCollected || !plant.isVisible) return;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, plant.x, plant.y);
+      const inRange = dist < PLAYER_INTERACTION_RADIUS;
+      plant.showHint(inRange);
+      if (!inRange) return;
+
+      this._nearPlant = plant;
+      foundNear = true;
+
+      const method = plant.plantData.collectMethod;
+      if (method === 'interact' || method === 'brave') {
+        if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
+        this._proximityTimer += delta;
+        const holdMs = method === 'brave' ? 900 : 600;
+        if (this._proximityTimer >= holdMs) {
+          this._timedPlant = null; this._proximityTimer = 0;
+          if (method === 'brave') this._emitNarrative('Coragem!');
+          this.time.delayedCall(method === 'brave' ? 200 : 0, () => this._collectPlant(plant));
+        }
+      }
     });
+
+    if (!foundNear) { this._timedPlant = null; this._proximityTimer = 0; }
   }
 
   _checkPortalProximity() {
@@ -239,20 +261,16 @@ export class Zone2Scene extends Phaser.Scene {
     const plant = this._nearPlant;
     const method = plant.plantData.collectMethod;
 
-    if (method === 'brave') {
-      // Visual hesitation then collect
-      this._emitNarrative('Coragem… e apanhas!');
-      this.time.delayedCall(300, () => this._collectPlant(plant));
-    } else if (method === 'shake') {
+    if (method === 'shake') {
       const ready = plant.shake(time);
       if (ready) {
         this._collectPlant(plant);
       } else {
-        this._emitNarrative(`Sacude mais ${5 - plant.shakeCount} vezes…`);
+        const left = 3 - plant.shakeCount;
+        this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}… (E)`);
       }
-    } else {
-      this._collectPlant(plant);
     }
+    // 'interact' and 'brave' are auto-collected via _checkPlantProximity
   }
 
   _castSpell() {

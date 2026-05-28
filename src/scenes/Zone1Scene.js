@@ -87,12 +87,14 @@ export class Zone1Scene extends Phaser.Scene {
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
     // State
-    this._nearPlant   = null;
-    this._nearPortal  = false;
-    this._vineClimbed = GameState.collected.has('trepadeira');
-    this._currentArea = '';
-    this._briefTimer  = 0;
-    this._spellCooldown = 0;
+    this._nearPlant      = null;
+    this._nearPortal     = false;
+    this._vineClimbed    = GameState.collected.has('trepadeira');
+    this._currentArea    = '';
+    this._briefTimer     = 0;
+    this._spellCooldown  = 0;
+    this._proximityTimer = 0;
+    this._timedPlant     = null;
 
     // Hint timers (idle guidance)
     this._hintLevel  = 0;
@@ -313,25 +315,49 @@ export class Zone1Scene extends Phaser.Scene {
   // ──────────────────────────────────────────────────────────────────────
   //  Proximity checks
   // ──────────────────────────────────────────────────────────────────────
-  _checkPlantProximity(time) {
+  _checkPlantProximity(time, delta) {
     this._nearPlant = null;
+    let foundNear = false;
+
     this.plants.forEach(plant => {
       if (plant.isCollected || !plant.isVisible) return;
       const dist = Phaser.Math.Distance.Between(
         this.player.x, this.player.y, plant.x, plant.y
       );
       const inRange = dist < PLAYER_INTERACTION_RADIUS;
-      plant.showHint(inRange);
+      const method  = plant.plantData.collectMethod;
 
-      if (inRange) {
-        this._nearPlant = plant;
+      // 'fast' hint changes based on speed
+      if (inRange && method === 'fast') {
+        plant.showHint(this.player.recentSpeed >= 120 ? false : true, 'Corre para apanhar!');
+      } else {
+        plant.showHint(inRange);
+      }
 
-        // Ventoinha: spin if player approaches slowly
-        if (plant.plantData.id === 'ventoinha' && this.player.recentSpeed < 70) {
-          plant.spinAndHide();
+      if (!inRange) return;
+      this._nearPlant = plant;
+      foundNear = true;
+
+      // ── Auto-collect: 'fast' ──────────────────────────────────────────
+      if (method === 'fast') {
+        if (this.player.recentSpeed >= 120) this._collectPlant(plant);
+        return;
+      }
+
+      // ── Auto-collect: 'interact' or 'brave' (proximity hold) ─────────
+      if (method === 'interact' || method === 'brave') {
+        if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
+        this._proximityTimer += delta;
+        const holdMs = method === 'brave' ? 900 : 600;
+        if (this._proximityTimer >= holdMs) {
+          this._timedPlant = null; this._proximityTimer = 0;
+          if (method === 'brave') this._emitNarrative('Coragem!');
+          this.time.delayedCall(method === 'brave' ? 200 : 0, () => this._collectPlant(plant));
         }
       }
     });
+
+    if (!foundNear) { this._timedPlant = null; this._proximityTimer = 0; }
   }
 
   _checkVineProximity() {
@@ -355,7 +381,7 @@ export class Zone1Scene extends Phaser.Scene {
   //  Key handling
   // ──────────────────────────────────────────────────────────────────────
   _handleKeys(time, delta) {
-    // E — interact / collect
+    // E — portal / shake / spell (auto-collect plants no longer need E)
     if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
       this._handleInteract(time);
     }
@@ -389,51 +415,39 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _handleInteract(time) {
-    // Portal first
+    // Portal takes priority
     if (this._nearPortal) { this._usePortal(); return; }
-
     if (!this._nearPlant) return;
-    const plant = this._nearPlant;
+
+    const plant  = this._nearPlant;
     const method = plant.plantData.collectMethod;
 
-    switch (method) {
-      case 'fast':
-        if (this.player.recentSpeed >= 140) {
-          this._collectPlant(plant);
-        } else {
-          this._emitNarrative('Move-te mais rápido para apanhar a ventoinha! (mantém Shift)');
-          plant.spinAndHide();
-        }
-        break;
+    // 'fast', 'interact', 'brave' are now auto-collected in _checkPlantProximity
+    // E key only needed for: shake, spell, climb
 
-      case 'shake': {
-        const ready = plant.shake(time);
-        if (ready) {
-          this._collectPlant(plant);
-        } else {
-          const left = 5 - plant.shakeCount;
-          this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}…`);
-        }
-        break;
-      }
-
-      case 'spell':
-        if (GameState.activeSpell === 'brisa_molhada') {
-          this._castSpellOnPlant(plant);
-        } else if (GameState.availableSpells.includes('brisa_molhada')) {
-          this._emitNarrative('Activa a Brisa Molhada (Q para mudar, Espaço para lançar) sobre a Farfalha.');
-        } else {
-          this._emitNarrative('Esta planta está protegida. Precisas de um feitiço especial…');
-        }
-        break;
-
-      case 'climb':
-        this._climbVine();
-        break;
-
-      default:
+    if (method === 'shake') {
+      const ready = plant.shake(time);
+      if (ready) {
         this._collectPlant(plant);
+      } else {
+        const left = 3 - plant.shakeCount;
+        this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}… (E)`);
+      }
+      return;
     }
+
+    if (method === 'spell') {
+      if (GameState.activeSpell === 'brisa_molhada') {
+        this._castSpellOnPlant(plant);
+      } else if (GameState.availableSpells.includes('brisa_molhada')) {
+        this._emitNarrative('Activa a Brisa Molhada (Q + Espaço) e depois usa E na Farfalha.');
+      } else {
+        this._emitNarrative('Esta planta está protegida. Precisas de um feitiço especial…');
+      }
+      return;
+    }
+
+    if (method === 'climb') { this._climbVine(); return; }
   }
 
   // ──────────────────────────────────────────────────────────────────────

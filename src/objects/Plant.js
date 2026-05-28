@@ -147,7 +147,7 @@ export class Plant extends Phaser.GameObjects.Container {
       });
     }
 
-    return this.shakeCount >= 5;
+    return this.shakeCount >= 3;
   }
 
   // Sombravinha: appears only when player faces away & is still

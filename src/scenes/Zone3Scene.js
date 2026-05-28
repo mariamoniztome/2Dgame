@@ -70,13 +70,12 @@ export class Zone3Scene extends Phaser.Scene {
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
-    this._nearPlant  = null;
-    this._nearPortal = null;
-    this._currentArea = '';
-    this._spellCooldown = 0;
-
-    // Sombravinha special tracking
-    this._sombraTrigger = null;
+    this._nearPlant      = null;
+    this._nearPortal     = null;
+    this._currentArea    = '';
+    this._spellCooldown  = 0;
+    this._proximityTimer = 0;
+    this._timedPlant     = null;
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
     this.game.events.on('plantStolen', this._onPlantStolen, this);
@@ -222,12 +221,39 @@ export class Zone3Scene extends Phaser.Scene {
 
   _checkPlantProximity(time, delta) {
     this._nearPlant = null;
-    this.plants.forEach(p => {
-      if (p.isCollected || !p.isVisible) return;
-      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, p.x, p.y);
-      p.showHint(dist < PLAYER_INTERACTION_RADIUS);
-      if (dist < PLAYER_INTERACTION_RADIUS) this._nearPlant = p;
+    let foundNear = false;
+
+    this.plants.forEach(plant => {
+      if (plant.isCollected || !plant.isVisible) return;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, plant.x, plant.y);
+      const inRange = dist < PLAYER_INTERACTION_RADIUS;
+      plant.showHint(inRange);
+      if (!inRange) return;
+
+      this._nearPlant = plant;
+      foundNear = true;
+
+      const method = plant.plantData.collectMethod;
+
+      // Sombravinha auto-collects when she has revealed herself
+      if (method === 'wait') {
+        if (plant._sombraVisible) this._collectPlant(plant);
+        return;
+      }
+
+      if (method === 'interact' || method === 'brave') {
+        if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
+        this._proximityTimer += delta;
+        const holdMs = method === 'brave' ? 900 : 600;
+        if (this._proximityTimer >= holdMs) {
+          this._timedPlant = null; this._proximityTimer = 0;
+          if (method === 'brave') this._emitNarrative('Coragem!');
+          this.time.delayedCall(method === 'brave' ? 200 : 0, () => this._collectPlant(plant));
+        }
+      }
     });
+
+    if (!foundNear) { this._timedPlant = null; this._proximityTimer = 0; }
   }
 
   _updateSombravinha(delta) {
@@ -274,23 +300,7 @@ export class Zone3Scene extends Phaser.Scene {
 
   _handleInteract(time) {
     if (this._nearPortal) { this._usePortal(this._nearPortal); return; }
-    if (!this._nearPlant) return;
-
-    const plant = this._nearPlant;
-    const method = plant.plantData.collectMethod;
-
-    if (method === 'wait') {
-      if (plant._sombraVisible) {
-        this._collectPlant(plant);
-      } else {
-        this._emitNarrative('Vira as costas e espera. Deixa de a procurar…');
-      }
-    } else if (method === 'brave') {
-      this._emitNarrative('Coragem!');
-      this.time.delayedCall(300, () => this._collectPlant(plant));
-    } else {
-      this._collectPlant(plant);
-    }
+    // All plant collection is now handled automatically in _checkPlantProximity
   }
 
   _castSpell() {
