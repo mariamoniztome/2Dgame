@@ -54,6 +54,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.player = new Player(this, 420, 1200);
 
     this._buildPlants();
+    GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
     this._buildCreature();
     this._buildPortal();
     this._buildFireflies();
@@ -281,6 +282,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Expose position to HUD minimap
     GameState.playerX = this.player.x;
+    GameState.playerY = this.player.y;
 
     this._checkAreaChange();
     this._checkPlantProximity(time);
@@ -369,13 +371,10 @@ export class Zone1Scene extends Phaser.Scene {
       this.game.events.emit('spellCast', GameState.activeSpell);
     }
 
-    // M — open map
+    // M — open map overlay (pause zone, don't restart it)
     if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
-      this.cameras.main.fadeOut(400, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.game.events.off('plantStolen', this._onPlantStolen, this);
-        this.scene.start('Map');
-      });
+      this.scene.pause();
+      this.scene.launch('Map');
     }
 
     // Up arrow near vine → climb

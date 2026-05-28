@@ -4,33 +4,48 @@ import { SPELLS } from '../data/spells.js';
 import { PLANTS } from '../data/plants.js';
 import { GameState } from '../GameState.js';
 
-// Area colour strips per zone for the minimap
-const ZONE_AREAS = {
+const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
+
+// ── Color palette (from reference image) ─────────────────────────────────
+const C = {
+  bg:     0x0D351E,   // dark forest green — panel backgrounds
+  border: 0x639B5A,   // forest green — borders
+  dim:    0x2d5a38,   // dim green — empty/inactive
+  accent: 0xE4EF6F,   // yellow-green — highlights / player dot
+  magic:  0xE1A0B1,   // rose — spells / potion progress
+  text:   '#BFD8A4',  // light mint — body text
+  label:  '#639B5A',  // forest green — secondary labels
+};
+
+// Zone color strips for minimap
+const ZONE_STRIPS = {
   Zone1: [
-    { color: 0x1b5e20, from: 0,    to: 1100 },
-    { color: 0x33691e, from: 1100, to: 2200 },
-    { color: 0x1a237e, from: 2200, to: 3200 },
+    { color: 0x1b4a28, xFrom: 0,    xTo: 1100 },
+    { color: 0x2d6644, xFrom: 1100, xTo: 2200 },
+    { color: 0x1a3a52, xFrom: 2200, xTo: 3200 },
   ],
   Zone2: [
-    { color: 0x0d2a18, from: 0,    to: 900  },
-    { color: 0x1b3a20, from: 900,  to: 1800 },
-    { color: 0x33691e, from: 1800, to: 2500 },
-    { color: 0x2e1503, from: 2500, to: 3200 },
+    { color: 0x0d2a18, xFrom: 0,    xTo: 900  },
+    { color: 0x1a4428, xFrom: 900,  xTo: 1800 },
+    { color: 0x2d6030, xFrom: 1800, xTo: 2500 },
+    { color: 0x2e1503, xFrom: 2500, xTo: 3200 },
   ],
   Zone3: [
-    { color: 0x0d0014, from: 0,    to: 1200 },
-    { color: 0x1a0a2e, from: 1200, to: 2400 },
-    { color: 0x0a1018, from: 2400, to: 3200 },
+    { color: 0x0d0a18, xFrom: 0,    xTo: 1200 },
+    { color: 0x1a0a2e, xFrom: 1200, xTo: 2400 },
+    { color: 0x0a1018, xFrom: 2400, xTo: 3200 },
   ],
 };
 
-// Minimap panel (bottom-right)
-const MM_PANEL_W = 190;
-const MM_PANEL_H = 120;
-const MM_INNER_W = 170;
-const MM_INNER_H = 50;
+// Minimap: large, center-bottom, always visible
+const MM_W = 320;
+const MM_H = 100;
+const MM_X = (GAME_WIDTH - MM_W) / 2;
+const MM_Y = GAME_HEIGHT - 14 - MM_H - 22;
 
-const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
+// Toast
+const TOAST_W = 260;
+const TOAST_H = 68;
 
 export class HUDScene extends Phaser.Scene {
   constructor() { super({ key: 'HUD', active: false }); }
@@ -38,126 +53,43 @@ export class HUDScene extends Phaser.Scene {
   create() {
     const W = GAME_WIDTH, H = GAME_HEIGHT;
 
-    this._slots = [];
+    this._slots          = [];
+    this._plantDots      = [];
     this._narrativeTimer = null;
-    this._lastZone = null;
-    this._toastQueue = [];
-    this._toastActive = false;
-    this._helpVisible = false;
-    this._helpShownOnce = false;
+    this._lastZone       = null;
+    this._toastQueue     = [];
+    this._toastActive    = false;
+    this._controlsVisible = false;
 
-    // ── BOTTOM-LEFT: Mochila ──────────────────────────────────────────────
-    this.add.rectangle(8, H - 8, 240, 100, 0x080810, 0.78)
-      .setOrigin(0, 1).setStrokeStyle(1, 0x5b21b6, 0.5);
+    this._buildSpellPanel();
+    this._buildInventory(W, H);
+    this._buildCauldronPanel(W, H);
+    this._buildMinimap(W, H);
+    this._buildNarrative(W, H);
 
-    this._bagTitleText = this.add.text(18, H - 96, 'MOCHILA  0/6', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#7c5cbf',
-    });
-
-    for (let i = 0; i < 6; i++) {
-      const sx = 20 + i * 36, sy = H - 62;
-      const bg = this.add.rectangle(sx, sy, 28, 28, 0x120c24, 0.9)
-        .setStrokeStyle(1, 0x3d2b7a, 0.7);
-      const icon = this.add.circle(sx, sy, 10, 0x3d2b7a, 0).setAlpha(0);
-      const fake = this.add.text(sx, sy, '?', {
-        fontSize: '11px', fontFamily: 'monospace', color: '#886688',
-      }).setOrigin(0.5).setAlpha(0);
-      this._slots.push({ bg, icon, fake, sx, sy });
-    }
-
-    // Mini potion progress under bag slots
-    this._buildBagPotionDots(W, H);
-
-    // ── TOP-LEFT: Active spell panel ──────────────────────────────────────
-    this.add.rectangle(8, 8, 140, 64, 0x080810, 0.78)
-      .setOrigin(0, 0).setStrokeStyle(1, 0x5b21b6, 0.5);
-    this.add.text(18, 12, 'FEITICO', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#7c5cbf',
-    });
-    this.spellPlant1 = this.add.circle(38, 40, 13, 0x1a1a2e, 0.9)
-      .setStrokeStyle(1, 0x3d2b7a, 0.7);
-    this.spellPlant2 = this.add.circle(78, 40, 13, 0x1a1a2e, 0.9)
-      .setStrokeStyle(1, 0x3d2b7a, 0.7);
-    this.spellLabel = this.add.text(72, 56, '—', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#666688',
-    }).setOrigin(0.5, 0);
-
-    // ── TOP-RIGHT: Cast spell (ESPACO) panel ──────────────────────────────
-    this.add.rectangle(W - 8, 8, 130, 64, 0x080810, 0.78)
-      .setOrigin(1, 0).setStrokeStyle(1, 0x5b21b6, 0.5);
-    this.add.text(W - 130, 12, 'ESPACO', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#7c5cbf',
-    });
-    this.spellGfx = this.add.image(W - 80, 36, 'spell_brisa')
-      .setDisplaySize(36, 36).setAlpha(0.3);
-    this.spellName = this.add.text(W - 80, 57, '—', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#666688',
-    }).setOrigin(0.5, 0);
-
-    // ── TOP-CENTER: Area label ─────────────────────────────────────────────
-    this.areaLabel = this.add.text(W / 2, 14, '', {
-      fontSize: '13px', fontFamily: 'Georgia, serif',
-      color: '#c8dde8', stroke: '#080810', strokeThickness: 2, fontStyle: 'italic',
-    }).setOrigin(0.5, 0).setAlpha(0.85).setDepth(50);
-
-    // ── BOTTOM-RIGHT: Minimap panel ───────────────────────────────────────
-    const mmPanelX = W - 8;
-    const mmPanelY = H - 8;
-    this.add.rectangle(mmPanelX, mmPanelY, MM_PANEL_W, MM_PANEL_H, 0x080810, 0.82)
-      .setOrigin(1, 1).setStrokeStyle(1, 0x5b21b6, 0.5);
-    this.add.text(mmPanelX - MM_PANEL_W + 8, mmPanelY - MM_PANEL_H + 8, 'MAPA', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#7c5cbf',
-    });
-
-    // Minimap inner area
-    const MM_X = W - 8 - MM_PANEL_W + 10;
-    const MM_Y = H - 8 - MM_PANEL_H + 26;
-    this._mmX = MM_X;
-    this._mmY = MM_Y;
-    this._mmW = MM_INNER_W;
-    this._mmH = MM_INNER_H;
-
-    this.mmGfx = this.add.graphics().setDepth(58);
-    this.mmDot = this.add.circle(MM_X, MM_Y + MM_INNER_H / 2, 3, 0xffffff, 1).setDepth(60);
-
-    // Minimap border (pulses when cauldron progress > 0)
-    this.mmBorder = this.add.rectangle(MM_X, MM_Y, MM_INNER_W, MM_INNER_H, 0x000000, 0)
-      .setOrigin(0, 0).setStrokeStyle(1, 0x9575cd, 0.4).setDepth(61);
-    this.mmPulseTween = this.tweens.add({
-      targets: this.mmBorder,
-      alpha: { from: 0.4, to: 1 },
-      duration: 2000, repeat: -1, yoyo: true, ease: 'Sine.easeInOut',
-      paused: true,
-    });
-
-    this._drawMinimapBg('Zone1');
-
-    // ── BOTTOM-CENTER: Narrative strip ────────────────────────────────────
-    this.narrativePanel = this.add.rectangle(W / 2, H - 130, 740, 64, 0x080810, 0)
-      .setOrigin(0.5, 1);
-    this.narrativeText = this.add.text(W / 2, H - 128, '', {
-      fontSize: '16px', fontFamily: 'Georgia, serif',
-      color: '#f5e6c8', wordWrap: { width: 720 },
-      align: 'center', stroke: '#080810', strokeThickness: 3,
-      lineSpacing: 4,
-    }).setOrigin(0.5, 1).setAlpha(0).setDepth(100);
-
-    // ── Spell unlock banner ────────────────────────────────────────────────
+    // Spell unlock banner
     this.unlockBanner = this.add.text(W / 2, H / 2, '', {
       fontSize: '20px', fontFamily: 'Georgia, serif',
-      color: '#ce93d8', stroke: '#080810', strokeThickness: 4, align: 'center',
+      color: '#E1A0B1', stroke: '#0D351E', strokeThickness: 4, align: 'center',
     }).setOrigin(0.5).setAlpha(0).setDepth(200);
 
-    // ── Help button ────────────────────────────────────────────────────────
-    this._buildHelpButton(W);
+    // Area label — sits just above the minimap panel
+    this.areaLabel = this.add.text(W / 2, MM_Y - 20, '', {
+      fontSize: '12px', fontFamily: 'Georgia, serif',
+      color: C.text, stroke: '#0D351E', strokeThickness: 2, fontStyle: 'italic',
+    }).setOrigin(0.5, 1).setAlpha(0).setDepth(55);
 
-    // ── Help overlay ───────────────────────────────────────────────────────
-    this._buildHelpOverlay(W, H);
+    // [H] hint top-right
+    this.add.text(W - 10, 10, '[H] ajuda', {
+      fontSize: '10px', fontFamily: 'monospace', color: C.label,
+    }).setOrigin(1, 0).setDepth(55);
 
-    // ── Toast panel (right side, slides in) ──────────────────────────────
-    this._toastPanel = null;
+    this._buildControlsPanel(W, H);
+    this._buildAutoHint(W, H);
 
-    // ── Global event listeners ─────────────────────────────────────────────
+    this.input.keyboard.on('keydown-H', () => this._toggleControls());
+
+    // ── Events ────────────────────────────────────────────────────────────
     this.game.events.on('plantCollected', this._onPlantCollected, this);
     this.game.events.on('plantStolen',    this._onPlantStolen,    this);
     this.game.events.on('spellCast',      this._onSpellCast,      this);
@@ -166,208 +98,298 @@ export class HUDScene extends Phaser.Scene {
     this.game.events.on('areaChanged',    this._updateArea,       this);
 
     this._refresh();
+  }
 
-    // Auto-show help on first Zone1 start
-    this.time.delayedCall(1200, () => {
-      if (GameState.currentZone === 'Zone1' && !this._helpShownOnce) {
-        this._helpShownOnce = true;
-        this._showHelp();
-        this.time.delayedCall(8000, () => {
-          if (this._helpVisible) this._hideHelp();
-        });
-      }
+  // ── Spell panel (top-left) ───────────────────────────────────────────────
+  _buildSpellPanel() {
+    this.add.rectangle(8, 8, 148, 58, C.bg, 0.88)
+      .setOrigin(0, 0).setStrokeStyle(1, C.border, 0.6);
+    this.add.text(18, 12, 'FEITICO', {
+      fontSize: '10px', fontFamily: 'monospace', color: C.label,
     });
-  }
-
-  // ── Help button ─────────────────────────────────────────────────────────
-  _buildHelpButton(W) {
-    const bx = W - 20, by = 20;
-    this._helpBtnBg = this.add.circle(bx, by, 14, 0x1a1a3a, 0.9)
-      .setStrokeStyle(1.5, 0x7c5cbf, 0.8)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(150);
-    this._helpBtnText = this.add.text(bx, by, '?', {
-      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#ce93d8',
-    }).setOrigin(0.5).setDepth(151);
-
-    this._helpBtnBg.on('pointerover', () => this._helpBtnBg.setFillStyle(0x2a2a5a, 0.95));
-    this._helpBtnBg.on('pointerout',  () => this._helpBtnBg.setFillStyle(0x1a1a3a, 0.9));
-    this._helpBtnBg.on('pointerdown', () => this._toggleHelp());
-
-    this.input.keyboard.on('keydown-H', () => this._toggleHelp());
-  }
-
-  // ── Help overlay ─────────────────────────────────────────────────────────
-  _buildHelpOverlay(W, H) {
-    const cx = W / 2, cy = H / 2;
-    this._helpOverlay = this.add.container(cx, cy).setDepth(400).setVisible(false);
-
-    const panel = this.add.rectangle(0, 0, 500, 380, 0x080810, 0.94)
-      .setStrokeStyle(2, 0x7b1fa2, 0.8);
-    this._helpOverlay.add(panel);
-
-    const title = this.add.text(0, -170, 'Como Jogar', {
-      fontSize: '22px', fontFamily: 'Georgia, serif', color: '#ce93d8',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-    this._helpOverlay.add(title);
-
-    const controls = [
-      'WASD / Setas  →  Mover',
-      'Shift              →  Correr',
-      'E                    →  Interagir / Apanhar',
-      'Espaço         →  Lançar Feitiço',
-      'Q                    →  Mudar Feitiço',
-      'M                    →  Mapa',
-      'H                    →  Ajuda',
-      '↑ junto a trepadeira  →  Subir',
-    ];
-    const ctrlText = this.add.text(-220, -135,
-      controls.join('\n'), {
-        fontSize: '13px', fontFamily: 'monospace',
-        color: '#d0c8f0', lineSpacing: 7,
-      }
-    ).setOrigin(0, 0);
-    this._helpOverlay.add(ctrlText);
-
-    const divider = this.add.rectangle(0, 18, 440, 1, 0x5b21b6, 0.5);
-    this._helpOverlay.add(divider);
-
-    const objTitle = this.add.text(0, 28, 'Objectivo', {
-      fontSize: '14px', fontFamily: 'Georgia, serif', color: '#9575cd', fontStyle: 'italic',
-    }).setOrigin(0.5, 0);
-    this._helpOverlay.add(objTitle);
-
-    const objText = this.add.text(0, 54,
-      'Apanha 5 plantas essenciais para a poção.\nEvita as criaturas com os feitiços certos.', {
-        fontSize: '13px', fontFamily: 'Georgia, serif',
-        color: '#c8b8e8', align: 'center', lineSpacing: 5,
-      }
-    ).setOrigin(0.5, 0);
-    this._helpOverlay.add(objText);
-
-    const closeHint = this.add.text(0, 148, 'Clica ou prime H para fechar', {
-      fontSize: '12px', fontFamily: 'Georgia, serif',
-      color: '#6a5acd', fontStyle: 'italic',
-    }).setOrigin(0.5);
-    this._helpOverlay.add(closeHint);
-
-    this.tweens.add({
-      targets: closeHint, alpha: { from: 0.5, to: 1 },
-      duration: 900, yoyo: true, repeat: -1,
-    });
-
-    // Click outside or on panel to close
-    panel.setInteractive().on('pointerdown', () => this._hideHelp());
-  }
-
-  _toggleHelp() {
-    if (this._helpVisible) this._hideHelp();
-    else this._showHelp();
-  }
-
-  _showHelp() {
-    this._helpVisible = true;
-    this._helpOverlay.setVisible(true).setAlpha(0);
-    this.tweens.add({ targets: this._helpOverlay, alpha: 1, duration: 220 });
-  }
-
-  _hideHelp() {
-    this._helpVisible = false;
-    this.tweens.add({
-      targets: this._helpOverlay, alpha: 0, duration: 220,
-      onComplete: () => this._helpOverlay.setVisible(false),
-    });
-  }
-
-  // ── Bag potion dots ──────────────────────────────────────────────────────
-  _buildBagPotionDots(W, H) {
-    this._potionDots = [];
-    const startX = 18;
-    const dotY = H - 20;
-    const spacing = 36;
-
-    this.add.text(startX, dotY, 'Poção:', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#5a4a7a',
+    this.add.text(148, 12, 'Q', {
+      fontSize: '9px', fontFamily: 'monospace', color: C.label,
+    }).setOrigin(1, 0);
+    this.spellGfx = this.add.image(36, 38, 'spell_brisa')
+      .setDisplaySize(28, 28).setAlpha(0.3);
+    this.spellName = this.add.text(54, 30, '—', {
+      fontSize: '11px', fontFamily: 'Georgia, serif', color: C.text,
     }).setOrigin(0, 0.5);
+    this.add.text(10, 62, 'ESPACO = lancar', {
+      fontSize: '8px', fontFamily: 'monospace', color: C.label,
+    });
+  }
 
-    for (let i = 0; i < 5; i++) {
-      const dx = startX + 46 + i * 30;
-      const dot = this.add.circle(dx, dotY, 6, 0x1a1a3a, 0.6)
-        .setStrokeStyle(1, 0x3d2b6a, 0.5);
-      this._potionDots.push(dot);
+  // ── Inventory (bottom-left) ─────────────────────────────────────────────
+  _buildInventory(W, H) {
+    this.add.rectangle(8, H - 8, 220, 72, C.bg, 0.88)
+      .setOrigin(0, 1).setStrokeStyle(1, C.border, 0.6);
+    this.add.text(18, H - 74, 'MOCHILA', {
+      fontSize: '10px', fontFamily: 'monospace', color: C.label,
+    });
+    this.inventoryCount = this.add.text(210, H - 74, '0/6', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#E4EF6F',
+    }).setOrigin(1, 0);
+
+    for (let i = 0; i < 6; i++) {
+      const sx = 20 + i * 34, sy = H - 28;
+      const bg   = this.add.rectangle(sx, sy, 28, 28, 0x1a3a24, 0.9)
+        .setStrokeStyle(1, C.dim, 0.7);
+      const icon = this.add.circle(sx, sy, 10, C.dim, 0).setAlpha(0);
+      const fake = this.add.text(sx, sy, '?', {
+        fontSize: '11px', fontFamily: 'monospace', color: '#886688',
+      }).setOrigin(0.5).setAlpha(0);
+      this._slots.push({ bg, icon, fake, sx, sy });
     }
   }
 
-  _refreshPotionDots() {
-    ESSENTIAL_IDS.forEach((id, i) => {
-      if (!this._potionDots[i]) return;
-      const isCollected = GameState.collected.has(id);
-      const plant = PLANTS[id];
-      const elColor = (plant && ELEMENTS[plant.element]) ? ELEMENTS[plant.element].color : 0xce93d8;
-      this._potionDots[i].setFillStyle(isCollected ? elColor : 0x1a1a3a, isCollected ? 1 : 0.6);
-      this._potionDots[i].setStrokeStyle(1, isCollected ? elColor : 0x3d2b6a, isCollected ? 0.8 : 0.4);
+  // ── Cauldron / potion progress (bottom-right) ────────────────────────────
+  _buildCauldronPanel(W, H) {
+    this.add.rectangle(W - 8, H - 8, 148, 72, C.bg, 0.88)
+      .setOrigin(1, 1).setStrokeStyle(1, C.border, 0.6);
+    this.add.text(W - 148, H - 74, 'POCAO', {
+      fontSize: '10px', fontFamily: 'monospace', color: C.label,
+    });
+    this.cauldronCount = this.add.text(W - 14, H - 74, '0/5', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#E1A0B1',
+    }).setOrigin(1, 0);
+
+    this._essentialDots = [];
+    for (let i = 0; i < 5; i++) {
+      const dx = W - 138 + i * 26 + 8;
+      const dy = H - 28;
+      const dot = this.add.circle(dx, dy, 8, 0x1a3a24, 1)
+        .setStrokeStyle(1, C.dim, 0.6);
+      this._essentialDots.push(dot);
+    }
+  }
+
+  // ── Minimap: large, center-bottom, always visible ─────────────────────────
+  _buildMinimap(W, H) {
+    const panelH = MM_H + 30;
+
+    // Panel background
+    this.add.rectangle(W / 2, H - 8, MM_W + 16, panelH, C.bg, 0.92)
+      .setOrigin(0.5, 1).setStrokeStyle(1, C.border, 0.7);
+
+    this.add.text(MM_X, H - 8 - panelH + 4, 'MAPA', {
+      fontSize: '9px', fontFamily: 'monospace', color: C.label,
+    });
+    this.add.text(MM_X + MM_W, H - 8 - panelH + 4, '[M]', {
+      fontSize: '9px', fontFamily: 'monospace', color: C.dim,
+    }).setOrigin(1, 0);
+
+    // Minimap zone-area graphics
+    this.mmGfx = this.add.graphics().setDepth(58);
+
+    // Player dot
+    this.mmDot = this.add.circle(W / 2, MM_Y + MM_H / 2, 4, C.accent, 1)
+      .setDepth(62).setStrokeStyle(1, 0x0D351E, 0.8);
+
+    // Border
+    this.add.rectangle(MM_X, MM_Y, MM_W, MM_H, 0x000000, 0)
+      .setOrigin(0, 0).setStrokeStyle(1, C.border, 0.5).setDepth(63);
+
+    // Zone name label below minimap graphic
+    this.mmZoneLabel = this.add.text(W / 2, MM_Y + MM_H + 4, '', {
+      fontSize: '10px', fontFamily: 'Georgia, serif',
+      color: C.text, fontStyle: 'italic',
+    }).setOrigin(0.5, 0).setDepth(62);
+
+    this._drawMinimapBg('Zone1');
+  }
+
+  // ── Narrative (above minimap) ────────────────────────────────────────────
+  _buildNarrative(W, H) {
+    this.narrativeText = this.add.text(W / 2, MM_Y - 8, '', {
+      fontSize: '15px', fontFamily: 'Georgia, serif',
+      color: '#f5e6c8', wordWrap: { width: 680 },
+      align: 'center', stroke: '#0D351E', strokeThickness: 3, lineSpacing: 4,
+    }).setOrigin(0.5, 1).setAlpha(0).setDepth(100);
+  }
+
+  // ── Controls panel (H toggle) ────────────────────────────────────────────
+  _buildControlsPanel(W, H) {
+    const cx = W / 2, cy = H / 2;
+    const panel = this.add.rectangle(cx, cy, 370, 270, C.bg, 0.94)
+      .setStrokeStyle(1, C.border, 0.9).setDepth(300).setVisible(false);
+    const txt = this.add.text(cx, cy - 110,
+      'CONTROLOS\n\n' +
+      'WASD / Setas    Mover\n' +
+      'Shift                  Correr\n' +
+      'E                        Interagir / Apanhar\n' +
+      'Espaco              Lancar feitico\n' +
+      'Q                        Mudar feitico\n' +
+      'M                        Mapa do jardim\n' +
+      'H                        Fechar esta ajuda', {
+        fontSize: '14px', fontFamily: 'monospace',
+        color: C.text, align: 'left', lineSpacing: 7,
+      }).setOrigin(0.5, 0).setDepth(301).setVisible(false);
+    const close = this.add.text(cx, cy + 114, 'Prima H para fechar', {
+      fontSize: '11px', fontFamily: 'Georgia, serif',
+      color: '#E1A0B1', fontStyle: 'italic',
+    }).setOrigin(0.5).setDepth(301).setVisible(false);
+    this._ctrlGroup = [panel, txt, close];
+    this.input.keyboard.on('keydown-ESC', () => {
+      if (this._controlsVisible) {
+        this._controlsVisible = false;
+        this._ctrlGroup.forEach(e => e.setVisible(false));
+      }
     });
   }
 
-  // ── Minimap ──────────────────────────────────────────────────────────────
+  // ── Auto-hint on Zone1 start ─────────────────────────────────────────────
+  _buildAutoHint(W, H) {
+    const cx = W / 2, cy = H / 2 - 30;
+    const items = [];
+    const panel = this.add.rectangle(cx, cy, 340, 210, C.bg, 0.92)
+      .setStrokeStyle(1, C.border, 0.7).setDepth(300);
+    const txt = this.add.text(cx, cy - 80,
+      'BEM-VINDA!\n\n' +
+      'WASD / Setas    Mover\n' +
+      'Shift                  Correr\n' +
+      'E                        Interagir\n' +
+      'Espaco              Feitico\n' +
+      'M / H                Mapa / Ajuda', {
+        fontSize: '14px', fontFamily: 'monospace',
+        color: C.text, align: 'left', lineSpacing: 6,
+      }).setOrigin(0.5, 0).setDepth(301);
+    const dismiss = this.add.text(cx, cy + 80, 'Clica para comecar', {
+      fontSize: '12px', fontFamily: 'Georgia, serif',
+      color: '#E1A0B1', fontStyle: 'italic',
+    }).setOrigin(0.5).setDepth(301);
+    this.tweens.add({
+      targets: dismiss, alpha: { from: 0.5, to: 1 },
+      duration: 900, yoyo: true, repeat: -1,
+    });
+    items.push(panel, txt, dismiss);
+    const hide = () => {
+      this.tweens.add({
+        targets: items, alpha: 0, duration: 500,
+        onComplete: () => items.forEach(e => e.setVisible(false)),
+      });
+    };
+    this.time.delayedCall(10000, hide);
+    this.input.once('pointerdown', hide);
+    this.input.keyboard.once('keydown', hide);
+  }
+
+  _toggleControls() {
+    this._controlsVisible = !this._controlsVisible;
+    this._ctrlGroup.forEach(e => e.setVisible(this._controlsVisible));
+  }
+
+  // ── Minimap internals ────────────────────────────────────────────────────
   _drawMinimapBg(zone) {
     this._lastZone = zone;
-    const areas = ZONE_AREAS[zone] || ZONE_AREAS.Zone1;
     this.mmGfx.clear();
-    areas.forEach(a => {
-      const x = this._mmX + (a.from / WORLD_WIDTH) * this._mmW;
-      const w = ((a.to - a.from) / WORLD_WIDTH) * this._mmW;
-      this.mmGfx.fillStyle(a.color, 1);
-      this.mmGfx.fillRect(x, this._mmY, w, this._mmH);
+    this.mmGfx.fillStyle(0x081810, 1);
+    this.mmGfx.fillRect(MM_X, MM_Y, MM_W, MM_H);
+    const strips = ZONE_STRIPS[zone] || ZONE_STRIPS.Zone1;
+    strips.forEach(s => {
+      const x = MM_X + (s.xFrom / WORLD_WIDTH) * MM_W;
+      const w = ((s.xTo - s.xFrom) / WORLD_WIDTH) * MM_W;
+      this.mmGfx.fillStyle(s.color, 1);
+      this.mmGfx.fillRect(x, MM_Y, w, MM_H);
+    });
+    this.mmGfx.setDepth(58);
+    const names = { Zone1: 'Campo dos Vagalumes', Zone2: 'Floresta Densa', Zone3: 'Terrenos das Sombras', Cauldron: 'Caldeirão' };
+    this.mmZoneLabel?.setText(names[zone] || zone);
+    this._rebuildPlantDots();
+  }
+
+  _rebuildPlantDots() {
+    this._plantDots.forEach(d => d.destroy());
+    this._plantDots = [];
+    (GameState.plantSpawns || []).forEach(s => {
+      const dotX = MM_X + (s.x / WORLD_WIDTH) * MM_W;
+      const dotY = MM_Y + (s.y / WORLD_HEIGHT) * MM_H;
+      const plant = PLANTS[s.id];
+      const isCollected = GameState.collected.has(s.id);
+      const el  = plant ? ELEMENTS[plant.element] : null;
+      const col = isCollected ? (el?.color ?? 0x7DB98A) : 0x2d5a38;
+      const r   = isCollected ? 3.5 : 2;
+      const dot = this.add.circle(dotX, dotY, r, col, isCollected ? 1 : 0.55).setDepth(61);
+      if (isCollected) dot.setStrokeStyle(0.8, col, 0.7);
+      this._plantDots.push(dot);
     });
   }
 
   _updateMinimap() {
     const zone = GameState.currentZone;
-    if (zone !== this._lastZone && ZONE_AREAS[zone]) {
-      this._drawMinimapBg(zone);
-    }
-    const px = GameState.playerX;
-    const dotX = this._mmX + (px / WORLD_WIDTH) * this._mmW;
-    const dotY = this._mmY + this._mmH / 2;
+    if (zone !== this._lastZone && ZONE_STRIPS[zone]) this._drawMinimapBg(zone);
+    const dotX = MM_X + (GameState.playerX / WORLD_WIDTH) * MM_W;
+    const dotY = MM_Y + ((GameState.playerY ?? 1200) / WORLD_HEIGHT) * MM_H;
     this.mmDot.setPosition(dotX, dotY);
-
-    // Pulse border based on cauldron progress
-    const prog = GameState.cauldronProgress();
-    if (prog > 0) {
-      const speed = 1 + prog * 2.5;
-      if (!this._mmPulseActive) {
-        this._mmPulseActive = true;
-        this.mmPulseTween.resume();
-      }
-      this.mmPulseTween.timeScale = speed;
-      const hue = 0.35 + prog * 0.5;
-      const rgb = Phaser.Display.Color.HSVToRGB(hue, 0.8, 0.9);
-      this.mmBorder.setStrokeStyle(2, Phaser.Display.Color.GetColor(rgb.r, rgb.g, rgb.b), 0.8);
-    }
   }
 
-  // ── Per-frame update ─────────────────────────────────────────────────────
-  update() {
-    this._updateMinimap();
+  _updateCauldronDots() {
+    const count = ESSENTIAL_IDS.filter(id => GameState.collected.has(id)).length;
+    this._essentialDots.forEach((dot, i) => {
+      dot.setFillStyle(i < count ? 0xE1A0B1 : 0x1a3a24, 1)
+         .setStrokeStyle(1, i < count ? 0xE1A0B1 : C.dim, i < count ? 0.8 : 0.5);
+    });
+    this.cauldronCount?.setText(`${count}/5`);
+    if (count >= 5) this.cauldronCount?.setColor('#E4EF6F');
   }
 
-  // ── Refresh helpers ──────────────────────────────────────────────────────
+  // ── Toast system ──────────────────────────────────────────────────────────
+  showPlantToast(plantData) {
+    this._toastQueue.push(plantData);
+    if (!this._toastActive) this._showNextToast();
+  }
+
+  _showNextToast() {
+    if (!this._toastQueue.length) { this._toastActive = false; return; }
+    this._toastActive = true;
+    const plant = this._toastQueue.shift();
+    const el    = ELEMENTS[plant.element] || ELEMENTS.EARTH;
+    const hex   = '#' + el.color.toString(16).padStart(6, '0');
+    const W     = GAME_WIDTH;
+
+    const c = this.add.container(W + 10, 90).setDepth(150);
+    c.add([
+      this.add.rectangle(0, 0, TOAST_W, TOAST_H, 0x0a1a10, 0.93)
+        .setOrigin(0, 0).setStrokeStyle(1, el.color, 0.8),
+      this.add.rectangle(0, 0, 5, TOAST_H, el.color, 0.9).setOrigin(0, 0),
+      this.add.text(14, 8, plant.name, {
+        fontSize: '13px', fontFamily: 'Georgia, serif',
+        color: hex, stroke: '#0a1a10', strokeThickness: 2,
+      }),
+      this.add.text(14, 26, (plant.narrativeText || '').substring(0, 50) + '…', {
+        fontSize: '9px', fontFamily: 'monospace', color: C.text,
+        wordWrap: { width: TOAST_W - 22 },
+      }),
+      this.add.text(TOAST_W - 8, 8, '+ apanhada', {
+        fontSize: '9px', fontFamily: 'monospace', color: '#E4EF6F',
+      }).setOrigin(1, 0),
+    ]);
+
+    this.tweens.add({ targets: c, x: W - TOAST_W - 12, duration: 320, ease: 'Back.easeOut' });
+    this.time.delayedCall(3600, () => {
+      this.tweens.add({
+        targets: c, x: W + 10, duration: 260, ease: 'Power2.easeIn',
+        onComplete: () => { c.destroy(); this._showNextToast(); },
+      });
+    });
+  }
+
+  // ── Per-frame ─────────────────────────────────────────────────────────────
+  update() { this._updateMinimap(); }
+
+  // ── Refresh ──────────────────────────────────────────────────────────────
   _refresh() {
     this._refreshInventory();
     this._refreshSpell();
-    this._refreshPotionDots();
+    this._updateCauldronDots();
   }
 
   _refreshInventory() {
-    const count = GameState.inventory.length;
-    this._bagTitleText.setText(`MOCHILA  ${count}/6`);
-
+    this.inventoryCount?.setText(`${GameState.inventory.length}/6`);
     this._slots.forEach((s, i) => {
       const plant = GameState.inventory[i];
       if (plant) {
-        const el = ELEMENTS[plant.element] || ELEMENTS.EARTH;
+        const el  = ELEMENTS[plant.element] || ELEMENTS.EARTH;
         const col = plant.isFake ? 0x886688 : el.color;
         s.icon.setFillStyle(col, 0.9).setAlpha(1);
         s.fake.setAlpha(plant.isFake ? 1 : 0);
@@ -375,7 +397,7 @@ export class HUDScene extends Phaser.Scene {
       } else {
         s.icon.setAlpha(0);
         s.fake.setAlpha(0);
-        s.bg.setStrokeStyle(1, 0x3d2b7a, 0.7);
+        s.bg.setStrokeStyle(1, C.dim, 0.7);
       }
     });
   }
@@ -384,157 +406,36 @@ export class HUDScene extends Phaser.Scene {
     const spell = GameState.activeSpell ? SPELLS[GameState.activeSpell] : null;
     if (spell) {
       this.spellGfx.setTexture(spell.textureKey).setAlpha(0.9);
-      this.spellName.setText(spell.name).setColor('#f5e6c8');
-      const p = spell.plants || [];
-      const c1 = p[0] ? (ELEMENTS[PLANTS[p[0]]?.element]?.color ?? 0xffffff) : 0x1a1a2e;
-      const c2 = p[1] ? (ELEMENTS[PLANTS[p[1]]?.element]?.color ?? 0xffffff) : 0x1a1a2e;
-      this.spellPlant1.setFillStyle(c1, p[0] ? 0.85 : 0.2);
-      this.spellPlant2.setFillStyle(c2, p[1] ? 0.85 : 0.2);
-      this.spellLabel.setText(spell.name).setColor('#d0e8f0');
+      this.spellName.setText(spell.name).setColor(C.text);
     } else {
-      this.spellGfx.setAlpha(0.2);
-      this.spellName.setText('—').setColor('#666688');
-      this.spellLabel.setText('—').setColor('#666688');
-      this.spellPlant1.setFillStyle(0x1a1a2e, 0.9);
-      this.spellPlant2.setFillStyle(0x1a1a2e, 0.9);
+      this.spellGfx.setAlpha(0.25);
+      this.spellName.setText('nenhum').setColor(C.label);
     }
-  }
-
-  // ── Toast system ─────────────────────────────────────────────────────────
-  showPlantToast(plantData) {
-    if (!plantData) return;
-    this._toastQueue.push(plantData);
-    if (!this._toastActive) {
-      this._showNextToast();
-    }
-  }
-
-  _showNextToast() {
-    if (!this._toastQueue.length) {
-      this._toastActive = false;
-      return;
-    }
-    this._toastActive = true;
-    const plantData = this._toastQueue.shift();
-    this._displayToast(plantData);
-  }
-
-  _displayToast(plantData) {
-    const W = GAME_WIDTH, H = GAME_HEIGHT;
-    const TOAST_W = 300, TOAST_H = 100;
-    const targetX = W - 320;
-    const toastY = H / 2 - 50;
-    const startX = W + 310;
-
-    const el = (plantData.element && ELEMENTS[plantData.element]) ? ELEMENTS[plantData.element] : ELEMENTS.EARTH;
-    const elColor = el.color;
-    const elColorHex = '#' + elColor.toString(16).padStart(6, '0');
-
-    // Destroy previous toast if any
-    if (this._toastPanel) {
-      this._toastPanel.destroy();
-      this._toastPanel = null;
-    }
-
-    const container = this.add.container(startX, toastY).setDepth(300);
-    this._toastPanel = container;
-
-    // Panel background
-    const bg = this.add.rectangle(0, 0, TOAST_W, TOAST_H, 0x080814, 0.94)
-      .setOrigin(0, 0)
-      .setStrokeStyle(2, elColor, 0.85);
-    container.add(bg);
-
-    // Element badge top-right
-    const elBadge = this.add.text(TOAST_W - 8, 6, el.name.toUpperCase(), {
-      fontSize: '9px', fontFamily: 'monospace', color: elColorHex,
-    }).setOrigin(1, 0);
-    container.add(elBadge);
-
-    // Plant name
-    const nameText = this.add.text(10, 10, plantData.name || plantData.id, {
-      fontSize: '15px', fontFamily: 'Georgia, serif',
-      color: elColorHex, fontStyle: 'bold',
-    }).setOrigin(0, 0);
-    container.add(nameText);
-
-    // Narrative text
-    const narText = this.add.text(10, 32, plantData.narrativeText || '', {
-      fontSize: '11px', fontFamily: 'Georgia, serif',
-      color: '#c8b8e8', fontStyle: 'italic',
-      wordWrap: { width: TOAST_W - 20 },
-      lineSpacing: 3,
-    }).setOrigin(0, 0);
-    container.add(narText);
-
-    // Slide in + fade in
-    this.tweens.add({
-      targets: container,
-      x: targetX,
-      alpha: { from: 0, to: 1 },
-      duration: 380,
-      ease: 'Power2.easeOut',
-      onComplete: () => {
-        // Hold for 5 seconds then slide out
-        this.time.delayedCall(5000, () => {
-          this.tweens.add({
-            targets: container,
-            x: W + 310,
-            alpha: 0,
-            duration: 380,
-            ease: 'Power2.easeIn',
-            onComplete: () => {
-              container.destroy();
-              if (this._toastPanel === container) this._toastPanel = null;
-              this._showNextToast();
-            },
-          });
-        });
-      },
-    });
   }
 
   // ── Event handlers ────────────────────────────────────────────────────────
   _onPlantCollected(plantData) {
     this._refresh();
-    if (plantData) {
-      this.showPlantToast(plantData);
-    }
+    if (plantData) { this.showPlantToast(plantData); this._rebuildPlantDots(); }
     if (GameState.spellJustUnlocked) {
-      const spell = SPELLS[GameState.spellJustUnlocked];
-      this._showUnlock(`Feitiço desbloqueado!\n${spell.name}`);
+      this._showUnlock(`Feitico desbloqueado!\n${SPELLS[GameState.spellJustUnlocked].name}`);
       GameState.spellJustUnlocked = null;
     }
-    // Brief minimap flash
-    this._flashMinimap();
   }
 
-  _flashMinimap() {
-    this.tweens.add({
-      targets: this.mmBorder,
-      alpha: { from: 1, to: 0.4 },
-      duration: 600,
-      yoyo: true,
-    });
-  }
-
-  _onPlantStolen()  { this._refreshInventory(); this._refreshPotionDots(); }
-  _onSpellCast()    {
-    this._refreshSpell();
-    this.tweens.add({ targets: this.spellGfx, scale: { from: 1, to: 1.4 }, duration: 180, yoyo: true });
-  }
+  _onPlantStolen()  { this._refreshInventory(); this._updateCauldronDots(); this._rebuildPlantDots(); }
+  _onSpellCast()    { this._refreshSpell(); this.tweens.add({ targets: this.spellGfx, scale: { from: 1, to: 1.5 }, duration: 180, yoyo: true }); }
 
   _showNarrative(text, duration = 4000) {
     if (this._narrativeTimer) this._narrativeTimer.remove();
     this.tweens.killTweensOf(this.narrativeText);
-    this.narrativePanel.setFillStyle(0x080810, 0.7);
     this.narrativeText.setText(text);
     this.tweens.add({
       targets: this.narrativeText, alpha: 1, duration: 280,
       onComplete: () => {
-        this._narrativeTimer = this.time.delayedCall(duration, () => {
-          this.tweens.add({ targets: [this.narrativeText, this.narrativePanel], alpha: 0, duration: 500 });
-        });
+        this._narrativeTimer = this.time.delayedCall(duration, () =>
+          this.tweens.add({ targets: this.narrativeText, alpha: 0, duration: 500 })
+        );
       },
     });
   }
@@ -542,18 +443,16 @@ export class HUDScene extends Phaser.Scene {
   _showUnlock(msg) {
     this.unlockBanner.setText(msg).setAlpha(0).setY(GAME_HEIGHT / 2);
     this.tweens.add({
-      targets: this.unlockBanner, alpha: 1, y: GAME_HEIGHT / 2 - 12,
+      targets: this.unlockBanner, alpha: 1, y: GAME_HEIGHT / 2 - 14,
       duration: 380, ease: 'Back.easeOut',
-      onComplete: () => {
-        this.time.delayedCall(2600, () =>
-          this.tweens.add({ targets: this.unlockBanner, alpha: 0, duration: 500 })
-        );
-      },
+      onComplete: () => this.time.delayedCall(2600, () =>
+        this.tweens.add({ targets: this.unlockBanner, alpha: 0, duration: 500 })
+      ),
     });
   }
 
   _updateArea(name) {
     this.areaLabel.setText(name);
-    this.tweens.add({ targets: this.areaLabel, alpha: { from: 1, to: 0.8 }, duration: 1200 });
+    this.tweens.add({ targets: this.areaLabel, alpha: { from: 1, to: 0.85 }, duration: 1200 });
   }
 }

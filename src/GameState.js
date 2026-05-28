@@ -18,6 +18,7 @@ class GameStateManager {
     // Player world position (updated each frame by active zone scene)
     this.playerX = 420;
     this.playerY = 1200;
+    this.plantSpawns = [];
   }
 
   addPlant(plantData) {

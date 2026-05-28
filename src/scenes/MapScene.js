@@ -380,7 +380,12 @@ export class MapScene extends Phaser.Scene {
     const zone = GameState.currentZone || 'Zone1';
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start(zone);
+      if (this.scene.isPaused(zone)) {
+        this.scene.resume(zone);
+        this.scene.stop();
+      } else {
+        this.scene.start(zone);
+      }
     });
   }
 }
