@@ -1,0 +1,353 @@
+import Phaser from 'phaser';
+import { WORLD_WIDTH, WORLD_HEIGHT, PLAYER_INTERACTION_RADIUS } from '../config.js';
+import { GameState } from '../GameState.js';
+import { PLANTS } from '../data/plants.js';
+import { SPELLS } from '../data/spells.js';
+import { Player } from '../objects/Player.js';
+import { Plant } from '../objects/Plant.js';
+import { Creature } from '../objects/Creature.js';
+import { Portal } from '../objects/Portal.js';
+
+const PLANT_SPAWNS = [
+  { id: 'sombravinha',  x: 900,  y: 1100 },
+  { id: 'sussurreira', x: 500,  y: 700  },
+  { id: 'faisca_mato', x: 1600, y: 900  },
+  { id: 'lunaria_negra', x: 2700, y: 500  }, // near cauldron path
+];
+
+const AREAS = {
+  bosque:     { label: 'Bosque da Confusão',       minX: 0,    maxX: 1200 },
+  vale:       { label: 'Vale dos Espelhos Partidos', minX: 1200, maxX: 2400 },
+  chuvaria:   { label: 'Campo da Chuvária',         minX: 2400, maxX: 3200 },
+};
+
+export class Zone3Scene extends Phaser.Scene {
+  constructor() { super('Zone3'); }
+
+  create() {
+    GameState.currentZone = 'Zone3';
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    this._buildBackground();
+
+    this.player = new Player(this, 400, 1200);
+    this._buildPlants();
+    this._buildCreatures();
+    this._buildPortals();
+
+    // Fireflies (dim, eerie)
+    this.add.particles(0, 0, 'firefly', {
+      x: { min: 0, max: WORLD_WIDTH },
+      y: { min: 0, max: WORLD_HEIGHT },
+      lifespan: { min: 1500, max: 3500 },
+      speed: { min: 3, max: 12 },
+      scale: { start: 0.5, end: 0 },
+      alpha: { start: 0.4, end: 0 },
+      tint: [0xb39ddb, 0x9575cd, 0xffffff],
+      quantity: 1, frequency: 500,
+      blendMode: 'ADD',
+    }).setDepth(7);
+
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasd = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
+    });
+    this.keyE     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+
+    if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
+
+    this._nearPlant  = null;
+    this._nearPortal = null;
+    this._currentArea = '';
+    this._spellCooldown = 0;
+
+    // Sombravinha special tracking
+    this._sombraTrigger = null;
+
+    this.cameras.main.fadeIn(800, 0, 0, 0);
+    this.game.events.on('plantStolen', this._onPlantStolen, this);
+
+    this.time.delayedCall(900, () => {
+      this._emitNarrative('Os terrenos das sombras. Algo observa-te daqui. Vai devagar, ou para completamente.');
+    });
+  }
+
+  _buildBackground() {
+    const g = this.add.graphics();
+    if (this.textures.exists('bg_zone3')) {
+      this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'bg_zone3').setOrigin(0).setDepth(0);
+      g.fillStyle(0x030608, 0.6); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    } else {
+      g.fillStyle(0x04050c, 1); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    }
+    g.setDepth(1);
+
+    // Misty patches
+    for (let i = 0; i < 12; i++) {
+      g.fillStyle(0x6a5acd, 0.04);
+      g.fillEllipse(
+        Phaser.Math.Between(100, 3100),
+        Phaser.Math.Between(100, 2300),
+        Phaser.Math.Between(200, 500),
+        Phaser.Math.Between(100, 300)
+      );
+    }
+
+    // Dark twisted trees
+    const darkColors = [0x1a0a2e, 0x0d0014, 0x1a1010, 0x0a1a0a];
+    for (let i = 0; i < 28; i++) {
+      const c = darkColors[Math.floor(Math.random() * darkColors.length)];
+      const x = Phaser.Math.Between(50, 3150);
+      const y = Phaser.Math.Between(50, 2350);
+      const r = 25 + Math.random() * 55;
+      this.add.circle(x, y, r, c, 0.85).setDepth(2);
+    }
+
+    [
+      { x: 600,  y: 200, text: 'Bosque da Confusão'       },
+      { x: 1800, y: 200, text: 'Vale dos Espelhos'        },
+      { x: 2800, y: 200, text: 'Campo da Chuvária'        },
+    ].forEach(({ x, y, text }) => {
+      this.add.text(x, y, text, {
+        fontSize: '19px', fontFamily: 'Georgia, serif',
+        color: '#ffffff', stroke: '#000', strokeThickness: 3,
+      }).setOrigin(0.5).setAlpha(0.2).setDepth(3);
+    });
+  }
+
+  _buildPlants() {
+    this.plants = [];
+    this._sombraPlant = null;
+
+    PLANT_SPAWNS.forEach(({ id, x, y }) => {
+      if (GameState.collected.has(id)) return;
+      const data = PLANTS[id];
+      if (!data) return;
+      const p = new Plant(this, x, y, data);
+      // Sombravinha starts invisible
+      if (id === 'sombravinha') {
+        p.isVisible = false;
+        p.setAlpha(0);
+        this._sombraPlant = p;
+      }
+      this.plants.push(p);
+    });
+  }
+
+  _buildCreatures() {
+    this.ecos = [];
+    // Create 2 Eco creatures
+    for (let i = 0; i < 2; i++) {
+      const eco = new Creature(this, 800 + i * 600, 1400, 'creature_eco', {
+        type: 'eco',
+        followRange: 350,
+        stealThreshold: 4000,
+        speed: 65,
+      });
+      this.ecos.push(eco);
+    }
+  }
+
+  _buildPortals() {
+    this.portalBack = new Portal(this, 200, 400, {
+      portalId: 'zone3_back',
+      destination: 'Zone2',
+      locked: false,
+    });
+
+    const cauldronUnlocked = GameState.checkCauldronUnlock();
+    this.portalCauldron = new Portal(this, 3050, 500, {
+      portalId: 'zone3_cauldron',
+      destination: 'Cauldron',
+      locked: !cauldronUnlocked,
+    });
+
+    // Dense fireflies cluster near cauldron portal (hint)
+    this.add.particles(0, 0, 'firefly', {
+      x: { min: 2900, max: 3150 },
+      y: { min: 350, max: 650 },
+      lifespan: { min: 2000, max: 4000 },
+      speed: { min: 6, max: 22 },
+      scale: { start: 1, end: 0 },
+      alpha: { start: 0.9, end: 0 },
+      quantity: 2, frequency: 120,
+      blendMode: 'ADD',
+    }).setDepth(7);
+
+    this._portals = [this.portalBack, this.portalCauldron];
+  }
+
+  update(time, delta) {
+    this.player.update(this.cursors, this.wasd, this.keyShift, delta);
+    this.ecos.forEach(e => e.update(this.player, delta, GameState));
+
+    this._checkAreaChange();
+    this._checkPlantProximity(time, delta);
+    this._checkPortalProximity();
+    this._handleKeys(time, delta);
+    this._updateSombravinha(delta);
+    this._checkZoneUnlocks();
+
+    if (this._spellCooldown > 0) this._spellCooldown -= delta;
+  }
+
+  _checkAreaChange() {
+    const px = this.player.x;
+    let area = 'bosque';
+    if (px >= 2400) area = 'chuvaria';
+    else if (px >= 1200) area = 'vale';
+    if (area !== this._currentArea) {
+      this._currentArea = area;
+      this.game.events.emit('areaChanged', AREAS[area].label);
+    }
+  }
+
+  _checkPlantProximity(time, delta) {
+    this._nearPlant = null;
+    this.plants.forEach(p => {
+      if (p.isCollected || !p.isVisible) return;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, p.x, p.y);
+      p.showHint(dist < PLAYER_INTERACTION_RADIUS);
+      if (dist < PLAYER_INTERACTION_RADIUS) this._nearPlant = p;
+    });
+  }
+
+  _updateSombravinha(delta) {
+    if (!this._sombraPlant || this._sombraPlant.isCollected) return;
+    const dist = Phaser.Math.Distance.Between(
+      this.player.x, this.player.y,
+      this._sombraPlant.x, this._sombraPlant.y
+    );
+    if (dist > 400) return; // too far
+
+    // "Facing away" = player moving in opposite direction of plant
+    const toPx = this._sombraPlant.x - this.player.x;
+    const toPy = this._sombraPlant.y - this.player.y;
+    const facingAngle = this.player.facingAngle;
+    const dotProduct = Math.cos(facingAngle) * toPx + Math.sin(facingAngle) * toPy;
+    const facingAway = dotProduct < -50; // player faces away from plant
+
+    const stillEnough = this.player.recentSpeed < 30;
+    this._sombraPlant.updateSombraState(facingAway && stillEnough, delta);
+  }
+
+  _checkPortalProximity() {
+    this._nearPortal = null;
+    this._portals.forEach(portal => {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, portal.x, portal.y);
+      const near = dist < 65;
+      portal.showHint(near);
+      if (near) this._nearPortal = portal;
+    });
+  }
+
+  _handleKeys(time, delta) {
+    if (Phaser.Input.Keyboard.JustDown(this.keyE)) this._handleInteract(time);
+    if (Phaser.Input.Keyboard.JustDown(this.keySpace) && this._spellCooldown <= 0) this._castSpell();
+    if (Phaser.Input.Keyboard.JustDown(this.keyQ)) {
+      GameState.cycleSpell();
+      this.game.events.emit('spellCast', GameState.activeSpell);
+    }
+  }
+
+  _handleInteract(time) {
+    if (this._nearPortal) { this._usePortal(this._nearPortal); return; }
+    if (!this._nearPlant) return;
+
+    const plant = this._nearPlant;
+    const method = plant.plantData.collectMethod;
+
+    if (method === 'wait') {
+      if (plant._sombraVisible) {
+        this._collectPlant(plant);
+      } else {
+        this._emitNarrative('Vira as costas e espera. Deixa de a procurar…');
+      }
+    } else if (method === 'brave') {
+      this._emitNarrative('Coragem!');
+      this.time.delayedCall(300, () => this._collectPlant(plant));
+    } else {
+      this._collectPlant(plant);
+    }
+  }
+
+  _castSpell() {
+    if (!GameState.activeSpell) return;
+    this._spellCooldown = 1200;
+    const spellDef = SPELLS[GameState.activeSpell];
+    const fx = this.add.image(this.player.x, this.player.y, spellDef.textureKey)
+      .setDisplaySize(50, 50).setAlpha(0.9).setDepth(50).setBlendMode('ADD');
+    this.tweens.add({
+      targets: fx, scale: 4, alpha: 0, duration: 700,
+      onComplete: () => fx.destroy(),
+    });
+    this.game.events.emit('spellCast', GameState.activeSpell);
+
+    if (GameState.activeSpell === 'passo_invisivel') {
+      this.player.makeInvisible(4000);
+      this.ecos.forEach(e => e.repel(this.player.x, this.player.y));
+      this._emitNarrative('O Passo Invisível faz-te desaparecer por momentos…');
+    }
+  }
+
+  _collectPlant(plant) {
+    if (plant.isCollected) return;
+    if (!GameState.addPlant(plant.plantData)) {
+      this._emitNarrative('A mochila está cheia!');
+      return;
+    }
+    plant.collect();
+    this.plants = this.plants.filter(p => {
+      if (p !== plant && p.plantData.id === plant.plantData.id) { p.destroy(); return false; }
+      return p !== plant;
+    });
+    this._emitNarrative(plant.plantData.narrativeText, 4500);
+    this.game.events.emit('plantCollected', plant.plantData);
+
+    if (GameState.checkCauldronUnlock() && !GameState.isZoneUnlocked('Cauldron')) {
+      GameState.unlockZone('Cauldron');
+      this.portalCauldron?.unlock();
+      this.time.delayedCall(5500, () =>
+        this._emitNarrative('Tens todas as plantas! O caldeirão aguarda-te no fim do jardim. Segue os vagalumes!')
+      );
+    }
+  }
+
+  _usePortal(portal) {
+    if (portal.isLocked) {
+      this._emitNarrative('Precisas de todas as 5 plantas essenciais para chegar ao caldeirão.');
+      return;
+    }
+    this.cameras.main.fadeOut(700, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.game.events.off('plantStolen', this._onPlantStolen, this);
+      this.scene.start(portal.destination);
+    });
+  }
+
+  _checkZoneUnlocks() {
+    if (GameState.checkCauldronUnlock() && !GameState.isZoneUnlocked('Cauldron')) {
+      GameState.unlockZone('Cauldron');
+      this.portalCauldron?.unlock();
+    }
+  }
+
+  _emitNarrative(text, dur = 3500) {
+    this.game.events.emit('showNarrative', text, dur);
+  }
+
+  _onPlantStolen(plant) {
+    this._emitNarrative(`Os Ecos trocaram a ${plant.name} por uma cópia falsa!`, 4000);
+  }
+
+  shutdown() {
+    this.game.events.off('plantStolen', this._onPlantStolen, this);
+  }
+}

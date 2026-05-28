@@ -1,0 +1,327 @@
+import Phaser from 'phaser';
+import { WORLD_WIDTH, WORLD_HEIGHT, PLAYER_INTERACTION_RADIUS } from '../config.js';
+import { GameState } from '../GameState.js';
+import { PLANTS } from '../data/plants.js';
+import { SPELLS } from '../data/spells.js';
+import { Player } from '../objects/Player.js';
+import { Plant } from '../objects/Plant.js';
+import { Creature } from '../objects/Creature.js';
+import { Portal } from '../objects/Portal.js';
+
+// Zone 2 areas
+const AREAS = {
+  pantanos:     { label: 'Pântanos',            minX: 0,    maxX: 900  },
+  jardimSelvagem: { label: 'Jardim Selvagem',   minX: 900,  maxX: 1800 },
+  capinzal:     { label: 'Capinzal',            minX: 1800, maxX: 2500 },
+  planalto:     { label: 'Planalto dos Furacões', minX: 2500, maxX: 3200 },
+};
+
+const PLANT_SPAWNS = [
+  { id: 'ninfaria',      x: 340,  y: 900  },
+  { id: 'gotateia',      x: 160,  y: 1200 },
+  { id: 'espinhosa_doce', x: 1050, y: 700  },
+  { id: 'craveira',      x: 1300, y: 1400 },
+  { id: 'bocarra',       x: 1950, y: 600  },
+  { id: 'tezaluz',       x: 2100, y: 1100 },
+  { id: 'aurorabromelia', x: 2800, y: 800  },
+];
+
+const TREE_COLORS = [0x1a3a2a, 0x0d3020, 0x2a1a08, 0x182a10];
+const TREE_POS = [
+  {x:80,y:200},{x:200,y:80},{x:400,y:300},{x:120,y:600},{x:350,y:1600},
+  {x:700,y:250},{x:800,y:900},{x:600,y:1400},{x:1100,y:350},{x:1200,y:1200},
+  {x:1400,y:600},{x:1600,y:1800},{x:1900,y:400},{x:2000,y:1400},{x:2200,y:800},
+  {x:2400,y:1600},{x:2600,y:300},{x:2700,y:1100},{x:2900,y:700},{x:3050,y:1500},
+];
+
+export class Zone2Scene extends Phaser.Scene {
+  constructor() { super('Zone2'); }
+
+  create() {
+    GameState.currentZone = 'Zone2';
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+    this._buildBackground();
+
+    this.player = new Player(this, 420, 1200);
+    this._buildPlants();
+    this._buildCreature();
+    this._buildPortals();
+
+    // Firefly particles (sparse)
+    this.add.particles(0, 0, 'firefly', {
+      x: { min: 0, max: WORLD_WIDTH },
+      y: { min: 0, max: WORLD_HEIGHT },
+      lifespan: { min: 2000, max: 4000 },
+      speed: { min: 5, max: 20 },
+      scale: { start: 0.7, end: 0 },
+      alpha: { start: 0.6, end: 0 },
+      quantity: 1, frequency: 400,
+      blendMode: 'ADD',
+    }).setDepth(7);
+
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasd = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
+    });
+    this.keyE     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+
+    if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
+
+    this._nearPlant  = null;
+    this._nearPortal = null;
+    this._currentArea = '';
+    this._spellCooldown = 0;
+
+    this.cameras.main.fadeIn(800, 0, 0, 0);
+    this.game.events.on('plantStolen', this._onPlantStolen, this);
+
+    this.time.delayedCall(900, () => {
+      this._emitNarrative('A floresta densa esconde segredos mais profundos. Avança com coragem.');
+    });
+  }
+
+  _buildBackground() {
+    const g = this.add.graphics();
+    if (this.textures.exists('bg_zone2')) {
+      this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'bg_zone2').setOrigin(0).setDepth(0);
+      g.fillStyle(0x071208, 0.5); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    } else {
+      g.fillStyle(0x061210, 1); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    }
+    g.setDepth(1);
+
+    // Swamp water in Pântanos area
+    g.fillStyle(0x0d2018, 0.6);
+    g.fillEllipse(400, 1100, 500, 300);
+    g.fillEllipse(250, 1500, 350, 200);
+    g.fillStyle(0x1a3a28, 0.4);
+    g.fillEllipse(450, 1150, 460, 260);
+
+    TREE_POS.forEach(({ x, y }) => {
+      const c = TREE_COLORS[Math.floor(Math.random() * TREE_COLORS.length)];
+      const r = 30 + Math.random() * 50;
+      this.add.circle(x, y, r, c, 0.8).setDepth(2);
+      this.add.circle(x + 10, y + r * 0.3, r * 0.6, c, 0.5).setDepth(2);
+    });
+
+    [
+      { x: 550, y: 200,  text: 'Pântanos'        },
+      { x: 1350, y: 200, text: 'Jardim Selvagem' },
+      { x: 2150, y: 200, text: 'Capinzal'        },
+      { x: 2850, y: 200, text: 'Planalto'        },
+    ].forEach(({ x, y, text }) => {
+      this.add.text(x, y, text, {
+        fontSize: '20px', fontFamily: 'Georgia, serif',
+        color: '#ffffff', stroke: '#000', strokeThickness: 3,
+      }).setOrigin(0.5).setAlpha(0.22).setDepth(3);
+    });
+  }
+
+  _buildPlants() {
+    this.plants = [];
+    PLANT_SPAWNS.forEach(({ id, x, y }) => {
+      if (GameState.collected.has(id)) return;
+      const data = PLANTS[id];
+      if (!data) return;
+      this.plants.push(new Plant(this, x, y, data));
+    });
+  }
+
+  _buildCreature() {
+    this.creature = new Creature(this, 1200, 900, 'creature_bocarra', {
+      type: 'bocarra',
+      followRange: 400,
+      stealThreshold: 3500,
+      speed: 70,
+    });
+  }
+
+  _buildPortals() {
+    // Portal in Capinzal
+    this.portalBack = new Portal(this, 200, 400, {
+      portalId: 'zone2_back',
+      destination: 'Zone1',
+      locked: false,
+    });
+
+    // Portal in Jardim Selvagem
+    this.portalForward = new Portal(this, 2200, 600, {
+      portalId: 'zone2_forward',
+      destination: 'Zone3',
+      locked: !GameState.isZoneUnlocked('Zone3'),
+    });
+
+    this._portals = [this.portalBack, this.portalForward];
+  }
+
+  update(time, delta) {
+    this.player.update(this.cursors, this.wasd, this.keyShift, delta);
+    this.creature.update(this.player, delta, GameState);
+
+    this._checkAreaChange();
+    this._checkPlantProximity(time);
+    this._checkPortalProximity();
+    this._handleKeys(time, delta);
+    this._checkZoneUnlocks();
+
+    if (this._spellCooldown > 0) this._spellCooldown -= delta;
+  }
+
+  _checkAreaChange() {
+    const px = this.player.x;
+    let area = 'pantanos';
+    if (px >= 2500) area = 'planalto';
+    else if (px >= 1800) area = 'capinzal';
+    else if (px >= 900) area = 'jardimSelvagem';
+
+    if (area !== this._currentArea) {
+      this._currentArea = area;
+      this.game.events.emit('areaChanged', AREAS[area].label);
+    }
+  }
+
+  _checkPlantProximity(time) {
+    this._nearPlant = null;
+    this.plants.forEach(p => {
+      if (p.isCollected || !p.isVisible) return;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, p.x, p.y);
+      p.showHint(dist < PLAYER_INTERACTION_RADIUS);
+      if (dist < PLAYER_INTERACTION_RADIUS) this._nearPlant = p;
+    });
+  }
+
+  _checkPortalProximity() {
+    this._nearPortal = null;
+    this._portals.forEach(portal => {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, portal.x, portal.y);
+      const near = dist < 65;
+      portal.showHint(near);
+      if (near) this._nearPortal = portal;
+    });
+  }
+
+  _handleKeys(time, delta) {
+    if (Phaser.Input.Keyboard.JustDown(this.keyE)) this._handleInteract(time);
+    if (Phaser.Input.Keyboard.JustDown(this.keySpace) && this._spellCooldown <= 0) this._castSpell();
+    if (Phaser.Input.Keyboard.JustDown(this.keyQ)) {
+      GameState.cycleSpell();
+      this.game.events.emit('spellCast', GameState.activeSpell);
+    }
+  }
+
+  _handleInteract(time) {
+    if (this._nearPortal) { this._usePortal(this._nearPortal); return; }
+    if (!this._nearPlant) return;
+
+    const plant = this._nearPlant;
+    const method = plant.plantData.collectMethod;
+
+    if (method === 'brave') {
+      // Visual hesitation then collect
+      this._emitNarrative('Coragem… e apanhas!');
+      this.time.delayedCall(300, () => this._collectPlant(plant));
+    } else if (method === 'shake') {
+      const ready = plant.shake(time);
+      if (ready) {
+        this._collectPlant(plant);
+      } else {
+        this._emitNarrative(`Sacude mais ${5 - plant.shakeCount} vezes…`);
+      }
+    } else {
+      this._collectPlant(plant);
+    }
+  }
+
+  _castSpell() {
+    if (!GameState.activeSpell) return;
+    this._spellCooldown = 1200;
+    const spellDef = SPELLS[GameState.activeSpell];
+    const fx = this.add.image(this.player.x, this.player.y, spellDef.textureKey)
+      .setDisplaySize(50, 50).setAlpha(0.9).setDepth(50).setBlendMode('ADD');
+    this.tweens.add({
+      targets: fx, scale: 4, alpha: 0, duration: 700,
+      ease: 'Power2.easeOut', onComplete: () => fx.destroy(),
+    });
+    this.game.events.emit('spellCast', GameState.activeSpell);
+
+    if (GameState.activeSpell === 'raiz_ardente') {
+      const d = Phaser.Math.Distance.Between(
+        this.player.x, this.player.y, this.creature.x, this.creature.y
+      );
+      if (d < 280) {
+        this.creature.repel(this.player.x, this.player.y);
+        this._emitNarrative('A Raiz Ardente prendeu a criatura!');
+      }
+    }
+  }
+
+  _collectPlant(plant) {
+    if (plant.isCollected) return;
+    if (!GameState.addPlant(plant.plantData)) {
+      this._emitNarrative('A mochila está cheia!');
+      return;
+    }
+    plant.collect();
+    this.plants = this.plants.filter(p => {
+      if (p !== plant && p.plantData.id === plant.plantData.id) { p.destroy(); return false; }
+      return p !== plant;
+    });
+    this._emitNarrative(plant.plantData.narrativeText, 4000);
+    this.game.events.emit('plantCollected', plant.plantData);
+
+    if (!GameState.isZoneUnlocked('Zone3') && GameState.checkZone3Unlock()) {
+      GameState.unlockZone('Zone3');
+      this.portalForward.unlock();
+      this.time.delayedCall(5000, () =>
+        this._emitNarrative('Os terrenos das sombras estão acessíveis! Usa o portal avançado.')
+      );
+    }
+  }
+
+  _usePortal(portal) {
+    const dest = portal.destination;
+    if (portal.isLocked) {
+      this._emitNarrative(
+        dest === 'Zone3'
+          ? 'Precisas de Ninfária, Aurorabromélia, Tezaluz, Espinhosa-doce e Craveira.'
+          : 'Portal bloqueado.'
+      );
+      return;
+    }
+    this.cameras.main.fadeOut(700, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.game.events.off('plantStolen', this._onPlantStolen, this);
+      this.scene.start(dest);
+    });
+  }
+
+  _checkZoneUnlocks() {
+    if (!GameState.isZoneUnlocked('Zone3') && GameState.checkZone3Unlock()) {
+      GameState.unlockZone('Zone3');
+      this.portalForward?.unlock();
+    }
+    if (GameState.checkCauldronUnlock() && !GameState.isZoneUnlocked('Cauldron')) {
+      GameState.unlockZone('Cauldron');
+    }
+  }
+
+  _emitNarrative(text, dur = 3500) {
+    this.game.events.emit('showNarrative', text, dur);
+  }
+
+  _onPlantStolen(plant) {
+    this._emitNarrative(`A Bocarra engoliu a ${plant.name}!`, 4000);
+  }
+
+  shutdown() {
+    this.game.events.off('plantStolen', this._onPlantStolen, this);
+  }
+}

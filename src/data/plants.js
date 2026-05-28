@@ -1,0 +1,150 @@
+export const PLANTS = {
+  // ── Zone 1 ──────────────────────────────────────────────────────────────
+  ventoinha: {
+    id: 'ventoinha',
+    name: 'Ventoinha-branca',
+    element: 'AIR',
+    zone: 1,
+    essential: false,
+    collectMethod: 'fast', // approach quickly (shift/run)
+    narrativeText: 'É ventania, redemoinho, furacão, tempestade. Nunca desampara, combina com a planta de água para vencer o fogo.',
+    unsplashId: 'photo-1490750967868-88df5691cc5f',
+  },
+  gotateia: {
+    id: 'gotateia',
+    name: 'Gotateia',
+    element: 'WATER',
+    zone: 1,
+    essential: false,
+    collectMethod: 'shake', // press E rapidly 5×
+    narrativeText: 'A água vence pela persistência. Continue.',
+    unsplashId: 'photo-1508193638397-1c4234db14d8',
+  },
+  farfalha: {
+    id: 'farfalha',
+    name: 'Farfalha',
+    element: 'FIRE',
+    zone: 1,
+    essential: true,
+    collectMethod: 'spell', // needs Brisa Molhada active
+    requiredSpell: 'brisa_molhada',
+    narrativeText: 'O fogo também é energia. Respira, bruxinha, você está no caminho.',
+    unsplashId: 'photo-1561615098504-2c1a2b0a6e19',
+  },
+  trepadeira: {
+    id: 'trepadeira',
+    name: 'Trepadeira-viva',
+    element: 'EARTH',
+    zone: 1,
+    essential: false,
+    collectMethod: 'climb', // climb vine at Limiar Secreto entrance
+    narrativeText: 'Explorar é o caminho. Para cima, para baixo, olhe ao seu redor. A terra respira.',
+    unsplashId: 'photo-1416879595882-3373a0480b5b',
+  },
+
+  // ── Zone 2 ──────────────────────────────────────────────────────────────
+  tezaluz: {
+    id: 'tezaluz',
+    name: 'Tezaluz',
+    element: 'FIRE',
+    zone: 2,
+    essential: false,
+    collectMethod: 'interact',
+    narrativeText: 'A luz do fogo guia, mas também queima. Aprende a diferença.',
+    unsplashId: 'photo-1515488764276-beab7607c1e6',
+  },
+  espinhosa_doce: {
+    id: 'espinhosa_doce',
+    name: 'Espinhosa-doce',
+    element: 'EARTH',
+    zone: 2,
+    essential: false,
+    collectMethod: 'brave', // approach something scary-looking
+    narrativeText: 'O que parece ferir, às vezes, protege. A terra sabe.',
+    unsplashId: 'photo-1561828995-aa79a2db86dd',
+  },
+  ninfaria: {
+    id: 'ninfaria',
+    name: 'Ninfária',
+    element: 'WATER',
+    zone: 2,
+    essential: true,
+    collectMethod: 'interact',
+    narrativeText: 'As águas paradas guardam os maiores segredos. Espera.',
+    unsplashId: 'photo-1558618666-fcd25c85cd64',
+  },
+  aurorabromelia: {
+    id: 'aurorabromelia',
+    name: 'Aurorabromélia',
+    element: 'AIR',
+    zone: 2,
+    essential: true,
+    collectMethod: 'interact',
+    narrativeText: 'Cada amanhecer traz novas possibilidades. O ar renova.',
+    unsplashId: 'photo-1572197883814-f7eb9d1d2900',
+  },
+  craveira: {
+    id: 'craveira',
+    name: 'Craveira',
+    element: 'EARTH',
+    zone: 2,
+    essential: false,
+    collectMethod: 'interact',
+    narrativeText: 'As raízes mais profundas sustentam as flores mais altas.',
+    unsplashId: 'photo-1533616688419-b7a585564566',
+  },
+  bocarra: {
+    id: 'bocarra',
+    name: 'Bocarra',
+    element: 'AIR',
+    zone: 2,
+    essential: false,
+    collectMethod: 'interact',
+    narrativeText: 'Cuidado com as bocas que falam muito. Preferem engolir.',
+    unsplashId: 'photo-1563013544-824ae1b704d3',
+  },
+
+  // ── Zone 3 ──────────────────────────────────────────────────────────────
+  sombravinha: {
+    id: 'sombravinha',
+    name: 'Sombravinha',
+    element: 'EARTH',
+    zone: 3,
+    essential: true,
+    collectMethod: 'wait', // face away + stand still
+    narrativeText: 'Esperaste. A maioria não espera. Eu apareci porque deixaste de me procurar.',
+    unsplashId: 'photo-1516476892398-bdcab4c8dab8',
+  },
+  sussurreira: {
+    id: 'sussurreira',
+    name: 'Sussurreira',
+    element: 'AIR',
+    zone: 3,
+    essential: false,
+    collectMethod: 'interact',
+    narrativeText: 'Ouve com atenção. O jardim sempre falou — nem sempre foste capaz de ouvir.',
+    unsplashId: 'photo-1468327768560-75b778cbb551',
+  },
+  faisca_mato: {
+    id: 'faisca_mato',
+    name: 'Faísca-do-mato',
+    element: 'FIRE',
+    zone: 3,
+    essential: false,
+    collectMethod: 'brave',
+    narrativeText: 'A coragem é uma faísca que precisa de ser alimentada.',
+    unsplashId: 'photo-1559827291-72ee739d0d9a',
+  },
+  lunaria_negra: {
+    id: 'lunaria_negra',
+    name: 'Lunária Negra',
+    element: 'SPECIAL',
+    zone: 3,
+    essential: true,
+    collectMethod: 'interact',
+    narrativeText: 'Sou a última. A avó colocou-me aqui de propósito. Põe-me por último. Sempre.',
+    unsplashId: 'photo-1541233349642-f1295df5d41e',
+  },
+};
+
+export const ESSENTIAL_ORDER = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
