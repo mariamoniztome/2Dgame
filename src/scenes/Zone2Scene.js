@@ -7,6 +7,7 @@ import { Player } from '../objects/Player.js';
 import { Plant } from '../objects/Plant.js';
 import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
+import { SoundManager } from '../SoundManager.js';
 
 // Zone 2 areas
 const AREAS = {
@@ -88,6 +89,7 @@ export class Zone2Scene extends Phaser.Scene {
     this._spellCooldown  = 0;
     this._proximityTimer = 0;
     this._timedPlant     = null;
+    this._footTimer      = 0;
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
     this.game.events.on('plantStolen', this._onPlantStolen, this);
@@ -121,17 +123,6 @@ export class Zone2Scene extends Phaser.Scene {
       this.add.circle(x + 10, y + r * 0.3, r * 0.6, c, 0.5).setDepth(2);
     });
 
-    [
-      { x: 550, y: 200,  text: 'Pântanos'        },
-      { x: 1350, y: 200, text: 'Jardim Selvagem' },
-      { x: 2150, y: 200, text: 'Capinzal'        },
-      { x: 2850, y: 200, text: 'Planalto'        },
-    ].forEach(({ x, y, text }) => {
-      this.add.text(x, y, text, {
-        fontSize: '20px', fontFamily: 'Georgia, serif',
-        color: '#ffffff', stroke: '#000', strokeThickness: 3,
-      }).setOrigin(0.5).setAlpha(0.22).setDepth(3);
-    });
   }
 
   _buildPlants() {
@@ -183,6 +174,7 @@ export class Zone2Scene extends Phaser.Scene {
     this._checkPlantProximity(time, delta);
     this._checkPortalProximity();
     this._handleKeys(time, delta);
+    this._updateFootsteps(delta);
     this._checkZoneUnlocks();
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
@@ -249,6 +241,7 @@ export class Zone2Scene extends Phaser.Scene {
       this.game.events.emit('spellCast', GameState.activeSpell);
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
+      SoundManager.mapToggle(true);
       this.scene.pause();
       this.scene.launch('Map');
     }
@@ -262,6 +255,7 @@ export class Zone2Scene extends Phaser.Scene {
     const method = plant.plantData.collectMethod;
 
     if (method === 'shake') {
+      SoundManager.shake();
       const ready = plant.shake(time);
       if (ready) {
         this._collectPlant(plant);
@@ -329,6 +323,7 @@ export class Zone2Scene extends Phaser.Scene {
       );
       return;
     }
+    SoundManager.portal();
     this.cameras.main.fadeOut(700, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.game.events.off('plantStolen', this._onPlantStolen, this);
@@ -343,6 +338,16 @@ export class Zone2Scene extends Phaser.Scene {
     }
     if (GameState.checkCauldronUnlock() && !GameState.isZoneUnlocked('Cauldron')) {
       GameState.unlockZone('Cauldron');
+    }
+  }
+
+  _updateFootsteps(delta) {
+    if (this.player.recentSpeed < 20) { this._footTimer = 0; return; }
+    this._footTimer += delta;
+    const interval = this.player.recentSpeed > 120 ? 260 : 380;
+    if (this._footTimer >= interval) {
+      this._footTimer = 0;
+      SoundManager.footstep(this.player.recentSpeed > 120);
     }
   }
 

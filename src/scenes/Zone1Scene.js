@@ -7,6 +7,7 @@ import { Player } from '../objects/Player.js';
 import { Plant } from '../objects/Plant.js';
 import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
+import { SoundManager } from '../SoundManager.js';
 
 // Zone 1 is 3200×2400, split into three areas
 const AREAS = {
@@ -100,6 +101,9 @@ export class Zone1Scene extends Phaser.Scene {
     this._hintLevel  = 0;
     this._butterflyTween = null;
 
+    // Footstep sound timer
+    this._footTimer = 0;
+
     // Fade in
     this.cameras.main.fadeIn(800, 0, 0, 0);
 
@@ -173,17 +177,6 @@ export class Zone1Scene extends Phaser.Scene {
         .setDepth(3);
     });
 
-    // Area labels in world (large, faded)
-    [
-      { x: 550,  y: 200, text: 'Campo dos Vagalumes' },
-      { x: 1650, y: 200, text: 'Jardim Invertido'    },
-      { x: 2700, y: 200, text: 'Limiar Secreto'      },
-    ].forEach(({ x, y, text }) => {
-      this.add.text(x, y, text, {
-        fontSize: '22px', fontFamily: 'Georgia, serif',
-        color: '#ffffff', stroke: '#000000', strokeThickness: 3,
-      }).setOrigin(0.5).setAlpha(0.25).setDepth(3);
-    });
   }
 
   _buildVine() {
@@ -287,11 +280,12 @@ export class Zone1Scene extends Phaser.Scene {
     GameState.playerY = this.player.y;
 
     this._checkAreaChange();
-    this._checkPlantProximity(time);
+    this._checkPlantProximity(time, delta);
     this._checkVineProximity();
     this._checkPortalProximity();
     this._handleKeys(time, delta);
     this._updateHints(delta);
+    this._updateFootsteps(delta);
     this._checkZoneUnlocks();
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
@@ -399,6 +393,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // M — open map overlay (pause zone, don't restart it)
     if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
+      SoundManager.mapToggle(true);
       this.scene.pause();
       this.scene.launch('Map');
     }
@@ -426,6 +421,7 @@ export class Zone1Scene extends Phaser.Scene {
     // E key only needed for: shake, spell, climb
 
     if (method === 'shake') {
+      SoundManager.shake();
       const ready = plant.shake(time);
       if (ready) {
         this._collectPlant(plant);
@@ -591,6 +587,7 @@ export class Zone1Scene extends Phaser.Scene {
       this._emitNarrative('Precisas de Farfalha, Ventoinha-branca e Trepadeira-viva para abrir o próximo caminho.');
       return;
     }
+    SoundManager.portal();
     this.cameras.main.fadeOut(700, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.game.events.off('plantStolen', this._onPlantStolen, this);
@@ -652,6 +649,16 @@ export class Zone1Scene extends Phaser.Scene {
   _checkZoneUnlocks() {
     if (!GameState.isZoneUnlocked('Zone2') && GameState.checkZone2Unlock()) {
       GameState.unlockZone('Zone2');
+    }
+  }
+
+  _updateFootsteps(delta) {
+    if (this.player.recentSpeed < 20) { this._footTimer = 0; return; }
+    this._footTimer += delta;
+    const interval = this.player.recentSpeed > 120 ? 260 : 380;
+    if (this._footTimer >= interval) {
+      this._footTimer = 0;
+      SoundManager.footstep(this.player.recentSpeed > 120);
     }
   }
 

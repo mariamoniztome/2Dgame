@@ -7,6 +7,7 @@ import { Player } from '../objects/Player.js';
 import { Plant } from '../objects/Plant.js';
 import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
+import { SoundManager } from '../SoundManager.js';
 
 const PLANT_SPAWNS = [
   { id: 'sombravinha',  x: 900,  y: 1100 },
@@ -76,6 +77,7 @@ export class Zone3Scene extends Phaser.Scene {
     this._spellCooldown  = 0;
     this._proximityTimer = 0;
     this._timedPlant     = null;
+    this._footTimer      = 0;
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
     this.game.events.on('plantStolen', this._onPlantStolen, this);
@@ -116,16 +118,6 @@ export class Zone3Scene extends Phaser.Scene {
       this.add.circle(x, y, r, c, 0.85).setDepth(2);
     }
 
-    [
-      { x: 600,  y: 200, text: 'Bosque da Confusão'       },
-      { x: 1800, y: 200, text: 'Vale dos Espelhos'        },
-      { x: 2800, y: 200, text: 'Campo da Chuvária'        },
-    ].forEach(({ x, y, text }) => {
-      this.add.text(x, y, text, {
-        fontSize: '19px', fontFamily: 'Georgia, serif',
-        color: '#ffffff', stroke: '#000', strokeThickness: 3,
-      }).setOrigin(0.5).setAlpha(0.2).setDepth(3);
-    });
   }
 
   _buildPlants() {
@@ -203,6 +195,7 @@ export class Zone3Scene extends Phaser.Scene {
     this._checkPortalProximity();
     this._handleKeys(time, delta);
     this._updateSombravinha(delta);
+    this._updateFootsteps(delta);
     this._checkZoneUnlocks();
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
@@ -293,6 +286,7 @@ export class Zone3Scene extends Phaser.Scene {
       this.game.events.emit('spellCast', GameState.activeSpell);
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
+      SoundManager.mapToggle(true);
       this.scene.pause();
       this.scene.launch('Map');
     }
@@ -350,6 +344,7 @@ export class Zone3Scene extends Phaser.Scene {
       this._emitNarrative('Precisas de todas as 5 plantas essenciais para chegar ao caldeirão.');
       return;
     }
+    SoundManager.portal();
     this.cameras.main.fadeOut(700, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.game.events.off('plantStolen', this._onPlantStolen, this);
@@ -361,6 +356,16 @@ export class Zone3Scene extends Phaser.Scene {
     if (GameState.checkCauldronUnlock() && !GameState.isZoneUnlocked('Cauldron')) {
       GameState.unlockZone('Cauldron');
       this.portalCauldron?.unlock();
+    }
+  }
+
+  _updateFootsteps(delta) {
+    if (this.player.recentSpeed < 20) { this._footTimer = 0; return; }
+    this._footTimer += delta;
+    const interval = this.player.recentSpeed > 120 ? 260 : 380;
+    if (this._footTimer >= interval) {
+      this._footTimer = 0;
+      SoundManager.footstep(this.player.recentSpeed > 120);
     }
   }
 

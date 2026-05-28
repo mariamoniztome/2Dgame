@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT, ELEMENTS, WORLD_WIDTH, WORLD_HEIGHT } from '..
 import { SPELLS } from '../data/spells.js';
 import { PLANTS } from '../data/plants.js';
 import { GameState } from '../GameState.js';
+import { SoundManager } from '../SoundManager.js';
 
 const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
 
@@ -100,6 +101,9 @@ export class HUDScene extends Phaser.Scene {
     this._buildAutoHint(W, H);
 
     this.input.keyboard.on('keydown-H', () => this._toggleControls());
+
+    // ── Sound init (needs active AudioContext from Phaser) ────────────────
+    SoundManager.init(this);
 
     // ── Events ────────────────────────────────────────────────────────────
     this.game.events.on('plantCollected', this._onPlantCollected, this);
@@ -406,15 +410,24 @@ export class HUDScene extends Phaser.Scene {
   // ── Event handlers ────────────────────────────────────────────────────────
   _onPlantCollected(plantData) {
     this._refresh();
-    if (plantData) { this.showPlantToast(plantData); this._rebuildPlantDots(); }
+    if (plantData) {
+      this.showPlantToast(plantData);
+      this._rebuildPlantDots();
+      SoundManager.collectPlant(plantData.element);
+    }
     if (GameState.spellJustUnlocked) {
       this._showUnlock(`Feitico desbloqueado!\n${SPELLS[GameState.spellJustUnlocked].name}`);
+      SoundManager.spellUnlocked();
       GameState.spellJustUnlocked = null;
     }
   }
 
   _onPlantStolen()  { this._refreshInventory(); this._updateCauldronDots(); this._rebuildPlantDots(); }
-  _onSpellCast()    { this._refreshSpell(); this.tweens.add({ targets: this.spellGfx, scale: { from: 1, to: 1.5 }, duration: 180, yoyo: true }); }
+  _onSpellCast()    {
+    this._refreshSpell();
+    this.tweens.add({ targets: this.spellGfx, scale: { from: 1, to: 1.5 }, duration: 180, yoyo: true });
+    SoundManager.castSpell();
+  }
 
   _showNarrative(text, duration = 4000) {
     if (this._narrativeTimer) this._narrativeTimer.remove();
@@ -444,5 +457,6 @@ export class HUDScene extends Phaser.Scene {
   _updateArea(name) {
     this.areaLabel.setText(name);
     this.tweens.add({ targets: this.areaLabel, alpha: { from: 1, to: 0.85 }, duration: 1200 });
+    SoundManager.areaChange();
   }
 }
