@@ -21,12 +21,12 @@ const config = {
   scene: [
     BootScene,
     OpeningScene,
-    MapScene,
-    HUDScene,
     Zone1Scene,
     Zone2Scene,
     Zone3Scene,
     CauldronScene,
+    HUDScene,   // must come AFTER all zone scenes so it renders on top
+    MapScene,   // must be last so it renders over everything when open
   ],
   scale: {
     mode: Phaser.Scale.FIT,
