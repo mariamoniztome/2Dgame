@@ -65,7 +65,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Camera — snap immediately then lerp smoothly
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setZoom(1.8);
+    this.cameras.main.setZoom(1.2);
     this.cameras.main.startFollow(this.player, true, 1, 1); // instant on first frame
     this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12)); // then smooth
 

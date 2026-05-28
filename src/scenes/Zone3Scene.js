@@ -53,7 +53,7 @@ export class Zone3Scene extends Phaser.Scene {
     this.playerGlow   = this.add.circle(this.player.x, this.player.y, 24, 0x9575cd, 0.18).setDepth(9).setBlendMode('ADD');
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setZoom(1.8);
+    this.cameras.main.setZoom(1.2);
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12));
 

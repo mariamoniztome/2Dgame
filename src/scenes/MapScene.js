@@ -98,11 +98,14 @@ export class MapScene extends Phaser.Scene {
     const cauldronUnlocked = GameState.isZoneUnlocked('Cauldron');
     this._buildCauldronCard(curX, CARDS_Y + (CARD_H - CAULDRON_H) / 2, cauldronUnlocked);
 
+    // Instructions strip — below zone cards
+    this._buildInstructions(W, CARDS_Y + CARD_H);
+
     // Bottom: essential potion progress bar
     this._buildPotionBar(W, H);
 
     // Help text at very bottom
-    this.add.text(W / 2, H - 24, 'ESC ou M para voltar  ·  Clica numa zona desbloqueada para entrar', {
+    this.add.text(W / 2, H - 24, 'ESC ou M para voltar  ·  Clica numa zona para entrar', {
       fontSize: '12px',
       fontFamily: 'Georgia, serif',
       color: '#5a4a7a',
@@ -315,6 +318,30 @@ export class MapScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
+  }
+
+  _buildInstructions(W, cardsBottom) {
+    const iy = cardsBottom + 18;
+    const iw = W - 80;
+
+    this.add.rectangle(W / 2, iy, iw, 64, 0x060e08, 0.84)
+      .setOrigin(0.5, 0).setStrokeStyle(1, 0x2d5a38, 0.6);
+
+    this.add.text(W / 2 - iw / 2 + 12, iy + 6, 'COMO JOGAR', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#639B5A',
+    });
+
+    this.add.text(W / 2, iy + 20,
+      'WASD / Setas = Mover     Shift = Correr     E = Apanhar planta', {
+        fontSize: '12px', fontFamily: 'monospace', color: '#BFD8A4',
+        align: 'center',
+      }).setOrigin(0.5, 0);
+
+    this.add.text(W / 2, iy + 38,
+      'ESPACO = Lancar feitico     Q = Mudar feitico     M = Mapa     H = Ajuda', {
+        fontSize: '12px', fontFamily: 'monospace', color: '#BFD8A4',
+        align: 'center',
+      }).setOrigin(0.5, 0);
   }
 
   _buildPotionBar(W, H) {
