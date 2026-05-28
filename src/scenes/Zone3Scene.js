@@ -48,8 +48,13 @@ export class Zone3Scene extends Phaser.Scene {
       blendMode: 'ADD',
     }).setDepth(7);
 
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 20, 32, 12, 0x000000, 0.35).setDepth(4);
+    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 24, 0x9575cd, 0.18).setDepth(9).setBlendMode('ADD');
+
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setZoom(1.5);
+    this.cameras.main.startFollow(this.player, true, 1, 1);
+    this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12));
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys({
@@ -187,6 +192,9 @@ export class Zone3Scene extends Phaser.Scene {
   update(time, delta) {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
     this.ecos.forEach(e => e.update(this.player, delta, GameState));
+    this.playerGlow.setPosition(this.player.x, this.player.y);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 20);
+    GameState.playerX = this.player.x;
 
     this._checkAreaChange();
     this._checkPlantProximity(time, delta);

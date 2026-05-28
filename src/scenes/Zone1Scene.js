@@ -58,10 +58,15 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildPortal();
     this._buildFireflies();
 
-    // Camera
+    // Player glow + shadow (improves visibility)
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 20, 32, 12, 0x000000, 0.35).setDepth(4);
+    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 24, 0x9575cd, 0.18).setDepth(9).setBlendMode('ADD');
+
+    // Camera — snap immediately then lerp smoothly
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-    this.cameras.main.setZoom(1);
+    this.cameras.main.setZoom(1.5);
+    this.cameras.main.startFollow(this.player, true, 1, 1); // instant on first frame
+    this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12)); // then smooth
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -133,11 +138,20 @@ export class Zone1Scene extends Phaser.Scene {
     }
     g.setDepth(1);
 
-    // Ground paths (subtle dirt tracks)
-    g.fillStyle(0x5d3f1e, 0.18);
-    g.fillRect(380, 0, 80, WORLD_HEIGHT);          // main path
-    g.fillRect(1060, 600, 180, 90);                 // bridge to Jardim
-    g.fillRect(2160, 750, 180, 90);                 // bridge to Limiar
+    // Ground paths (dirt tracks)
+    g.fillStyle(0x5d3f1e, 0.22);
+    g.fillRect(380, 0, 90, WORLD_HEIGHT);           // main vertical path
+    g.fillRect(0, 1180, WORLD_WIDTH, 80);           // horizontal connecting path
+    g.fillRect(1060, 580, 200, 100);                // bridge to Jardim
+    g.fillRect(2150, 740, 200, 100);                // bridge to Limiar
+
+    // Dot grid pattern to give sense of scale/movement
+    g.fillStyle(0xffffff, 0.04);
+    for (let gx = 0; gx < WORLD_WIDTH; gx += 120) {
+      for (let gy = 0; gy < WORLD_HEIGHT; gy += 120) {
+        g.fillRect(gx, gy, 2, 2);
+      }
+    }
   }
 
   _buildDecorations() {
@@ -259,6 +273,13 @@ export class Zone1Scene extends Phaser.Scene {
   update(time, delta) {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
     this.creature.update(this.player, delta, GameState);
+
+    // Keep glow/shadow on player
+    this.playerGlow.setPosition(this.player.x, this.player.y);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 20);
+
+    // Expose position to HUD minimap
+    GameState.playerX = this.player.x;
 
     this._checkAreaChange();
     this._checkPlantProximity(time);

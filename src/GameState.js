@@ -15,6 +15,9 @@ class GameStateManager {
     this.activeSpell = null;
     this.availableSpells = [];
     this.spellJustUnlocked = null;
+    // Player world position (updated each frame by active zone scene)
+    this.playerX = 420;
+    this.playerY = 1200;
   }
 
   addPlant(plantData) {
