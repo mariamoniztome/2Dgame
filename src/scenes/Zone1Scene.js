@@ -64,7 +64,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Camera — snap immediately then lerp smoothly
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setZoom(1.5);
+    this.cameras.main.setZoom(1.8);
     this.cameras.main.startFollow(this.player, true, 1, 1); // instant on first frame
     this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12)); // then smooth
 
@@ -80,6 +80,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
     // Launch HUD overlay
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
@@ -368,6 +369,15 @@ export class Zone1Scene extends Phaser.Scene {
       this.game.events.emit('spellCast', GameState.activeSpell);
     }
 
+    // M — open map
+    if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
+      this.cameras.main.fadeOut(400, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.game.events.off('plantStolen', this._onPlantStolen, this);
+        this.scene.start('Map');
+      });
+    }
+
     // Up arrow near vine → climb
     if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.wasd.up)) {
       const dist = Phaser.Math.Distance.Between(
@@ -545,7 +555,7 @@ export class Zone1Scene extends Phaser.Scene {
     });
 
     this._emitNarrative(data.narrativeText, 4200);
-    this.game.events.emit('plantCollected', data);
+    this.game.events.emit('plantCollected', data, data);
 
     // Zone 2 check
     if (!GameState.isZoneUnlocked('Zone2') && GameState.checkZone2Unlock()) {

@@ -143,6 +143,6 @@ export class OpeningScene extends Phaser.Scene {
     this.advancing = true;
     this.input.off('pointerdown', this._advance, this);
     this.cameras.main.fadeOut(900, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Zone1'));
+    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Map'));
   }
 }

@@ -64,7 +64,7 @@ export class Zone2Scene extends Phaser.Scene {
     this.playerGlow   = this.add.circle(this.player.x, this.player.y, 24, 0x9575cd, 0.18).setDepth(9).setBlendMode('ADD');
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setZoom(1.5);
+    this.cameras.main.setZoom(1.8);
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12));
 
@@ -77,6 +77,7 @@ export class Zone2Scene extends Phaser.Scene {
     this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
@@ -223,6 +224,13 @@ export class Zone2Scene extends Phaser.Scene {
       GameState.cycleSpell();
       this.game.events.emit('spellCast', GameState.activeSpell);
     }
+    if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
+      this.cameras.main.fadeOut(400, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.game.events.off('plantStolen', this._onPlantStolen, this);
+        this.scene.start('Map');
+      });
+    }
   }
 
   _handleInteract(time) {
@@ -283,7 +291,7 @@ export class Zone2Scene extends Phaser.Scene {
       return p !== plant;
     });
     this._emitNarrative(plant.plantData.narrativeText, 4000);
-    this.game.events.emit('plantCollected', plant.plantData);
+    this.game.events.emit('plantCollected', plant.plantData, plant.plantData);
 
     if (!GameState.isZoneUnlocked('Zone3') && GameState.checkZone3Unlock()) {
       GameState.unlockZone('Zone3');
