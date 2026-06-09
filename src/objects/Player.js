@@ -9,9 +9,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setCollideWorldBounds(true);
     this.setDepth(10);
-    // SVG texture is 64×64; use a slim body centred on the lower torso
+    // SVG texture is 128×128 but displayed at ~64px; slim body on lower torso
+    this.setDisplaySize(64, 64);
     this.body.setSize(24, 36);
-    this.body.setOffset(20, 22);
+    this.body.setOffset(20, 46);
 
     // Speed tracking
     this._recentSpeed = 0;

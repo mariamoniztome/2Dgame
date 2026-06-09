@@ -13,7 +13,7 @@ export const ELEMENTS = {
   AIR:     { name: 'Ar',       color: 0xd0e8f0, dark: 0x78909c },
   FIRE:    { name: 'Fogo',     color: 0xff7043, dark: 0xbf360c },
   EARTH:   { name: 'Terra',    color: 0x66bb6a, dark: 0x2e7d32 },
-  SPECIAL: { name: 'Especial', color: 0xce93d8, dark: 0x7b1fa2 },
+  SPECIAL: { name: 'Especial', color: 0xa8e07e, dark: 0x4a8c3a },
 };
 
 export const ZONES = {

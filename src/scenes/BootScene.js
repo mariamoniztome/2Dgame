@@ -11,22 +11,22 @@ export class BootScene extends Phaser.Scene {
     // Loading bar
     const bar = this.add.rectangle(
       this.cameras.main.centerX - 200, this.cameras.main.centerY,
-      0, 16, 0xce93d8
+      0, 16, 0x7bc67e
     ).setOrigin(0, 0.5);
     this.add.rectangle(
       this.cameras.main.centerX - 202, this.cameras.main.centerY,
-      404, 20, 0x2d1b69
+      404, 20, 0x1a3a1e
     ).setOrigin(0, 0.5);
     this.add.text(
       this.cameras.main.centerX, this.cameras.main.centerY - 30,
       'Bruxa, Bruxinha', {
-        fontSize: '28px', fontFamily: 'Georgia, serif', color: '#ce93d8',
+        fontSize: '28px', fontFamily: 'Georgia, serif', color: '#7bc67e',
       }
     ).setOrigin(0.5);
     const loadTxt = this.add.text(
       this.cameras.main.centerX, this.cameras.main.centerY + 30,
       'A carregar o jardim mágico...', {
-        fontSize: '14px', fontFamily: 'Georgia, serif', color: '#a0a0c0',
+        fontSize: '14px', fontFamily: 'Georgia, serif', color: '#9ed89e',
       }
     ).setOrigin(0.5);
 
@@ -42,32 +42,30 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bg_book',   unsplashUrl(UNSPLASH.book, 1280, 720));
 
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
-    // Player character
-    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 64, height: 64 });
-    // Plant sprites (replace Unsplash for Zone 1 plants)
-    this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 128, height: 128 });
-    this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 128, height: 128 });
-    this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 128, height: 128 });
+    // Player character — load at 2× display size to stay crisp at zoom
+    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 128, height: 128 });
+    // Plant sprites
+    this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 256, height: 256 });
+    this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });
+    this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 256, height: 256 });
     // Firefly sprite
-    this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 48, height: 48 });
-    // Area backgrounds
+    this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 96, height: 96 });
+    // Area backgrounds (already large — keep as-is)
     this.load.svg('z1_bg_campo', '/assets/zone1/campo/bg_campo.svg',   { width: 1920, height: 1080 });
     this.load.svg('z1_bg_trans', '/assets/zone1/transicao/fundo.svg',  { width: 1920, height: 525  });
-    this.load.svg('z1_parede',   '/assets/zone1/transicao/parede.svg', { width: 1038, height: 775  });
+    this.load.svg('z1_parede',   '/assets/zone1/transicao/parede.svg', { width: 1920, height: 1432 });
     // Location signs
-    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 128, height: 128 });
-    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 128, height: 128 });
-    // Campo decorative elements — all available, loaded at display-ready size
+    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 256, height: 256 });
+    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 256, height: 256 });
+    // Decorative elements — load at 512×512 so they stay sharp at 300–450px display size
     ['03','04','05','06','07','08','09','10','11','12','13','14','15','17','18','19','20','21','22','23','24'].forEach(n =>
-      this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 192, height: 192 })
+      this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 512, height: 512 })
     );
-    // Limiar decorative elements
     ['03','04','05','06','07','08','09','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
-      this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 192, height: 192 })
+      this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );
-    // Transição decorative elements
     ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>
-      this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 192, height: 192 })
+      this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 512, height: 512 })
     );
 
     // ── Plant images ─────────────────────────────────────────────────────
@@ -87,24 +85,22 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     this._generateTextures();
-    this.scene.start('Opening');
+    this.scene.start('Map');
   }
 
   _generateTextures() {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 
-    // ── Player: use SVG if loaded, else fallback silhouette ───────────────
+    // ── Player: use SVG if loaded, else fallback (red coat + black hat) ─────
     if (!this.textures.exists('player')) {
       g.clear();
-      g.fillStyle(0x5b21b6, 1);
-      g.fillCircle(20, 30, 14);
-      g.fillStyle(0x1a1a2e, 1);
-      g.fillTriangle(20, 2, 5, 24, 35, 24);
-      g.fillStyle(0x2d1b69, 1);
-      g.fillRect(3, 22, 34, 5);
-      g.fillStyle(0x4c1d95, 0.9);
-      g.fillTriangle(8, 36, 32, 36, 20, 52);
-      g.generateTexture('player', 40, 54);
+      g.fillStyle(0x1a0a00, 1); g.fillTriangle(20, 1, 4, 22, 36, 22);  // hat
+      g.fillStyle(0x333333, 1); g.fillRect(2, 20, 36, 4);               // hat brim
+      g.fillStyle(0xf6a3b3, 1); g.fillCircle(20, 30, 12);               // face
+      g.fillStyle(0xb42d27, 1); g.fillTriangle(6, 38, 34, 38, 20, 54);  // coat
+      g.fillStyle(0xb42d27, 1); g.fillRect(4, 30, 8, 14);               // left arm
+      g.fillStyle(0xb42d27, 1); g.fillRect(28, 30, 8, 14);              // right arm
+      g.generateTexture('player', 40, 56);
     }
 
     // ── Plants by element ─────────────────────────────────────────────────
@@ -113,7 +109,7 @@ export class BootScene extends Phaser.Scene {
       WATER:   [0x4fc3f7, 0x0288d1],
       FIRE:    [0xff7043, 0xbf360c],
       EARTH:   [0x66bb6a, 0x2e7d32],
-      SPECIAL: [0xce93d8, 0x7b1fa2],
+      SPECIAL: [0xa8e07e, 0x4a8c3a],
     };
 
     Object.values(PLANTS).forEach(p => {
@@ -154,24 +150,24 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0xc62828, 0.6); g.fillEllipse(24, 22, 22, 10);
     g.generateTexture('creature_bocarra', 48, 48);
 
-    // Eco creature (ghostly mirror)
+    // Eco creature (dark forest spirit)
     g.clear();
-    g.fillStyle(0xb39ddb, 0.18); g.fillCircle(24, 28, 20);
-    g.fillStyle(0x9575cd, 0.35); g.fillCircle(24, 26, 13);
-    g.fillStyle(0x4a148c, 0.45); g.fillTriangle(24, 4, 12, 24, 36, 24);
-    g.fillStyle(0x311b92, 0.35); g.fillRect(8, 22, 32, 4);
+    g.fillStyle(0x4a8c5a, 0.22); g.fillCircle(24, 28, 20);
+    g.fillStyle(0x2e7d32, 0.40); g.fillCircle(24, 26, 13);
+    g.fillStyle(0x1b5e20, 0.55); g.fillTriangle(24, 4, 12, 24, 36, 24);
+    g.fillStyle(0x0d3318, 0.40); g.fillRect(8, 22, 32, 4);
     g.generateTexture('creature_eco', 48, 48);
 
     // ── Portal ────────────────────────────────────────────────────────────
     g.clear();
     for (let i = 0; i < 10; i++) {
       const a = (i / 10) * Math.PI * 2;
-      g.fillStyle(0xce93d8, 0.2 + (i % 2) * 0.25);
+      g.fillStyle(0x7bc67e, 0.2 + (i % 2) * 0.25);
       g.fillCircle(32 + Math.cos(a) * 26, 32 + Math.sin(a) * 26, 5);
     }
-    g.fillStyle(0x5b21b6, 0.35); g.fillCircle(32, 32, 20);
-    g.fillStyle(0xce93d8, 0.55); g.fillCircle(32, 32, 13);
-    g.fillStyle(0xffffff, 0.8);  g.fillCircle(32, 32, 5);
+    g.fillStyle(0x1b5e20, 0.40); g.fillCircle(32, 32, 20);
+    g.fillStyle(0x7bc67e, 0.60); g.fillCircle(32, 32, 13);
+    g.fillStyle(0xffffff, 0.85); g.fillCircle(32, 32, 5);
     g.generateTexture('portal', 64, 64);
 
     // ── Firefly particle ──────────────────────────────────────────────────
@@ -218,7 +214,7 @@ export class BootScene extends Phaser.Scene {
     const spellDefs = [
       { key: 'spell_brisa', color: 0x4fc3f7 },
       { key: 'spell_raiz',  color: 0xff7043 },
-      { key: 'spell_passo', color: 0xce93d8 },
+      { key: 'spell_passo', color: 0xa8e07e },
       { key: 'spell_canto', color: 0x66bb6a },
     ];
     spellDefs.forEach(({ key, color }) => {

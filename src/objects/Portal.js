@@ -11,7 +11,7 @@ export class Portal extends Phaser.GameObjects.Container {
     this.ring = scene.add.image(0, 0, 'portal').setDisplaySize(80, 80).setAlpha(0.5);
 
     // Inner glow
-    this.glow = scene.add.circle(0, 0, 20, 0xce93d8, 0.4);
+    this.glow = scene.add.circle(0, 0, 20, 0x7bc67e, 0.4);
 
     // Lock indicator
     this.lockText = scene.add.text(0, -48, '🔒', {
@@ -55,7 +55,7 @@ export class Portal extends Phaser.GameObjects.Container {
     this.isLocked = false;
     this.lockText.setVisible(false);
     this.ring.setAlpha(1);
-    this.glow.setFillStyle(0xce93d8, 0.7);
+    this.glow.setFillStyle(0x7bc67e, 0.7);
 
     this.scene.tweens.add({
       targets: this,

@@ -28,8 +28,8 @@ const ZONE_DEFS = [
     key: 'Zone3',
     name: 'Zona 3',
     subtitle: 'Vale do Asara',
-    bgColor: 0x080612,
-    borderColor: 0x4a148c,
+    bgColor: 0x070e08,
+    borderColor: 0x1b5e20,
     plants: ['sombravinha', 'faisca_mato', 'sussurreira', 'lunaria_negra'],
     alwaysUnlocked: false,
   },
@@ -57,14 +57,14 @@ export class MapScene extends Phaser.Scene {
     this._blockedTimer = null;
 
     // Dark starry background
-    this.add.rectangle(0, 0, W, H, 0x04050f).setOrigin(0);
+    this.add.rectangle(0, 0, W, H, 0x060e08).setOrigin(0);
     this._buildStars(W, H);
 
     // Title
     this.add.text(W / 2, 44, 'O Jardim da Bruxinha', {
       fontSize: '28px',
       fontFamily: 'Georgia, serif',
-      color: '#ce93d8',
+      color: '#7bc67e',
       stroke: '#000000',
       strokeThickness: 4,
       fontStyle: 'italic',
@@ -74,7 +74,7 @@ export class MapScene extends Phaser.Scene {
     this.add.text(W / 2, 82, 'Escolhe uma zona para visitar', {
       fontSize: '13px',
       fontFamily: 'Georgia, serif',
-      color: '#7c5cbf',
+      color: '#5ab86e',
       fontStyle: 'italic',
     }).setOrigin(0.5);
 
@@ -89,7 +89,7 @@ export class MapScene extends Phaser.Scene {
       // Arrow connector
       const arrowX = curX + ARROW_GAP / 2;
       const arrowY = CARDS_Y + CARD_H / 2;
-      const arrowColor = unlocked ? 0x9575cd : 0x3d2b5a;
+      const arrowColor = unlocked ? 0x5ab86e : 0x1a3a22;
       this._buildArrow(arrowX, arrowY, arrowColor);
       curX += ARROW_GAP;
     });
@@ -108,7 +108,7 @@ export class MapScene extends Phaser.Scene {
     this.add.text(W / 2, H - 24, 'ESC ou M para voltar  ·  Clica numa zona para entrar', {
       fontSize: '12px',
       fontFamily: 'Georgia, serif',
-      color: '#5a4a7a',
+      color: '#4a7a4a',
     }).setOrigin(0.5);
 
     // Blocked message overlay
@@ -175,7 +175,7 @@ export class MapScene extends Phaser.Scene {
       this.add.text(x + CARD_W / 2, y + CARD_H / 2 + 26, 'Bloqueada', {
         fontSize: '13px',
         fontFamily: 'Georgia, serif',
-        color: '#5a4a7a',
+        color: '#4a7a4a',
         fontStyle: 'italic',
       }).setOrigin(0.5).setAlpha(0.7);
 
@@ -186,7 +186,7 @@ export class MapScene extends Phaser.Scene {
     this.add.text(x + CARD_W / 2, y + 16, def.name, {
       fontSize: '16px',
       fontFamily: 'Georgia, serif',
-      color: '#e8d8f8',
+      color: '#e8f8e0',
       fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
@@ -194,7 +194,7 @@ export class MapScene extends Phaser.Scene {
     this.add.text(x + CARD_W / 2, y + 36, def.subtitle, {
       fontSize: '11px',
       fontFamily: 'Georgia, serif',
-      color: '#9575cd',
+      color: '#5ab86e',
       fontStyle: 'italic',
     }).setOrigin(0.5, 0);
 
@@ -214,7 +214,7 @@ export class MapScene extends Phaser.Scene {
       const py = y + 108;
       const isCollected = GameState.collected.has(id);
       const plant = PLANTS[id];
-      const elColor = (plant && ELEMENTS[plant.element]) ? ELEMENTS[plant.element].color : 0x9575cd;
+      const elColor = (plant && ELEMENTS[plant.element]) ? ELEMENTS[plant.element].color : 0x5ab86e;
       const dotColor = isCollected ? elColor : 0x2a2a2a;
       const dotAlpha = isCollected ? 1 : 0.55;
 
@@ -226,7 +226,7 @@ export class MapScene extends Phaser.Scene {
         this.add.text(px, py + 13, shortName, {
           fontSize: '7px',
           fontFamily: 'monospace',
-          color: isCollected ? '#c8c0e8' : '#4a4a6a',
+          color: isCollected ? '#c8e8c0' : '#4a4a6a',
         }).setOrigin(0.5, 0);
       }
     });
@@ -236,7 +236,7 @@ export class MapScene extends Phaser.Scene {
     this.add.text(x + CARD_W / 2, y + CARD_H - 30, `${collected}/${plantIds.length} plantas`, {
       fontSize: '11px',
       fontFamily: 'monospace',
-      color: allCollected ? '#81c784' : '#7c5cbf',
+      color: allCollected ? '#81c784' : '#5ab86e',
     }).setOrigin(0.5, 0);
 
     // Interactive hit area
@@ -258,9 +258,9 @@ export class MapScene extends Phaser.Scene {
   }
 
   _buildCauldronCard(x, y, unlocked) {
-    const bg = this.add.rectangle(x, y, CAULDRON_W, CAULDRON_H, 0x0a0818, 0.95)
+    const bg = this.add.rectangle(x, y, CAULDRON_W, CAULDRON_H, 0x080e08, 0.95)
       .setOrigin(0, 0)
-      .setStrokeStyle(2, unlocked ? 0x7b1fa2 : 0x333355, unlocked ? 1 : 0.4)
+      .setStrokeStyle(2, unlocked ? 0x2e7d32 : 0x333355, unlocked ? 1 : 0.4)
       .setAlpha(unlocked ? 1 : 0.4);
 
     if (!unlocked) {
@@ -273,7 +273,7 @@ export class MapScene extends Phaser.Scene {
     this.add.text(x + CAULDRON_W / 2, y + 12, 'Caldeirão', {
       fontSize: '10px',
       fontFamily: 'Georgia, serif',
-      color: '#ce93d8',
+      color: '#7bc67e',
     }).setOrigin(0.5, 0);
 
     if (this.textures.exists('cauldron')) {
@@ -351,15 +351,15 @@ export class MapScene extends Phaser.Scene {
     const collected = ESSENTIAL_IDS.filter(id => GameState.collected.has(id)).length;
 
     // Panel background
-    this.add.rectangle(W / 2, panelY, barW + 48, 56, 0x0a0818, 0.85)
+    this.add.rectangle(W / 2, panelY, barW + 48, 56, 0x080e08, 0.85)
       .setOrigin(0.5)
-      .setStrokeStyle(1, 0x5b21b6, 0.5);
+      .setStrokeStyle(1, 0x2e7d32, 0.5);
 
     // Label
     this.add.text(W / 2, panelY - 16, `Poção: ${collected}/5 plantas essenciais`, {
       fontSize: '13px',
       fontFamily: 'Georgia, serif',
-      color: '#ce93d8',
+      color: '#7bc67e',
       fontStyle: 'italic',
     }).setOrigin(0.5);
 
@@ -370,18 +370,18 @@ export class MapScene extends Phaser.Scene {
     ESSENTIAL_IDS.forEach((id, i) => {
       const isCollected = GameState.collected.has(id);
       const plant = PLANTS[id];
-      const elColor = (plant && ELEMENTS[plant.element]) ? ELEMENTS[plant.element].color : 0xce93d8;
+      const elColor = (plant && ELEMENTS[plant.element]) ? ELEMENTS[plant.element].color : 0x7bc67e;
       const dotX = startX + dotSpacing * i + dotSpacing / 2;
       const dotY = panelY + 8;
 
       const dot = this.add.circle(dotX, dotY, 10, isCollected ? elColor : 0x1a1a3a, isCollected ? 1 : 0.55);
-      dot.setStrokeStyle(1.5, isCollected ? elColor : 0x3d2b6a, isCollected ? 1 : 0.45);
+      dot.setStrokeStyle(1.5, isCollected ? elColor : 0x1a3a1a, isCollected ? 1 : 0.45);
 
       if (plant) {
         this.add.text(dotX, dotY + 14, plant.name.split('-')[0].substring(0, 9), {
           fontSize: '8px',
           fontFamily: 'monospace',
-          color: isCollected ? '#c8c0e8' : '#3d2b6a',
+          color: isCollected ? '#c8e8c0' : '#3d2b6a',
         }).setOrigin(0.5, 0);
       }
     });
