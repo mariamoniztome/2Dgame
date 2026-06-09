@@ -62,12 +62,7 @@ class GameStateManager {
 
     for (const id of SPELL_ORDER) {
       const spell = SPELLS[id];
-      let ok = false;
-      if (spell.minPlants) {
-        ok = this.inventory.filter(p => !p.isFake).length >= spell.minPlants;
-      } else {
-        ok = this.hasPlants(spell.plants);
-      }
+      const ok = Array.isArray(spell.plants) && this.hasPlants(spell.plants);
       if (ok) this.availableSpells.push(id);
     }
 

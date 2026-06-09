@@ -136,7 +136,7 @@ export class HUDScene extends Phaser.Scene {
       fontSize: '12px', fontFamily: 'Georgia, serif', color: C.text,
     }).setOrigin(0, 0.5);
 
-    this.add.text(x - 10, y + 68, 'ESPACO = lancar', {
+    this.add.text(x - 10, y + 68, 'F = lancar', {
       fontSize: '8px', fontFamily: 'monospace', color: C.label,
     }).setOrigin(1, 1);
   }
@@ -223,8 +223,8 @@ export class HUDScene extends Phaser.Scene {
       'CONTROLOS\n\n' +
       'WASD / Setas    Mover\n' +
       'Shift                  Correr\n' +
-      'E                        Interagir / Apanhar\n' +
-      'Espaco              Lancar feitico\n' +
+      'C                        Apanhar / Interagir\n' +
+      'F                         Lancar feitico\n' +
       'Q                        Mudar feitico\n' +
       'M                        Mapa do jardim\n' +
       'H                        Fechar ajuda', {
@@ -253,8 +253,8 @@ export class HUDScene extends Phaser.Scene {
       'BEM-VINDA!\n\n' +
       'WASD / Setas    Mover\n' +
       'Shift                  Correr\n' +
-      'E                        Apanhar planta\n' +
-      'Espaco              Feitico\n' +
+      'C                        Apanhar planta\n' +
+      'F                         Feitico\n' +
       'M / H                Mapa / Ajuda', {
         fontSize: '14px', fontFamily: 'monospace',
         color: C.text, align: 'left', lineSpacing: 6,

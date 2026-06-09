@@ -77,6 +77,7 @@ export class Plant extends Phaser.GameObjects.Container {
   }
 
   showHint(show) {
+    if (!this.scene) return;
     this.scene.tweens.add({
       targets: [this.hint, this.label],
       alpha: show ? 1 : 0,

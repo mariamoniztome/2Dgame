@@ -78,9 +78,9 @@ export class Zone1Scene extends Phaser.Scene {
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
     });
-    this.keyE     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keyC     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.keyF     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
@@ -338,8 +338,13 @@ export class Zone1Scene extends Phaser.Scene {
         return;
       }
 
-      // ── Auto-collect: 'interact' or 'brave' (proximity hold) ─────────
-      if (method === 'interact' || method === 'brave') {
+      // ── Auto-collect: 'interact', 'brave', or 'slow' ─────────────────
+      if (method === 'interact' || method === 'brave' || method === 'slow') {
+        const tooFast = method === 'slow' && this.player.recentSpeed > 50;
+        if (tooFast) {
+          this._timedPlant = null; this._proximityTimer = 0;
+          return; // player moving too fast — spines hurt
+        }
         if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
         this._proximityTimer += delta;
         const holdMs = method === 'brave' ? 900 : 600;
@@ -375,13 +380,13 @@ export class Zone1Scene extends Phaser.Scene {
   //  Key handling
   // ──────────────────────────────────────────────────────────────────────
   _handleKeys(time, delta) {
-    // E — portal / shake / spell (auto-collect plants no longer need E)
-    if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+    // C — interact (portals, shake gotateia, farfalha spell)
+    if (Phaser.Input.Keyboard.JustDown(this.keyC)) {
       this._handleInteract(time);
     }
 
-    // Space — cast spell
-    if (Phaser.Input.Keyboard.JustDown(this.keySpace) && this._spellCooldown <= 0) {
+    // F — cast spell
+    if (Phaser.Input.Keyboard.JustDown(this.keyF) && this._spellCooldown <= 0) {
       this._castSpell();
     }
 
@@ -427,7 +432,7 @@ export class Zone1Scene extends Phaser.Scene {
         this._collectPlant(plant);
       } else {
         const left = 3 - plant.shakeCount;
-        this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}… (E)`);
+        this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}… (C)`);
       }
       return;
     }

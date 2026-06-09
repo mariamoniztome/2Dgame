@@ -9,22 +9,21 @@ import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
-// Zone 2 areas
+// Zone 2 areas (per GDD)
 const AREAS = {
-  pantanos:     { label: 'Pântanos',            minX: 0,    maxX: 900  },
-  jardimSelvagem: { label: 'Jardim Selvagem',   minX: 900,  maxX: 1800 },
-  capinzal:     { label: 'Capinzal',            minX: 1800, maxX: 2500 },
-  planalto:     { label: 'Planalto dos Furacões', minX: 2500, maxX: 3200 },
+  planiciesFendas: { label: 'Planície das Fendas',   minX: 0,    maxX: 900  },
+  jardimSelvagem:  { label: 'Jardim Selvagem',        minX: 900,  maxX: 1800 },
+  planalto:        { label: 'Planalto dos Furacões',  minX: 1800, maxX: 2500 },
+  pantano:         { label: 'Pântano',                minX: 2500, maxX: 3200 },
 };
 
 const PLANT_SPAWNS = [
-  { id: 'ninfaria',      x: 340,  y: 900  },
-  { id: 'gotateia',      x: 160,  y: 1200 },
-  { id: 'espinhosa_doce', x: 1050, y: 700  },
-  { id: 'craveira',      x: 1300, y: 1400 },
-  { id: 'bocarra',       x: 1950, y: 600  },
-  { id: 'tezaluz',       x: 2100, y: 1100 },
-  { id: 'aurorabromelia', x: 2800, y: 800  },
+  { id: 'tezaluz',       x: 420,  y: 900  }, // Planície das Fendas
+  { id: 'craveira',      x: 680,  y: 1350 }, // Planície das Fendas
+  { id: 'espinhosa_doce', x: 1100, y: 700  }, // Jardim Selvagem
+  { id: 'bocarra',       x: 1450, y: 1200 }, // Jardim Selvagem
+  { id: 'aurorabromelia', x: 2100, y: 800  }, // Planalto dos Furacões
+  { id: 'ninfaria',      x: 2750, y: 1100 }, // Pântano
 ];
 
 const TREE_COLORS = [0x1a3a2a, 0x0d3020, 0x2a1a08, 0x182a10];
@@ -75,9 +74,9 @@ export class Zone2Scene extends Phaser.Scene {
       up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
     });
-    this.keyE     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keyC     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.keyF     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
@@ -182,9 +181,9 @@ export class Zone2Scene extends Phaser.Scene {
 
   _checkAreaChange() {
     const px = this.player.x;
-    let area = 'pantanos';
-    if (px >= 2500) area = 'planalto';
-    else if (px >= 1800) area = 'capinzal';
+    let area = 'planiciesFendas';
+    if (px >= 2500) area = 'pantano';
+    else if (px >= 1800) area = 'planalto';
     else if (px >= 900) area = 'jardimSelvagem';
 
     if (area !== this._currentArea) {
@@ -208,7 +207,12 @@ export class Zone2Scene extends Phaser.Scene {
       foundNear = true;
 
       const method = plant.plantData.collectMethod;
-      if (method === 'interact' || method === 'brave') {
+      if (method === 'interact' || method === 'brave' || method === 'slow') {
+        const tooFast = method === 'slow' && this.player.recentSpeed > 50;
+        if (tooFast) {
+          this._timedPlant = null; this._proximityTimer = 0;
+          return;
+        }
         if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
         this._proximityTimer += delta;
         const holdMs = method === 'brave' ? 900 : 600;
@@ -234,8 +238,8 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   _handleKeys(time, delta) {
-    if (Phaser.Input.Keyboard.JustDown(this.keyE)) this._handleInteract(time);
-    if (Phaser.Input.Keyboard.JustDown(this.keySpace) && this._spellCooldown <= 0) this._castSpell();
+    if (Phaser.Input.Keyboard.JustDown(this.keyC)) this._handleInteract(time);
+    if (Phaser.Input.Keyboard.JustDown(this.keyF) && this._spellCooldown <= 0) this._castSpell();
     if (Phaser.Input.Keyboard.JustDown(this.keyQ)) {
       GameState.cycleSpell();
       this.game.events.emit('spellCast', GameState.activeSpell);
@@ -261,7 +265,7 @@ export class Zone2Scene extends Phaser.Scene {
         this._collectPlant(plant);
       } else {
         const left = 3 - plant.shakeCount;
-        this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}… (E)`);
+        this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}… (C)`);
       }
     }
     // 'interact' and 'brave' are auto-collected via _checkPlantProximity
@@ -279,15 +283,35 @@ export class Zone2Scene extends Phaser.Scene {
     });
     this.game.events.emit('spellCast', GameState.activeSpell);
 
-    if (GameState.activeSpell === 'raiz_ardente') {
+    const spell = GameState.activeSpell;
+    if (spell === 'fogo_controlado' || spell === 'raiz_ardente') {
       const d = Phaser.Math.Distance.Between(
         this.player.x, this.player.y, this.creature.x, this.creature.y
       );
-      if (d < 280) {
+      if (d < 320) {
         this.creature.repel(this.player.x, this.player.y);
-        this._emitNarrative('A Raiz Ardente prendeu a criatura!');
+        this._emitNarrative(spell === 'fogo_controlado'
+          ? 'O Fogo Controlado espantou o Sussurro-ladrão!'
+          : 'A Raíz Ardente afastou a criatura!');
       }
     }
+    if (spell === 'canto_jardim') {
+      this._revealAllPlants();
+    }
+  }
+
+  _revealAllPlants() {
+    this.plants.forEach(p => {
+      if (p.isCollected) return;
+      this.cameras.main.pan(p.x, p.y, 600, 'Sine.easeInOut', false, (cam, progress) => {
+        if (progress === 1) {
+          this.time.delayedCall(400, () =>
+            this.cameras.main.pan(this.player.x, this.player.y, 600, 'Sine.easeInOut')
+          );
+        }
+      });
+    });
+    this._emitNarrative('O Canto do Jardim revelou onde estão as plantas!');
   }
 
   _collectPlant(plant) {

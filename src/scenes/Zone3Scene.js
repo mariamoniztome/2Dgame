@@ -10,16 +10,16 @@ import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
 const PLANT_SPAWNS = [
-  { id: 'sombravinha',  x: 900,  y: 1100 },
-  { id: 'sussurreira', x: 500,  y: 700  },
-  { id: 'faisca_mato', x: 1600, y: 900  },
-  { id: 'lunaria_negra', x: 2700, y: 500  }, // near cauldron path
+  { id: 'sombravinha',  x: 700,  y: 1100 }, // Vale do Asara
+  { id: 'faisca_mato',  x: 950,  y: 700  }, // Vale do Asara
+  { id: 'sussurreira',  x: 1600, y: 900  }, // Bosque da Confusão
+  { id: 'lunaria_negra', x: 1900, y: 500  }, // Bosque da Confusão (labyrinth end)
 ];
 
 const AREAS = {
-  bosque:     { label: 'Bosque da Confusão',       minX: 0,    maxX: 1200 },
-  vale:       { label: 'Vale dos Espelhos Partidos', minX: 1200, maxX: 2400 },
-  chuvaria:   { label: 'Campo da Chuvária',         minX: 2400, maxX: 3200 },
+  valeAsara:     { label: 'Vale do Asara',      minX: 0,    maxX: 1200 },
+  bosqueConfusao: { label: 'Bosque da Confusão', minX: 1200, maxX: 2400 },
+  valeEspelhos:  { label: 'Vale dos Espelhos',  minX: 2400, maxX: 3200 },
 };
 
 export class Zone3Scene extends Phaser.Scene {
@@ -63,9 +63,9 @@ export class Zone3Scene extends Phaser.Scene {
       up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
     });
-    this.keyE     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keyC     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-    this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.keyF     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
@@ -203,9 +203,9 @@ export class Zone3Scene extends Phaser.Scene {
 
   _checkAreaChange() {
     const px = this.player.x;
-    let area = 'bosque';
-    if (px >= 2400) area = 'chuvaria';
-    else if (px >= 1200) area = 'vale';
+    let area = 'valeAsara';
+    if (px >= 2400) area = 'valeEspelhos';
+    else if (px >= 1200) area = 'bosqueConfusao';
     if (area !== this._currentArea) {
       this._currentArea = area;
       this.game.events.emit('areaChanged', AREAS[area].label);
@@ -279,8 +279,8 @@ export class Zone3Scene extends Phaser.Scene {
   }
 
   _handleKeys(time, delta) {
-    if (Phaser.Input.Keyboard.JustDown(this.keyE)) this._handleInteract(time);
-    if (Phaser.Input.Keyboard.JustDown(this.keySpace) && this._spellCooldown <= 0) this._castSpell();
+    if (Phaser.Input.Keyboard.JustDown(this.keyC)) this._handleInteract(time);
+    if (Phaser.Input.Keyboard.JustDown(this.keyF) && this._spellCooldown <= 0) this._castSpell();
     if (Phaser.Input.Keyboard.JustDown(this.keyQ)) {
       GameState.cycleSpell();
       this.game.events.emit('spellCast', GameState.activeSpell);
@@ -309,11 +309,29 @@ export class Zone3Scene extends Phaser.Scene {
     });
     this.game.events.emit('spellCast', GameState.activeSpell);
 
-    if (GameState.activeSpell === 'passo_invisivel') {
-      this.player.makeInvisible(4000);
+    const spell = GameState.activeSpell;
+    if (spell === 'ancestral') {
       this.ecos.forEach(e => e.repel(this.player.x, this.player.y));
-      this._emitNarrative('O Passo Invisível faz-te desaparecer por momentos…');
+      this._emitNarrative('O Ancestral lança um feixe de luz — os Ecos fogem!');
+    } else if (spell === 'raiz_ardente') {
+      this._emitNarrative('A Raíz Ardente surge da terra — caminho aberto por 30 segundos!');
+    } else if (spell === 'canto_jardim') {
+      this._revealAllPlants();
     }
+  }
+
+  _revealAllPlants() {
+    this.plants.forEach(p => {
+      if (p.isCollected) return;
+      this.cameras.main.pan(p.x, p.y, 600, 'Sine.easeInOut', false, (cam, progress) => {
+        if (progress === 1) {
+          this.time.delayedCall(400, () =>
+            this.cameras.main.pan(this.player.x, this.player.y, 600, 'Sine.easeInOut')
+          );
+        }
+      });
+    });
+    this._emitNarrative('O Canto do Jardim revelou onde estão as plantas!');
   }
 
   _collectPlant(plant) {

@@ -18,19 +18,19 @@ const ZONE_DEFS = [
   {
     key: 'Zone2',
     name: 'Zona 2',
-    subtitle: 'Floresta Densa',
+    subtitle: 'Planície das Fendas',
     bgColor: 0x061510,
     borderColor: 0x1b5e20,
-    plants: ['tezaluz', 'espinhosa_doce', 'ninfaria', 'aurorabromelia', 'craveira', 'bocarra'],
+    plants: ['tezaluz', 'craveira', 'espinhosa_doce', 'bocarra', 'aurorabromelia', 'ninfaria'],
     alwaysUnlocked: false,
   },
   {
     key: 'Zone3',
     name: 'Zona 3',
-    subtitle: 'Terrenos das Sombras',
+    subtitle: 'Vale do Asara',
     bgColor: 0x080612,
     borderColor: 0x4a148c,
-    plants: ['sombravinha', 'sussurreira', 'faisca_mato', 'lunaria_negra'],
+    plants: ['sombravinha', 'faisca_mato', 'sussurreira', 'lunaria_negra'],
     alwaysUnlocked: false,
   },
 ];
@@ -332,13 +332,13 @@ export class MapScene extends Phaser.Scene {
     });
 
     this.add.text(W / 2, iy + 20,
-      'WASD / Setas = Mover     Shift = Correr     E = Apanhar planta', {
+      'WASD / Setas = Mover     Shift = Correr     C = Apanhar / Interagir', {
         fontSize: '12px', fontFamily: 'monospace', color: '#BFD8A4',
         align: 'center',
       }).setOrigin(0.5, 0);
 
     this.add.text(W / 2, iy + 38,
-      'ESPACO = Lancar feitico     Q = Mudar feitico     M = Mapa     H = Ajuda', {
+      'F = Lancar feitico     Q = Mudar feitico     M = Mapa     H = Ajuda', {
         fontSize: '12px', fontFamily: 'monospace', color: '#BFD8A4',
         align: 'center',
       }).setOrigin(0.5, 0);
