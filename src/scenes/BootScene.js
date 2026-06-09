@@ -57,17 +57,17 @@ export class BootScene extends Phaser.Scene {
     // Location signs
     this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 128, height: 128 });
     this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 128, height: 128 });
-    // Campo decorative elements
-    ['03','06','08','11','14','18','21','24'].forEach(n =>
-      this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 96, height: 96 })
+    // Campo decorative elements — all available, loaded at display-ready size
+    ['03','04','05','06','07','08','09','10','11','12','13','14','15','17','18','19','20','21','22','23','24'].forEach(n =>
+      this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 192, height: 192 })
     );
     // Limiar decorative elements
-    ['03','07','11','15','19','24','27','29'].forEach(n =>
-      this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 96, height: 96 })
+    ['03','04','05','06','07','08','09','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
+      this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 192, height: 192 })
     );
     // Transição decorative elements
-    ['02','05','09','13','17'].forEach(n =>
-      this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 96, height: 96 })
+    ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>
+      this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 192, height: 192 })
     );
 
     // ── Plant images ─────────────────────────────────────────────────────

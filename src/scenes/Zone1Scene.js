@@ -30,14 +30,6 @@ const PLANT_SPAWNS = [
   { id: 'trepadeira', x: VINE_X - 60, y: VINE_Y + 30 },
 ];
 
-// Decorative tree positions
-const TREE_POSITIONS = [
-  {x:90,y:160},{x:260,y:90},{x:130,y:460},{x:380,y:320},{x:480,y:900},
-  {x:80,y:1300},{x:350,y:1700},{x:700,y:220},{x:840,y:700},{x:920,y:1800},
-  {x:1150,y:400},{x:1300,y:1100},{x:1480,y:350},{x:1620,y:1500},{x:1900,y:900},
-  {x:2050,y:1400},{x:2260,y:750},{x:2450,y:1200},{x:2680,y:400},{x:2850,y:900},
-  {x:3050,y:200},{x:2900,y:1700},{x:3100,y:1300},{x:2400,y:1800},
-];
 
 export class Zone1Scene extends Phaser.Scene {
   constructor() { super('Zone1'); }
@@ -129,125 +121,144 @@ export class Zone1Scene extends Phaser.Scene {
   //  Background
   // ──────────────────────────────────────────────────────────────────────
   _buildBackground() {
-    // ── Per-area background images ────────────────────────────────────────
-    // Campo dos Vagalumes (x 0–1100)
+    // ── Campo dos Vagalumes (x 0–1100): bright green field + winding path ──
     if (this.textures.exists('z1_bg_campo')) {
       this.add.tileSprite(0, 0, 1100, WORLD_HEIGHT, 'z1_bg_campo').setOrigin(0).setDepth(0);
-    } else if (this.textures.exists('bg_zone1')) {
-      this.add.tileSprite(0, 0, 1100, WORLD_HEIGHT, 'bg_zone1').setOrigin(0).setDepth(0);
+    } else {
+      // Fallback: solid light green
+      const fg = this.add.graphics().setDepth(0);
+      fg.fillStyle(0x7ec87e, 1); fg.fillRect(0, 0, 1100, WORLD_HEIGHT);
     }
 
-    // Jardim Invertido / Transição (x 1100–2200)
+    // ── Jardim Invertido (x 1100–2200): transition, slightly moodier ───────
     if (this.textures.exists('z1_bg_trans')) {
       this.add.tileSprite(1100, 0, 1100, WORLD_HEIGHT, 'z1_bg_trans').setOrigin(0).setDepth(0);
-    } else if (this.textures.exists('bg_zone1')) {
-      this.add.tileSprite(1100, 0, 1100, WORLD_HEIGHT, 'bg_zone1').setOrigin(0).setDepth(0);
+    } else {
+      const jg = this.add.graphics().setDepth(0);
+      jg.fillStyle(0x4a7c59, 1); jg.fillRect(1100, 0, 1100, WORLD_HEIGHT);
     }
+    // Subtle dark tint for Jardim only (campo stays bright)
+    const jTint = this.add.graphics().setDepth(1);
+    jTint.fillStyle(0x051408, 0.32); jTint.fillRect(1100, 0, 1100, WORLD_HEIGHT);
 
-    // Limiar Secreto (x 2200–3200) — always dark
-    const g = this.add.graphics().setDepth(0);
-    if (!this.textures.exists('z1_bg_campo') && !this.textures.exists('bg_zone1')) {
-      g.fillStyle(0x0b2010, 1); g.fillRect(0,    0, 1100, WORLD_HEIGHT);
-      g.fillStyle(0x141a0b, 1); g.fillRect(1100, 0, 1100, WORLD_HEIGHT);
-    }
-    g.fillStyle(0x060c18, 1); g.fillRect(2200, 0, 1000, WORLD_HEIGHT);
+    // ── Limiar Secreto (x 2200–3200): dark, mysterious ──────────────────────
+    const lg = this.add.graphics().setDepth(0);
+    lg.fillStyle(0x060c18, 1); lg.fillRect(2200, 0, 1000, WORLD_HEIGHT);
+    const lTint = this.add.graphics().setDepth(1);
+    lTint.fillStyle(0x04080f, 0.50); lTint.fillRect(2200, 0, 1000, WORLD_HEIGHT);
 
-    // ── Mood tint overlays ────────────────────────────────────────────────
-    const tg = this.add.graphics().setDepth(1);
-    tg.fillStyle(0x020f08, 0.30); tg.fillRect(0,    0, 1100, WORLD_HEIGHT);  // campo – warm dark
-    tg.fillStyle(0x0d1a07, 0.38); tg.fillRect(1100, 0, 1100, WORLD_HEIGHT);  // jardim – deep green
-    tg.fillStyle(0x04080f, 0.52); tg.fillRect(2200, 0, 1000, WORLD_HEIGHT);  // limiar – midnight blue
-
-    // Ground paths
-    tg.fillStyle(0x5d3f1e, 0.22);
-    tg.fillRect(380, 0, 90, WORLD_HEIGHT);
-    tg.fillRect(0, 1180, WORLD_WIDTH, 80);
-    tg.fillRect(1060, 580, 200, 100);
-    tg.fillRect(2150, 740, 200, 100);
-
-    // Dot grid
-    tg.fillStyle(0xffffff, 0.04);
-    for (let gx = 0; gx < WORLD_WIDTH; gx += 120) {
-      for (let gy = 0; gy < WORLD_HEIGHT; gy += 120) {
-        tg.fillRect(gx, gy, 2, 2);
-      }
-    }
-
-    // Plant wall feature at Jardim → Limiar boundary
+    // ── Plant wall at Jardim → Limiar boundary ───────────────────────────────
     if (this.textures.exists('z1_parede')) {
-      this.add.image(2180, 1050, 'z1_parede')
-        .setOrigin(0.5).setDepth(2).setAlpha(0.55).setDisplaySize(700, 520);
+      this.add.image(2190, 1100, 'z1_parede')
+        .setOrigin(0.5).setDepth(2).setAlpha(0.60).setDisplaySize(720, 540);
     }
 
-    // Location signs
+    // ── Location signs ───────────────────────────────────────────────────────
     if (this.textures.exists('z1_placa_campo')) {
-      this.add.image(80, 220, 'z1_placa_campo').setDisplaySize(80, 80).setDepth(3).setAlpha(0.80);
+      this.add.image(120, 1980, 'z1_placa_campo').setDisplaySize(110, 110).setDepth(4);
     }
     if (this.textures.exists('z1_placa_limiar')) {
-      this.add.image(2268, 220, 'z1_placa_limiar').setDisplaySize(80, 80).setDepth(3).setAlpha(0.80);
+      this.add.image(2300, 280, 'z1_placa_limiar').setDisplaySize(110, 110).setDepth(4);
     }
   }
 
   _buildDecorations() {
-    // SVG decorative elements – scattered across each area
-    const CAMPO_DECO = [
-      { key: 'z1_campo_03', x: 80,  y: 280,  s: 88  },
-      { key: 'z1_campo_06', x: 440, y: 150,  s: 104 },
-      { key: 'z1_campo_08', x: 195, y: 720,  s: 80  },
-      { key: 'z1_campo_11', x: 760, y: 440,  s: 96  },
-      { key: 'z1_campo_14', x: 95,  y: 1060, s: 88  },
-      { key: 'z1_campo_18', x: 510, y: 1320, s: 104 },
-      { key: 'z1_campo_21', x: 340, y: 1770, s: 96  },
-      { key: 'z1_campo_24', x: 960, y: 1900, s: 80  },
-    ];
-    const TRANS_DECO = [
-      { key: 'z1_trans_02', x: 1200, y: 410,  s: 88  },
-      { key: 'z1_trans_05', x: 1510, y: 910,  s: 96  },
-      { key: 'z1_trans_09', x: 1760, y: 295,  s: 80  },
-      { key: 'z1_trans_13', x: 2010, y: 1110, s: 96  },
-      { key: 'z1_trans_17', x: 1360, y: 1620, s: 104 },
-    ];
-    const LIMIAR_DECO = [
-      { key: 'z1_limiar_03', x: 2310, y: 175,  s: 88  },
-      { key: 'z1_limiar_07', x: 2560, y: 640,  s: 96  },
-      { key: 'z1_limiar_11', x: 2810, y: 290,  s: 104 },
-      { key: 'z1_limiar_15', x: 3060, y: 820,  s: 80  },
-      { key: 'z1_limiar_19', x: 2360, y: 1210, s: 96  },
-      { key: 'z1_limiar_24', x: 2760, y: 1510, s: 112 },
-      { key: 'z1_limiar_27', x: 3110, y: 1210, s: 88  },
-      { key: 'z1_limiar_29', x: 2910, y: 1820, s: 96  },
+    // All campo element keys available
+    const campoNums = ['03','04','05','06','07','08','09','10','11','12',
+                       '13','14','15','17','18','19','20','21','22','23','24'];
+    const ck = campoNums.filter(n => this.textures.exists(`z1_campo_${n}`))
+                        .map(n => `z1_campo_${n}`);
+
+    // Campo dos Vagalumes — dense scatter matching design
+    // Each entry: [x, y, displaySize]  (all within x 0–1080, y 0–2380)
+    const CAMPO_POS = [
+      // top strip
+      [55,   100, 260], [230,  70,  220], [480,  60,  180], [700,  90,  250],
+      [900,  80,  200], [1020, 110, 160],
+      // upper-mid
+      [80,   310, 200], [300,  260, 240], [600,  280, 200], [850,  300, 220],
+      [1040, 340, 180],
+      // mid-left / mid-right
+      [60,   580, 240], [280,  500, 180], [520,  540, 130], [780,  510, 210],
+      [980,  560, 190],
+      // around path zone
+      [120,  800, 220], [400,  760, 160], [700,  820, 240], [1000, 800, 180],
+      // lower-mid
+      [70,   1060, 200], [320,  1020, 240], [560,  1080, 160], [820, 1040, 220],
+      [1050, 1060, 180],
+      // mid-lower
+      [100,  1300, 240], [360,  1260, 180], [640,  1310, 220], [880, 1280, 200],
+      [1020, 1320, 160],
+      // lower
+      [60,   1560, 200], [280,  1520, 240], [550,  1570, 180], [800, 1540, 220],
+      [1040, 1560, 190],
+      // bottom
+      [110,  1800, 220], [380,  1780, 200], [660,  1810, 240], [920, 1790, 180],
+      [80,   2040, 200], [340,  2060, 240], [620,  2020, 180], [870, 2050, 220],
+      [1020, 2080, 160],
+      [150,  2280, 220], [450,  2300, 200], [730,  2260, 240], [980, 2290, 180],
     ];
 
-    const svgCoveredPositions = new Set();
-    [...CAMPO_DECO, ...TRANS_DECO, ...LIMIAR_DECO].forEach(({ key, x, y, s }) => {
-      if (this.textures.exists(key)) {
-        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2).setAlpha(0.82);
-        svgCoveredPositions.add(`${x},${y}`);
-      }
-    });
+    if (ck.length > 0) {
+      CAMPO_POS.forEach(([x, y, s], i) => {
+        const key = ck[i % ck.length];
+        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2);
+      });
+    }
 
-    // Fallback circles for positions not covered by SVGs, or for all of jardim invertido
-    const colors = [0x1b5e20, 0x2e7d32, 0x33691e, 0x1a237e, 0x1b3a20];
-    const hasSvgDeco = this.textures.exists('z1_campo_03');
-    TREE_POSITIONS.forEach(({ x, y }) => {
-      const inCampo  = x < 1100;
-      const inLimiar = x >= 2200;
-      // Skip if covered by SVG deco (approximate: within 200px of an SVG element)
-      const covered = hasSvgDeco && (
-        (inCampo  && CAMPO_DECO.some( d => Math.abs(d.x - x) < 200 && Math.abs(d.y - y) < 200)) ||
-        (inLimiar && LIMIAR_DECO.some(d => Math.abs(d.x - x) < 200 && Math.abs(d.y - y) < 200))
-      );
-      if (!covered) {
-        const r = 28 + Math.random() * 44;
-        const c = colors[Math.floor(Math.random() * colors.length)];
-        this.add.circle(x, y, r, c, 0.75).setDepth(2);
-        this.add.circle(x, y + r * 0.3, r * 0.65, c, 0.5).setDepth(2);
-      }
-    });
+    // Transição / Jardim Invertido elements
+    const transNums = ['01','02','03','04','05','06','07','08','09','10',
+                       '11','12','13','14','15','16','17','18','19'];
+    const tk = transNums.filter(n => this.textures.exists(`z1_trans_${n}`))
+                        .map(n => `z1_trans_${n}`);
 
-    // Area boundary markers
-    [1100, 2200].forEach(bx => {
-      this.add.rectangle(bx, WORLD_HEIGHT / 2, 6, WORLD_HEIGHT, 0x4a3568, 0.25).setDepth(3);
+    const TRANS_POS = [
+      [1140, 120, 220], [1380, 90,  200], [1640, 110, 240], [1900, 80,  200], [2100, 130, 180],
+      [1160, 380, 200], [1420, 350, 240], [1700, 370, 200], [1980, 360, 220], [2130, 400, 180],
+      [1150, 640, 240], [1450, 620, 200], [1720, 660, 220], [2000, 640, 200], [2110, 680, 240],
+      [1180, 920, 200], [1460, 900, 220], [1740, 940, 200], [2020, 920, 240], [2140, 960, 180],
+      [1160,1180, 240], [1440,1160, 200], [1720,1200, 220], [2000,1180, 200], [2130,1220, 240],
+      [1180,1440, 200], [1460,1420, 240], [1740,1460, 200], [2020,1440, 220], [2140,1480, 180],
+      [1160,1700, 240], [1440,1680, 200], [1720,1720, 220], [2000,1700, 200], [2130,1740, 240],
+      [1180,1960, 200], [1460,1940, 240], [1740,1980, 200], [2020,1960, 220],
+      [1160,2220, 240], [1440,2200, 200], [1720,2240, 220], [2000,2220, 200],
+    ];
+
+    if (tk.length > 0) {
+      TRANS_POS.forEach(([x, y, s], i) => {
+        const key = tk[i % tk.length];
+        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2).setAlpha(0.88);
+      });
+    }
+
+    // Limiar Secreto elements
+    const limiarNums = ['03','04','05','06','07','08','09','11','12','13','14','15',
+                        '16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'];
+    const lk = limiarNums.filter(n => this.textures.exists(`z1_limiar_${n}`))
+                         .map(n => `z1_limiar_${n}`);
+
+    const LIMIAR_POS = [
+      [2250, 100, 220], [2480, 80,  200], [2720, 110, 240], [2960, 90,  200], [3150, 120, 180],
+      [2260, 360, 200], [2500, 340, 240], [2740, 370, 200], [2980, 350, 220], [3140, 390, 180],
+      [2250, 620, 240], [2490, 600, 200], [2730, 640, 220], [2970, 620, 200], [3130, 660, 240],
+      [2260, 880, 200], [2500, 860, 220], [2740, 900, 200], [2980, 880, 240], [3150, 920, 180],
+      [2250,1140, 240], [2490,1120, 200], [2730,1160, 220], [2970,1140, 200], [3130,1180, 240],
+      [2260,1400, 200], [2500,1380, 240], [2740,1420, 200], [2980,1400, 220], [3150,1440, 180],
+      [2250,1660, 240], [2490,1640, 200], [2730,1680, 220], [2970,1660, 200], [3130,1700, 240],
+      [2260,1920, 200], [2500,1900, 240], [2740,1940, 200], [2980,1920, 220],
+      [2250,2180, 240], [2490,2160, 200], [2730,2200, 220], [2980,2180, 200],
+    ];
+
+    if (lk.length > 0) {
+      LIMIAR_POS.forEach(([x, y, s], i) => {
+        const key = lk[i % lk.length];
+        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2).setAlpha(0.85);
+      });
+    }
+
+    // Area boundary markers (subtle, only for non-campo areas)
+    [2200].forEach(bx => {
+      this.add.rectangle(bx, WORLD_HEIGHT / 2, 4, WORLD_HEIGHT, 0x2a1548, 0.20).setDepth(3);
     });
   }
 
