@@ -42,6 +42,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bg_book',   unsplashUrl(UNSPLASH.book, 1280, 720));
 
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
+    // Player character
+    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 64, height: 64 });
     // Plant sprites (replace Unsplash for Zone 1 plants)
     this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 128, height: 128 });
     this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 128, height: 128 });
@@ -91,17 +93,19 @@ export class BootScene extends Phaser.Scene {
   _generateTextures() {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 
-    // ── Player: witch silhouette ──────────────────────────────────────────
-    g.clear();
-    g.fillStyle(0x5b21b6, 1);
-    g.fillCircle(20, 30, 14);
-    g.fillStyle(0x1a1a2e, 1);
-    g.fillTriangle(20, 2, 5, 24, 35, 24);
-    g.fillStyle(0x2d1b69, 1);
-    g.fillRect(3, 22, 34, 5);
-    g.fillStyle(0x4c1d95, 0.9);
-    g.fillTriangle(8, 36, 32, 36, 20, 52);
-    g.generateTexture('player', 40, 54);
+    // ── Player: use SVG if loaded, else fallback silhouette ───────────────
+    if (!this.textures.exists('player')) {
+      g.clear();
+      g.fillStyle(0x5b21b6, 1);
+      g.fillCircle(20, 30, 14);
+      g.fillStyle(0x1a1a2e, 1);
+      g.fillTriangle(20, 2, 5, 24, 35, 24);
+      g.fillStyle(0x2d1b69, 1);
+      g.fillRect(3, 22, 34, 5);
+      g.fillStyle(0x4c1d95, 0.9);
+      g.fillTriangle(8, 36, 32, 36, 20, 52);
+      g.generateTexture('player', 40, 54);
+    }
 
     // ── Plants by element ─────────────────────────────────────────────────
     const elColors = {
