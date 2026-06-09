@@ -41,9 +41,38 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bg_zone3',  unsplashUrl(UNSPLASH.zone3Bg));
     this.load.image('bg_book',   unsplashUrl(UNSPLASH.book, 1280, 720));
 
+    // ── Zone 1 SVG assets ────────────────────────────────────────────────
+    // Plant sprites (replace Unsplash for Zone 1 plants)
+    this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 128, height: 128 });
+    this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 128, height: 128 });
+    this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 128, height: 128 });
+    // Firefly sprite
+    this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 48, height: 48 });
+    // Area backgrounds
+    this.load.svg('z1_bg_campo', '/assets/zone1/campo/bg_campo.svg',   { width: 1920, height: 1080 });
+    this.load.svg('z1_bg_trans', '/assets/zone1/transicao/fundo.svg',  { width: 1920, height: 525  });
+    this.load.svg('z1_parede',   '/assets/zone1/transicao/parede.svg', { width: 1038, height: 775  });
+    // Location signs
+    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 128, height: 128 });
+    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 128, height: 128 });
+    // Campo decorative elements
+    ['03','06','08','11','14','18','21','24'].forEach(n =>
+      this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 96, height: 96 })
+    );
+    // Limiar decorative elements
+    ['03','07','11','15','19','24','27','29'].forEach(n =>
+      this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 96, height: 96 })
+    );
+    // Transição decorative elements
+    ['02','05','09','13','17'].forEach(n =>
+      this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 96, height: 96 })
+    );
+
     // ── Plant images ─────────────────────────────────────────────────────
+    // Zone 1 plants use SVG sprites above; Unsplash only for zones 2–3
+    const SVG_PLANT_SPRITES = new Set(['ventoinha', 'farfalha', 'trepadeira']);
     Object.values(PLANTS).forEach(p => {
-      if (p.unsplashId) {
+      if (p.unsplashId && !SVG_PLANT_SPRITES.has(p.id)) {
         this.load.image(`plant_img_${p.id}`, unsplashPlantUrl(p.unsplashId, 128));
       }
     });

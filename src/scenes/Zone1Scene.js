@@ -129,54 +129,126 @@ export class Zone1Scene extends Phaser.Scene {
   //  Background
   // ──────────────────────────────────────────────────────────────────────
   _buildBackground() {
-    const g = this.add.graphics();
+    // ── Per-area background images ────────────────────────────────────────
+    // Campo dos Vagalumes (x 0–1100)
+    if (this.textures.exists('z1_bg_campo')) {
+      this.add.tileSprite(0, 0, 1100, WORLD_HEIGHT, 'z1_bg_campo').setOrigin(0).setDepth(0);
+    } else if (this.textures.exists('bg_zone1')) {
+      this.add.tileSprite(0, 0, 1100, WORLD_HEIGHT, 'bg_zone1').setOrigin(0).setDepth(0);
+    }
 
-    if (this.textures.exists('bg_zone1')) {
-      // Tile Unsplash image across the world
-      this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'bg_zone1')
-        .setOrigin(0).setDepth(0);
-      // Area tints
-      g.fillStyle(0x0a2010, 0.45); g.fillRect(0, 0, 1100, WORLD_HEIGHT);
-      g.fillStyle(0x121a0a, 0.45); g.fillRect(1100, 0, 1100, WORLD_HEIGHT);
-      g.fillStyle(0x0a0f18, 0.55); g.fillRect(2200, 0, 1000, WORLD_HEIGHT);
-    } else {
+    // Jardim Invertido / Transição (x 1100–2200)
+    if (this.textures.exists('z1_bg_trans')) {
+      this.add.tileSprite(1100, 0, 1100, WORLD_HEIGHT, 'z1_bg_trans').setOrigin(0).setDepth(0);
+    } else if (this.textures.exists('bg_zone1')) {
+      this.add.tileSprite(1100, 0, 1100, WORLD_HEIGHT, 'bg_zone1').setOrigin(0).setDepth(0);
+    }
+
+    // Limiar Secreto (x 2200–3200) — always dark
+    const g = this.add.graphics().setDepth(0);
+    if (!this.textures.exists('z1_bg_campo') && !this.textures.exists('bg_zone1')) {
       g.fillStyle(0x0b2010, 1); g.fillRect(0,    0, 1100, WORLD_HEIGHT);
       g.fillStyle(0x141a0b, 1); g.fillRect(1100, 0, 1100, WORLD_HEIGHT);
-      g.fillStyle(0x0a0e18, 1); g.fillRect(2200, 0, 1000, WORLD_HEIGHT);
     }
-    g.setDepth(1);
+    g.fillStyle(0x060c18, 1); g.fillRect(2200, 0, 1000, WORLD_HEIGHT);
 
-    // Ground paths (dirt tracks)
-    g.fillStyle(0x5d3f1e, 0.22);
-    g.fillRect(380, 0, 90, WORLD_HEIGHT);           // main vertical path
-    g.fillRect(0, 1180, WORLD_WIDTH, 80);           // horizontal connecting path
-    g.fillRect(1060, 580, 200, 100);                // bridge to Jardim
-    g.fillRect(2150, 740, 200, 100);                // bridge to Limiar
+    // ── Mood tint overlays ────────────────────────────────────────────────
+    const tg = this.add.graphics().setDepth(1);
+    tg.fillStyle(0x020f08, 0.30); tg.fillRect(0,    0, 1100, WORLD_HEIGHT);  // campo – warm dark
+    tg.fillStyle(0x0d1a07, 0.38); tg.fillRect(1100, 0, 1100, WORLD_HEIGHT);  // jardim – deep green
+    tg.fillStyle(0x04080f, 0.52); tg.fillRect(2200, 0, 1000, WORLD_HEIGHT);  // limiar – midnight blue
 
-    // Dot grid pattern to give sense of scale/movement
-    g.fillStyle(0xffffff, 0.04);
+    // Ground paths
+    tg.fillStyle(0x5d3f1e, 0.22);
+    tg.fillRect(380, 0, 90, WORLD_HEIGHT);
+    tg.fillRect(0, 1180, WORLD_WIDTH, 80);
+    tg.fillRect(1060, 580, 200, 100);
+    tg.fillRect(2150, 740, 200, 100);
+
+    // Dot grid
+    tg.fillStyle(0xffffff, 0.04);
     for (let gx = 0; gx < WORLD_WIDTH; gx += 120) {
       for (let gy = 0; gy < WORLD_HEIGHT; gy += 120) {
-        g.fillRect(gx, gy, 2, 2);
+        tg.fillRect(gx, gy, 2, 2);
       }
+    }
+
+    // Plant wall feature at Jardim → Limiar boundary
+    if (this.textures.exists('z1_parede')) {
+      this.add.image(2180, 1050, 'z1_parede')
+        .setOrigin(0.5).setDepth(2).setAlpha(0.55).setDisplaySize(700, 520);
+    }
+
+    // Location signs
+    if (this.textures.exists('z1_placa_campo')) {
+      this.add.image(80, 220, 'z1_placa_campo').setDisplaySize(80, 80).setDepth(3).setAlpha(0.80);
+    }
+    if (this.textures.exists('z1_placa_limiar')) {
+      this.add.image(2268, 220, 'z1_placa_limiar').setDisplaySize(80, 80).setDepth(3).setAlpha(0.80);
     }
   }
 
   _buildDecorations() {
+    // SVG decorative elements – scattered across each area
+    const CAMPO_DECO = [
+      { key: 'z1_campo_03', x: 80,  y: 280,  s: 88  },
+      { key: 'z1_campo_06', x: 440, y: 150,  s: 104 },
+      { key: 'z1_campo_08', x: 195, y: 720,  s: 80  },
+      { key: 'z1_campo_11', x: 760, y: 440,  s: 96  },
+      { key: 'z1_campo_14', x: 95,  y: 1060, s: 88  },
+      { key: 'z1_campo_18', x: 510, y: 1320, s: 104 },
+      { key: 'z1_campo_21', x: 340, y: 1770, s: 96  },
+      { key: 'z1_campo_24', x: 960, y: 1900, s: 80  },
+    ];
+    const TRANS_DECO = [
+      { key: 'z1_trans_02', x: 1200, y: 410,  s: 88  },
+      { key: 'z1_trans_05', x: 1510, y: 910,  s: 96  },
+      { key: 'z1_trans_09', x: 1760, y: 295,  s: 80  },
+      { key: 'z1_trans_13', x: 2010, y: 1110, s: 96  },
+      { key: 'z1_trans_17', x: 1360, y: 1620, s: 104 },
+    ];
+    const LIMIAR_DECO = [
+      { key: 'z1_limiar_03', x: 2310, y: 175,  s: 88  },
+      { key: 'z1_limiar_07', x: 2560, y: 640,  s: 96  },
+      { key: 'z1_limiar_11', x: 2810, y: 290,  s: 104 },
+      { key: 'z1_limiar_15', x: 3060, y: 820,  s: 80  },
+      { key: 'z1_limiar_19', x: 2360, y: 1210, s: 96  },
+      { key: 'z1_limiar_24', x: 2760, y: 1510, s: 112 },
+      { key: 'z1_limiar_27', x: 3110, y: 1210, s: 88  },
+      { key: 'z1_limiar_29', x: 2910, y: 1820, s: 96  },
+    ];
+
+    const svgCoveredPositions = new Set();
+    [...CAMPO_DECO, ...TRANS_DECO, ...LIMIAR_DECO].forEach(({ key, x, y, s }) => {
+      if (this.textures.exists(key)) {
+        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2).setAlpha(0.82);
+        svgCoveredPositions.add(`${x},${y}`);
+      }
+    });
+
+    // Fallback circles for positions not covered by SVGs, or for all of jardim invertido
     const colors = [0x1b5e20, 0x2e7d32, 0x33691e, 0x1a237e, 0x1b3a20];
+    const hasSvgDeco = this.textures.exists('z1_campo_03');
     TREE_POSITIONS.forEach(({ x, y }) => {
-      const r = 28 + Math.random() * 44;
-      const c = colors[Math.floor(Math.random() * colors.length)];
-      this.add.circle(x, y, r, c, 0.75).setDepth(2);
-      this.add.circle(x, y + r * 0.3, r * 0.65, c, 0.5).setDepth(2);
+      const inCampo  = x < 1100;
+      const inLimiar = x >= 2200;
+      // Skip if covered by SVG deco (approximate: within 200px of an SVG element)
+      const covered = hasSvgDeco && (
+        (inCampo  && CAMPO_DECO.some( d => Math.abs(d.x - x) < 200 && Math.abs(d.y - y) < 200)) ||
+        (inLimiar && LIMIAR_DECO.some(d => Math.abs(d.x - x) < 200 && Math.abs(d.y - y) < 200))
+      );
+      if (!covered) {
+        const r = 28 + Math.random() * 44;
+        const c = colors[Math.floor(Math.random() * colors.length)];
+        this.add.circle(x, y, r, c, 0.75).setDepth(2);
+        this.add.circle(x, y + r * 0.3, r * 0.65, c, 0.5).setDepth(2);
+      }
     });
 
-    // Area boundary markers (subtle vertical line + glow)
+    // Area boundary markers
     [1100, 2200].forEach(bx => {
-      this.add.rectangle(bx, WORLD_HEIGHT / 2, 6, WORLD_HEIGHT, 0x4a3568, 0.25)
-        .setDepth(3);
+      this.add.rectangle(bx, WORLD_HEIGHT / 2, 6, WORLD_HEIGHT, 0x4a3568, 0.25).setDepth(3);
     });
-
   }
 
   _buildVine() {
@@ -237,26 +309,29 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildFireflies() {
-    // Only in Campo dos Vagalumes (x 0-1100)
-    this.add.particles(0, 0, 'firefly', {
+    const ffKey = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
+    const ffScale = ffKey === 'z1_vagalume' ? { start: 0.22, end: 0 } : { start: 1, end: 0 };
+
+    // Dense fireflies in Campo dos Vagalumes (x 0–1100)
+    this.add.particles(0, 0, ffKey, {
       x: { min: 40, max: 1060 },
       y: { min: 50, max: WORLD_HEIGHT - 50 },
       lifespan: { min: 2500, max: 5000 },
       speed: { min: 8, max: 30 },
-      scale: { start: 1, end: 0 },
-      alpha: { start: 0.9, end: 0 },
+      scale: ffScale,
+      alpha: { start: 0.92, end: 0 },
       quantity: 1,
       frequency: 180,
       blendMode: 'ADD',
     }).setDepth(7);
 
-    // Sparse fireflies in other zones
-    this.add.particles(0, 0, 'firefly', {
+    // Sparse fireflies in other areas
+    this.add.particles(0, 0, ffKey, {
       x: { min: 1100, max: 3150 },
       y: { min: 50, max: WORLD_HEIGHT - 50 },
       lifespan: { min: 1800, max: 3500 },
       speed: { min: 5, max: 18 },
-      scale: { start: 0.7, end: 0 },
+      scale: ffKey === 'z1_vagalume' ? { start: 0.16, end: 0 } : { start: 0.7, end: 0 },
       alpha: { start: 0.6, end: 0 },
       quantity: 1,
       frequency: 600,
