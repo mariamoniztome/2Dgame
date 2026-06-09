@@ -52,9 +52,9 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildPortal();
     this._buildFireflies();
 
-    // Player glow + shadow (improves visibility)
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 20, 32, 12, 0x000000, 0.35).setDepth(4);
-    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 24, 0x9575cd, 0.18).setDepth(9).setBlendMode('ADD');
+    // Subtle shadow under the player
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 24, 28, 10, 0x000000, 0.25).setDepth(4);
+    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.08).setDepth(9).setBlendMode('ADD');
 
     // Camera — snap immediately then lerp smoothly
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -121,44 +121,37 @@ export class Zone1Scene extends Phaser.Scene {
   //  Background
   // ──────────────────────────────────────────────────────────────────────
   _buildBackground() {
-    // ── Campo dos Vagalumes (x 0–1100): bright green field + winding path ──
+    const g = this.add.graphics().setDepth(0);
+
+    // ── Campo dos Vagalumes: solid green base then path on top ───────────────
+    g.fillStyle(0x9ed89e, 1); g.fillRect(0, 0, 1100, WORLD_HEIGHT);
     if (this.textures.exists('z1_bg_campo')) {
-      this.add.tileSprite(0, 0, 1100, WORLD_HEIGHT, 'z1_bg_campo').setOrigin(0).setDepth(0);
-    } else {
-      // Fallback: solid light green
-      const fg = this.add.graphics().setDepth(0);
-      fg.fillStyle(0x7ec87e, 1); fg.fillRect(0, 0, 1100, WORLD_HEIGHT);
+      this.add.tileSprite(0, 0, 1100, WORLD_HEIGHT, 'z1_bg_campo').setOrigin(0).setDepth(1);
     }
 
-    // ── Jardim Invertido (x 1100–2200): transition, slightly moodier ───────
+    // ── Jardim Invertido: slightly darker green + transition path ────────────
+    g.fillStyle(0x5a8c60, 1); g.fillRect(1100, 0, 1100, WORLD_HEIGHT);
     if (this.textures.exists('z1_bg_trans')) {
-      this.add.tileSprite(1100, 0, 1100, WORLD_HEIGHT, 'z1_bg_trans').setOrigin(0).setDepth(0);
-    } else {
-      const jg = this.add.graphics().setDepth(0);
-      jg.fillStyle(0x4a7c59, 1); jg.fillRect(1100, 0, 1100, WORLD_HEIGHT);
+      this.add.tileSprite(1100, 0, 1100, WORLD_HEIGHT, 'z1_bg_trans').setOrigin(0).setDepth(1);
     }
-    // Subtle dark tint for Jardim only (campo stays bright)
-    const jTint = this.add.graphics().setDepth(1);
-    jTint.fillStyle(0x051408, 0.32); jTint.fillRect(1100, 0, 1100, WORLD_HEIGHT);
+    const jTint = this.add.graphics().setDepth(2);
+    jTint.fillStyle(0x050e08, 0.25); jTint.fillRect(1100, 0, 1100, WORLD_HEIGHT);
 
-    // ── Limiar Secreto (x 2200–3200): dark, mysterious ──────────────────────
-    const lg = this.add.graphics().setDepth(0);
-    lg.fillStyle(0x060c18, 1); lg.fillRect(2200, 0, 1000, WORLD_HEIGHT);
-    const lTint = this.add.graphics().setDepth(1);
-    lTint.fillStyle(0x04080f, 0.50); lTint.fillRect(2200, 0, 1000, WORLD_HEIGHT);
+    // ── Limiar Secreto: dark blue-black ─────────────────────────────────────
+    g.fillStyle(0x060c18, 1); g.fillRect(2200, 0, 1000, WORLD_HEIGHT);
 
     // ── Plant wall at Jardim → Limiar boundary ───────────────────────────────
     if (this.textures.exists('z1_parede')) {
       this.add.image(2190, 1100, 'z1_parede')
-        .setOrigin(0.5).setDepth(2).setAlpha(0.60).setDisplaySize(720, 540);
+        .setOrigin(0.5).setDepth(3).setAlpha(0.55).setDisplaySize(720, 540);
     }
 
     // ── Location signs ───────────────────────────────────────────────────────
     if (this.textures.exists('z1_placa_campo')) {
-      this.add.image(120, 1980, 'z1_placa_campo').setDisplaySize(110, 110).setDepth(4);
+      this.add.image(120, 1980, 'z1_placa_campo').setDisplaySize(130, 130).setDepth(4);
     }
     if (this.textures.exists('z1_placa_limiar')) {
-      this.add.image(2300, 280, 'z1_placa_limiar').setDisplaySize(110, 110).setDepth(4);
+      this.add.image(2300, 280, 'z1_placa_limiar').setDisplaySize(130, 130).setDepth(4);
     }
   }
 
@@ -170,39 +163,39 @@ export class Zone1Scene extends Phaser.Scene {
                         .map(n => `z1_campo_${n}`);
 
     // Campo dos Vagalumes — dense scatter matching design
-    // Each entry: [x, y, displaySize]  (all within x 0–1080, y 0–2380)
+    // Entries: [x, y, displaySize]  — trees 300–450px, bushes 160–240px
     const CAMPO_POS = [
-      // top strip
-      [55,   100, 260], [230,  70,  220], [480,  60,  180], [700,  90,  250],
-      [900,  80,  200], [1020, 110, 160],
+      // top
+      [50,   90,  420], [250,  60,  360], [500,  55,  300], [730,  80,  400],
+      [930,  70,  340], [1060, 100, 260],
       // upper-mid
-      [80,   310, 200], [300,  260, 240], [600,  280, 200], [850,  300, 220],
-      [1040, 340, 180],
-      // mid-left / mid-right
-      [60,   580, 240], [280,  500, 180], [520,  540, 130], [780,  510, 210],
-      [980,  560, 190],
-      // around path zone
-      [120,  800, 220], [400,  760, 160], [700,  820, 240], [1000, 800, 180],
+      [70,   320, 380], [310,  280, 340], [580,  300, 280], [840,  310, 360],
+      [1040, 350, 260],
+      // mid
+      [55,   600, 400], [290,  550, 280], [560,  580, 220], [790,  560, 380],
+      [1000, 590, 300],
+      // around path
+      [100,  850, 360], [390,  820, 240], [690,  870, 400], [1020, 840, 280],
       // lower-mid
-      [70,   1060, 200], [320,  1020, 240], [560,  1080, 160], [820, 1040, 220],
-      [1050, 1060, 180],
+      [65,   1090, 380], [310,  1060, 340], [570,  1100, 260], [830, 1070, 400],
+      [1050, 1090, 280],
       // mid-lower
-      [100,  1300, 240], [360,  1260, 180], [640,  1310, 220], [880, 1280, 200],
-      [1020, 1320, 160],
+      [90,   1340, 360], [360,  1300, 300], [640,  1360, 340], [890, 1320, 380],
+      [1030, 1360, 240],
       // lower
-      [60,   1560, 200], [280,  1520, 240], [550,  1570, 180], [800, 1540, 220],
-      [1040, 1560, 190],
-      // bottom
-      [110,  1800, 220], [380,  1780, 200], [660,  1810, 240], [920, 1790, 180],
-      [80,   2040, 200], [340,  2060, 240], [620,  2020, 180], [870, 2050, 220],
-      [1020, 2080, 160],
-      [150,  2280, 220], [450,  2300, 200], [730,  2260, 240], [980, 2290, 180],
+      [55,   1600, 400], [285,  1570, 280], [555,  1620, 360], [810, 1590, 320],
+      [1040, 1610, 260],
+      // bottom sections
+      [100,  1860, 380], [380,  1840, 340], [660,  1880, 400], [930, 1850, 300],
+      [75,   2120, 360], [345,  2100, 300], [625,  2140, 380], [875, 2110, 340],
+      [1040, 2150, 240],
+      [120,  2350, 340], [440,  2380, 400], [730,  2340, 280], [990, 2370, 360],
     ];
 
     if (ck.length > 0) {
       CAMPO_POS.forEach(([x, y, s], i) => {
         const key = ck[i % ck.length];
-        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2);
+        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(3);
       });
     }
 
@@ -227,7 +220,7 @@ export class Zone1Scene extends Phaser.Scene {
     if (tk.length > 0) {
       TRANS_POS.forEach(([x, y, s], i) => {
         const key = tk[i % tk.length];
-        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2).setAlpha(0.88);
+        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(3).setAlpha(0.88);
       });
     }
 
@@ -252,7 +245,7 @@ export class Zone1Scene extends Phaser.Scene {
     if (lk.length > 0) {
       LIMIAR_POS.forEach(([x, y, s], i) => {
         const key = lk[i % lk.length];
-        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(2).setAlpha(0.85);
+        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(3).setAlpha(0.85);
       });
     }
 
