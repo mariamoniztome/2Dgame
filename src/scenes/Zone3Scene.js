@@ -10,7 +10,7 @@ import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
 const PLANT_SPAWNS = [
-  { id: 'sombravinha',  x: 700,  y: 1100 }, // Vale do Asara
+  { id: 'sombravinha',  x: 700,  y: 495 }, // Vale do Asara
   { id: 'faisca_mato',  x: 950,  y: 700  }, // Vale do Asara
   { id: 'sussurreira',  x: 1600, y: 900  }, // Bosque da Confusão
   { id: 'lunaria_negra', x: 1900, y: 500  }, // Bosque da Confusão (labyrinth end)
@@ -31,7 +31,7 @@ export class Zone3Scene extends Phaser.Scene {
 
     this._buildBackground();
 
-    this.player = new Player(this, 400, 1200);
+    this.player = new Player(this, 400, 540);
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
     this._buildCreatures();
@@ -143,7 +143,7 @@ export class Zone3Scene extends Phaser.Scene {
     this.ecos = [];
     // Create 2 Eco creatures
     for (let i = 0; i < 2; i++) {
-      const eco = new Creature(this, 800 + i * 600, 1400, 'creature_eco', {
+      const eco = new Creature(this, 800 + i * 600, 630, 'creature_eco', {
         type: 'eco',
         followRange: 350,
         stealThreshold: 4000,

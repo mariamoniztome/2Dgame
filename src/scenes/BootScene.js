@@ -68,14 +68,7 @@ export class BootScene extends Phaser.Scene {
       this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 512, height: 512 })
     );
 
-    // ── Plant images ─────────────────────────────────────────────────────
-    // Zone 1 plants use SVG sprites above; Unsplash only for zones 2–3
-    const SVG_PLANT_SPRITES = new Set(['ventoinha', 'farfalha', 'trepadeira']);
-    Object.values(PLANTS).forEach(p => {
-      if (p.unsplashId && !SVG_PLANT_SPRITES.has(p.id)) {
-        this.load.image(`plant_img_${p.id}`, unsplashPlantUrl(p.unsplashId, 128));
-      }
-    });
+    // Plant images: SVG where available, else generated placeholder — no Unsplash photos
 
     // Graceful fallback: don't crash if Unsplash is unreachable
     this.load.on('loaderror', (file) => {

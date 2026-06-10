@@ -19,19 +19,19 @@ const AREAS = {
 
 const PLANT_SPAWNS = [
   { id: 'tezaluz',       x: 420,  y: 900  }, // Planície das Fendas
-  { id: 'craveira',      x: 680,  y: 1350 }, // Planície das Fendas
+  { id: 'craveira',      x: 680,  y: 610 }, // Planície das Fendas
   { id: 'espinhosa_doce', x: 1100, y: 700  }, // Jardim Selvagem
-  { id: 'bocarra',       x: 1450, y: 1200 }, // Jardim Selvagem
+  { id: 'bocarra',       x: 1450, y: 540 }, // Jardim Selvagem
   { id: 'aurorabromelia', x: 2100, y: 800  }, // Planalto dos Furacões
-  { id: 'ninfaria',      x: 2750, y: 1100 }, // Pântano
+  { id: 'ninfaria',      x: 2750, y: 495 }, // Pântano
 ];
 
 const TREE_COLORS = [0x1a3a2a, 0x0d3020, 0x2a1a08, 0x182a10];
 const TREE_POS = [
-  {x:80,y:200},{x:200,y:80},{x:400,y:300},{x:120,y:600},{x:350,y:1600},
-  {x:700,y:250},{x:800,y:900},{x:600,y:1400},{x:1100,y:350},{x:1200,y:1200},
-  {x:1400,y:600},{x:1600,y:1800},{x:1900,y:400},{x:2000,y:1400},{x:2200,y:800},
-  {x:2400,y:1600},{x:2600,y:300},{x:2700,y:1100},{x:2900,y:700},{x:3050,y:1500},
+  {x:80,y:200},{x:200,y:80},{x:400,y:300},{x:120,y:600},{x:350,y:720},
+  {x:700,y:250},{x:800,y:900},{x:600,y:630},{x:1100,y:350},{x:1200,y:540},
+  {x:1400,y:600},{x:1600,y:810},{x:1900,y:400},{x:2000,y:630},{x:2200,y:800},
+  {x:2400,y:720},{x:2600,y:300},{x:2700,y:1100},{x:2900,y:700},{x:3050,y:675},
 ];
 
 export class Zone2Scene extends Phaser.Scene {
@@ -43,7 +43,7 @@ export class Zone2Scene extends Phaser.Scene {
 
     this._buildBackground();
 
-    this.player = new Player(this, 420, 1200);
+    this.player = new Player(this, 420, 540);
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
     this._buildCreature();

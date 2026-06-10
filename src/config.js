@@ -2,7 +2,7 @@ export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
 export const WORLD_WIDTH = 3200;
-export const WORLD_HEIGHT = 2400;
+export const WORLD_HEIGHT = 1080;
 
 export const PLAYER_SPEED = 180;
 export const PLAYER_SPRINT_SPEED = 320;

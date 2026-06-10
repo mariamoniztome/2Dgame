@@ -9,24 +9,22 @@ import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
-// Zone 1 is 3200×2400, split into three areas
+// Zone 1 — 3200 wide × 1080 tall (landscape, one screen high)
 const AREAS = {
   campoVagalumes: { label: 'Campo dos Vagalumes', minX: 0,    maxX: 1100 },
   jardimInvertido: { label: 'Jardim Invertido',   minX: 1100, maxX: 2200 },
   limiarSecreto:   { label: 'Limiar Secreto',     minX: 2200, maxX: 3200 },
 };
 
-// Vine position (gate to Limiar Secreto)
-const VINE_X = 2210, VINE_Y = 1000, VINE_CLIMB_Y = 380;
+const VINE_X = 2210, VINE_Y = 620, VINE_CLIMB_Y = 160;
 
-// Plant spawn configurations
 const PLANT_SPAWNS = [
-  { id: 'ventoinha', x: 310,  y: 760  },
-  { id: 'ventoinha', x: 620,  y: 1440 },
-  { id: 'gotateia',  x: 190,  y: 1100 },
-  { id: 'gotateia',  x: 1260, y: 870  },
-  { id: 'farfalha',  x: 1540, y: 1230 },
-  { id: 'farfalha',  x: 1840, y: 680  },
+  { id: 'ventoinha',  x: 310,  y: 340 },
+  { id: 'ventoinha',  x: 620,  y: 650 },
+  { id: 'gotateia',   x: 190,  y: 500 },
+  { id: 'gotateia',   x: 1260, y: 390 },
+  { id: 'farfalha',   x: 1540, y: 555 },
+  { id: 'farfalha',   x: 1840, y: 300 },
   { id: 'trepadeira', x: VINE_X - 60, y: VINE_Y + 30 },
 ];
 
@@ -44,7 +42,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildVine();
 
     // Player starts in Campo dos Vagalumes
-    this.player = new Player(this, 420, 1200);
+    this.player = new Player(this, 420, 540);
 
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
@@ -123,35 +121,38 @@ export class Zone1Scene extends Phaser.Scene {
   _buildBackground() {
     const g = this.add.graphics().setDepth(0);
 
-    // ── Campo dos Vagalumes: solid green base then path on top ───────────────
+    // ── Campo dos Vagalumes: solid green + background image once (no repeat) ─
     g.fillStyle(0x9ed89e, 1); g.fillRect(0, 0, 1100, WORLD_HEIGHT);
     if (this.textures.exists('z1_bg_campo')) {
-      this.add.tileSprite(0, 0, 1100, WORLD_HEIGHT, 'z1_bg_campo').setOrigin(0).setDepth(1);
+      // Single image stretched to fill campo width × world height — no tiling
+      this.add.image(0, 0, 'z1_bg_campo')
+        .setOrigin(0, 0).setDisplaySize(1100, WORLD_HEIGHT).setDepth(1);
     }
 
-    // ── Jardim Invertido: slightly darker green + transition path ────────────
+    // ── Jardim Invertido: darker green + transition bg ───────────────────────
     g.fillStyle(0x5a8c60, 1); g.fillRect(1100, 0, 1100, WORLD_HEIGHT);
     if (this.textures.exists('z1_bg_trans')) {
-      this.add.tileSprite(1100, 0, 1100, WORLD_HEIGHT, 'z1_bg_trans').setOrigin(0).setDepth(1);
+      this.add.image(1100, 0, 'z1_bg_trans')
+        .setOrigin(0, 0).setDisplaySize(1100, WORLD_HEIGHT).setDepth(1);
     }
     const jTint = this.add.graphics().setDepth(2);
     jTint.fillStyle(0x050e08, 0.25); jTint.fillRect(1100, 0, 1100, WORLD_HEIGHT);
 
-    // ── Limiar Secreto: dark blue-black ─────────────────────────────────────
+    // ── Limiar Secreto: dark ─────────────────────────────────────────────────
     g.fillStyle(0x060c18, 1); g.fillRect(2200, 0, 1000, WORLD_HEIGHT);
 
     // ── Plant wall at Jardim → Limiar boundary ───────────────────────────────
     if (this.textures.exists('z1_parede')) {
-      this.add.image(2190, 1100, 'z1_parede')
-        .setOrigin(0.5).setDepth(3).setAlpha(0.55).setDisplaySize(720, 540);
+      this.add.image(2190, WORLD_HEIGHT / 2, 'z1_parede')
+        .setOrigin(0.5).setDepth(3).setAlpha(0.55).setDisplaySize(720, WORLD_HEIGHT);
     }
 
     // ── Location signs ───────────────────────────────────────────────────────
     if (this.textures.exists('z1_placa_campo')) {
-      this.add.image(120, 1980, 'z1_placa_campo').setDisplaySize(130, 130).setDepth(4);
+      this.add.image(120, WORLD_HEIGHT - 100, 'z1_placa_campo').setDisplaySize(130, 130).setDepth(4);
     }
     if (this.textures.exists('z1_placa_limiar')) {
-      this.add.image(2300, 280, 'z1_placa_limiar').setDisplaySize(130, 130).setDepth(4);
+      this.add.image(2300, 120, 'z1_placa_limiar').setDisplaySize(130, 130).setDepth(4);
     }
   }
 
@@ -162,34 +163,14 @@ export class Zone1Scene extends Phaser.Scene {
     const ck = campoNums.filter(n => this.textures.exists(`z1_campo_${n}`))
                         .map(n => `z1_campo_${n}`);
 
-    // Campo dos Vagalumes — dense scatter matching design
-    // Entries: [x, y, displaySize]  — trees 300–450px, bushes 160–240px
+    // Campo dos Vagalumes — 6 rows across 1100×1080
     const CAMPO_POS = [
-      // top
-      [50,   90,  420], [250,  60,  360], [500,  55,  300], [730,  80,  400],
-      [930,  70,  340], [1060, 100, 260],
-      // upper-mid
-      [70,   320, 380], [310,  280, 340], [580,  300, 280], [840,  310, 360],
-      [1040, 350, 260],
-      // mid
-      [55,   600, 400], [290,  550, 280], [560,  580, 220], [790,  560, 380],
-      [1000, 590, 300],
-      // around path
-      [100,  850, 360], [390,  820, 240], [690,  870, 400], [1020, 840, 280],
-      // lower-mid
-      [65,   1090, 380], [310,  1060, 340], [570,  1100, 260], [830, 1070, 400],
-      [1050, 1090, 280],
-      // mid-lower
-      [90,   1340, 360], [360,  1300, 300], [640,  1360, 340], [890, 1320, 380],
-      [1030, 1360, 240],
-      // lower
-      [55,   1600, 400], [285,  1570, 280], [555,  1620, 360], [810, 1590, 320],
-      [1040, 1610, 260],
-      // bottom sections
-      [100,  1860, 380], [380,  1840, 340], [660,  1880, 400], [930, 1850, 300],
-      [75,   2120, 360], [345,  2100, 300], [625,  2140, 380], [875, 2110, 340],
-      [1040, 2150, 240],
-      [120,  2350, 340], [440,  2380, 400], [730,  2340, 280], [990, 2370, 360],
+      [50,  65,  420], [250, 50,  360], [500, 45,  300], [730, 70,  400], [930, 60,  340], [1060,85,  260],
+      [70,  250, 380], [310, 215, 340], [580, 240, 280], [840, 260, 360], [1040,280, 260],
+      [55,  420, 400], [290, 385, 280], [560, 440, 220], [790, 400, 380], [1000,450, 300],
+      [100, 600, 360], [390, 560, 240], [690, 620, 400], [1020,580, 280],
+      [65,  780, 380], [310, 745, 340], [570, 800, 260], [830, 760, 400], [1050,810, 280],
+      [80,  950, 360], [340, 920, 300], [620, 970, 340], [890, 940, 380], [1040,975, 240],
     ];
 
     if (ck.length > 0) {
@@ -206,15 +187,12 @@ export class Zone1Scene extends Phaser.Scene {
                         .map(n => `z1_trans_${n}`);
 
     const TRANS_POS = [
-      [1140, 120, 220], [1380, 90,  200], [1640, 110, 240], [1900, 80,  200], [2100, 130, 180],
-      [1160, 380, 200], [1420, 350, 240], [1700, 370, 200], [1980, 360, 220], [2130, 400, 180],
-      [1150, 640, 240], [1450, 620, 200], [1720, 660, 220], [2000, 640, 200], [2110, 680, 240],
-      [1180, 920, 200], [1460, 900, 220], [1740, 940, 200], [2020, 920, 240], [2140, 960, 180],
-      [1160,1180, 240], [1440,1160, 200], [1720,1200, 220], [2000,1180, 200], [2130,1220, 240],
-      [1180,1440, 200], [1460,1420, 240], [1740,1460, 200], [2020,1440, 220], [2140,1480, 180],
-      [1160,1700, 240], [1440,1680, 200], [1720,1720, 220], [2000,1700, 200], [2130,1740, 240],
-      [1180,1960, 200], [1460,1940, 240], [1740,1980, 200], [2020,1960, 220],
-      [1160,2220, 240], [1440,2200, 200], [1720,2240, 220], [2000,2220, 200],
+      [1140, 65,  220], [1380, 50,  200], [1640, 70,  240], [1900, 55,  200], [2100, 85,  180],
+      [1160, 250, 200], [1420, 215, 240], [1700, 240, 200], [1980, 260, 220], [2130, 280, 180],
+      [1150, 440, 240], [1450, 405, 200], [1720, 445, 220], [2000, 420, 200], [2110, 460, 240],
+      [1180, 620, 200], [1460, 585, 220], [1740, 630, 200], [2020, 600, 240], [2140, 645, 180],
+      [1160, 800, 240], [1440, 770, 200], [1720, 820, 220], [2000, 785, 200], [2130, 840, 240],
+      [1180, 970, 200], [1460, 940, 240], [1740, 980, 200], [2020, 955, 220],
     ];
 
     if (tk.length > 0) {
@@ -231,15 +209,12 @@ export class Zone1Scene extends Phaser.Scene {
                          .map(n => `z1_limiar_${n}`);
 
     const LIMIAR_POS = [
-      [2250, 100, 220], [2480, 80,  200], [2720, 110, 240], [2960, 90,  200], [3150, 120, 180],
-      [2260, 360, 200], [2500, 340, 240], [2740, 370, 200], [2980, 350, 220], [3140, 390, 180],
-      [2250, 620, 240], [2490, 600, 200], [2730, 640, 220], [2970, 620, 200], [3130, 660, 240],
-      [2260, 880, 200], [2500, 860, 220], [2740, 900, 200], [2980, 880, 240], [3150, 920, 180],
-      [2250,1140, 240], [2490,1120, 200], [2730,1160, 220], [2970,1140, 200], [3130,1180, 240],
-      [2260,1400, 200], [2500,1380, 240], [2740,1420, 200], [2980,1400, 220], [3150,1440, 180],
-      [2250,1660, 240], [2490,1640, 200], [2730,1680, 220], [2970,1660, 200], [3130,1700, 240],
-      [2260,1920, 200], [2500,1900, 240], [2740,1940, 200], [2980,1920, 220],
-      [2250,2180, 240], [2490,2160, 200], [2730,2200, 220], [2980,2180, 200],
+      [2250, 65,  220], [2480, 50,  200], [2720, 70,  240], [2960, 55,  200], [3150, 85,  180],
+      [2260, 250, 200], [2500, 215, 240], [2740, 250, 200], [2980, 260, 220], [3140, 280, 180],
+      [2250, 440, 240], [2490, 405, 200], [2730, 445, 220], [2970, 420, 200], [3130, 460, 240],
+      [2260, 620, 200], [2500, 585, 220], [2740, 630, 200], [2980, 600, 240], [3150, 645, 180],
+      [2250, 800, 240], [2490, 770, 200], [2730, 820, 220], [2970, 785, 200], [3130, 840, 240],
+      [2260, 970, 200], [2500, 940, 240], [2740, 980, 200], [2980, 955, 220],
     ];
 
     if (lk.length > 0) {
@@ -295,7 +270,7 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildCreature() {
-    this.creature = new Creature(this, 1820, 1640, 'creature_farfalha', {
+    this.creature = new Creature(this, 1820, 540, 'creature_farfalha', {
       type: 'farfalha',
       followRange: 550,
       stealThreshold: 2800,
@@ -316,29 +291,31 @@ export class Zone1Scene extends Phaser.Scene {
     const ffKey = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
     const ffScale = ffKey === 'z1_vagalume' ? { start: 0.22, end: 0 } : { start: 1, end: 0 };
 
+    const vagScale = ffKey === 'z1_vagalume' ? 0.55 : 1;
+
     // Dense fireflies in Campo dos Vagalumes (x 0–1100)
     this.add.particles(0, 0, ffKey, {
       x: { min: 40, max: 1060 },
-      y: { min: 50, max: WORLD_HEIGHT - 50 },
-      lifespan: { min: 2500, max: 5000 },
-      speed: { min: 8, max: 30 },
-      scale: ffScale,
-      alpha: { start: 0.92, end: 0 },
-      quantity: 1,
-      frequency: 180,
+      y: { min: 40, max: WORLD_HEIGHT - 40 },
+      lifespan: { min: 2200, max: 4500 },
+      speed: { min: 8, max: 28 },
+      scale: { start: vagScale, end: 0 },
+      alpha: { start: 0.95, end: 0 },
+      quantity: 2,
+      frequency: 150,
       blendMode: 'ADD',
     }).setDepth(7);
 
-    // Sparse fireflies in other areas
+    // Sparse fireflies elsewhere
     this.add.particles(0, 0, ffKey, {
       x: { min: 1100, max: 3150 },
-      y: { min: 50, max: WORLD_HEIGHT - 50 },
+      y: { min: 40, max: WORLD_HEIGHT - 40 },
       lifespan: { min: 1800, max: 3500 },
       speed: { min: 5, max: 18 },
-      scale: ffKey === 'z1_vagalume' ? { start: 0.16, end: 0 } : { start: 0.7, end: 0 },
-      alpha: { start: 0.6, end: 0 },
+      scale: { start: vagScale * 0.7, end: 0 },
+      alpha: { start: 0.65, end: 0 },
       quantity: 1,
-      frequency: 600,
+      frequency: 500,
       blendMode: 'ADD',
     }).setDepth(7);
   }
