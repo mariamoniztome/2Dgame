@@ -59,8 +59,12 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildPortal();
     this._buildFireflies();
 
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 85, 60, 14, 0x000000, 0.28).setDepth(4);
-    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 18, 0xffffff, 0.07).setDepth(9).setBlendMode('ADD');
+    const ph1 = this.player.displayHeight;
+    this.playerShadow = this.add.ellipse(
+      this.player.x, this.player.y + ph1 / 3,
+      Math.round(ph1 * 0.23), Math.max(6, Math.round(ph1 * 0.053)),
+      0x000000, 0.28
+    ).setDepth(4);
 
     // Camera — vertical scroller
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -312,8 +316,9 @@ export class Zone1Scene extends Phaser.Scene {
   update(time, delta) {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
 
-    this.playerGlow.setPosition(this.player.x, this.player.y);
-    this.playerShadow.setPosition(this.player.x, this.player.y + 85);
+    const ph = this.player.displayHeight;
+    this.playerShadow.setPosition(this.player.x, this.player.y + ph / 3);
+    this.playerShadow.setSize(Math.round(ph * 0.23), Math.max(6, Math.round(ph * 0.053)));
 
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;
