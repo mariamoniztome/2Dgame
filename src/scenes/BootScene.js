@@ -52,7 +52,7 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 96, height: 96 });
     // Area backgrounds (already large — keep as-is)
     this.load.svg('z1_bg_campo', '/assets/zone1/campo/bg_campo.svg',   { width: 1920, height: 1080 });
-    this.load.svg('z1_bg_trans', '/assets/zone1/transicao/fundo.svg',  { width: 1920, height: 525  });
+    this.load.svg('z1_bg_trans', '/assets/zone1/transicao/fundo.svg',  { width: 1920, height: 1080 });
     this.load.svg('z1_parede',   '/assets/zone1/transicao/parede.svg', { width: 1920, height: 1432 });
     // Location signs
     this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 256, height: 256 });

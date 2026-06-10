@@ -45,7 +45,7 @@ export class Zone3Scene extends Phaser.Scene {
       speed: { min: 3, max: 12 },
       scale: { start: 0.5, end: 0 },
       alpha: { start: 0.4, end: 0 },
-      tint: [0xb39ddb, 0x9575cd, 0xffffff],
+      tint: [0xa8e07e, 0x66bb6a, 0xffffff],
       quantity: 1, frequency: 500,
       blendMode: 'ADD',
     }).setDepth(7);

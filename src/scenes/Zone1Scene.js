@@ -226,7 +226,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Area boundary markers (subtle, only for non-campo areas)
     [2200].forEach(bx => {
-      this.add.rectangle(bx, WORLD_HEIGHT / 2, 4, WORLD_HEIGHT, 0x2a1548, 0.20).setDepth(3);
+      this.add.rectangle(bx, WORLD_HEIGHT / 2, 4, WORLD_HEIGHT, 0x1a3a22, 0.25).setDepth(3);
     });
   }
 

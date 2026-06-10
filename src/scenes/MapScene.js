@@ -219,7 +219,7 @@ export class MapScene extends Phaser.Scene {
       const dotAlpha = isCollected ? 1 : 0.55;
 
       const dot = this.add.circle(px, py, 8, dotColor, dotAlpha);
-      dot.setStrokeStyle(isCollected ? 1.5 : 1, isCollected ? elColor : 0x4a4a6a, isCollected ? 0.8 : 0.4);
+      dot.setStrokeStyle(isCollected ? 1.5 : 1, isCollected ? elColor : 0x4a6a4a, isCollected ? 0.8 : 0.4);
 
       if (plant) {
         const shortName = plant.name.split('-')[0].substring(0, 9);
