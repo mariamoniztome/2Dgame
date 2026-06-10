@@ -40,11 +40,11 @@ export class Zone1Scene extends Phaser.Scene {
     GameState.currentZone = 'Zone1';
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    // Debug-adjustable defaults (user-preferred settings from debug panel)
-    if (this._vagScale === undefined) this._vagScale = 1.55;
+    // Debug-adjustable defaults — vagScale 0.59 with 512px texture ≈ 302px display
+    if (this._vagScale === undefined) this._vagScale = 0.59;
     if (this._vagQty   === undefined) this._vagQty   = 10;
-    if (this._vagFreq  === undefined) this._vagFreq  = 400;
-    if (this._decoMult === undefined) this._decoMult = 1.6;
+    if (this._vagFreq  === undefined) this._vagFreq  = 700;
+    if (this._decoMult === undefined) this._decoMult = 1.7;
 
     this._buildBackground();
     this._buildDecorations();
@@ -63,7 +63,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Camera — vertical scroller
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setZoom(1.2);
+    this.cameras.main.setZoom(1.15);
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12));
 
@@ -271,9 +271,9 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildFireflies() {
-    if (this._vagScale === undefined) this._vagScale = 1.55;
+    if (this._vagScale === undefined) this._vagScale = 0.59;
     if (this._vagQty   === undefined) this._vagQty   = 10;
-    if (this._vagFreq  === undefined) this._vagFreq  = 400;
+    if (this._vagFreq  === undefined) this._vagFreq  = 700;
 
     const ffKey = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
 

@@ -42,14 +42,14 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bg_book',   unsplashUrl(UNSPLASH.book, 1280, 720));
 
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
-    // Player character — load at 2× display size to stay crisp at zoom
-    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 128, height: 128 });
+    // Player character — load at 4× display size so downscaling stays crisp at any zoom
+    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 256, height: 256 });
     // Plant sprites
     this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 256, height: 256 });
     this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });
     this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 256, height: 256 });
-    // Firefly sprite
-    this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 96, height: 96 });
+    // Firefly sprite — load at 512 so scale ~0.59 downscales cleanly (no upscale blur)
+    this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 512, height: 512 });
     // Area backgrounds (already large — keep as-is)
     this.load.svg('z1_bg_campo', '/assets/zone1/campo/bg_campo.svg',   { width: 1920, height: 1080 });
     this.load.svg('z1_bg_trans', '/assets/zone1/transicao/fundo.svg',  { width: 1920, height: 1080 });
