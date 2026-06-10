@@ -157,13 +157,13 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildDecorations() {
-    // All campo element keys available
+    this.decoImages = [];  // { img, baseSize } — used by debug panel
+
     const campoNums = ['03','04','05','06','07','08','09','10','11','12',
                        '13','14','15','17','18','19','20','21','22','23','24'];
     const ck = campoNums.filter(n => this.textures.exists(`z1_campo_${n}`))
                         .map(n => `z1_campo_${n}`);
 
-    // Campo dos Vagalumes — 6 rows across 1100×1080
     const CAMPO_POS = [
       [50,  65,  420], [250, 50,  360], [500, 45,  300], [730, 70,  400], [930, 60,  340], [1060,85,  260],
       [70,  250, 380], [310, 215, 340], [580, 240, 280], [840, 260, 360], [1040,280, 260],
@@ -173,14 +173,16 @@ export class Zone1Scene extends Phaser.Scene {
       [80,  950, 360], [340, 920, 300], [620, 970, 340], [890, 940, 380], [1040,975, 240],
     ];
 
+    const m = this._decoMult ?? 1;
+
     if (ck.length > 0) {
       CAMPO_POS.forEach(([x, y, s], i) => {
-        const key = ck[i % ck.length];
-        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(3);
+        const img = this.add.image(x, y, ck[i % ck.length])
+          .setDisplaySize(s * m, s * m).setDepth(3);
+        this.decoImages.push({ img, baseSize: s });
       });
     }
 
-    // Transição / Jardim Invertido elements
     const transNums = ['01','02','03','04','05','06','07','08','09','10',
                        '11','12','13','14','15','16','17','18','19'];
     const tk = transNums.filter(n => this.textures.exists(`z1_trans_${n}`))
@@ -197,12 +199,12 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (tk.length > 0) {
       TRANS_POS.forEach(([x, y, s], i) => {
-        const key = tk[i % tk.length];
-        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(3).setAlpha(0.88);
+        const img = this.add.image(x, y, tk[i % tk.length])
+          .setDisplaySize(s * m, s * m).setDepth(3).setAlpha(0.88);
+        this.decoImages.push({ img, baseSize: s });
       });
     }
 
-    // Limiar Secreto elements
     const limiarNums = ['03','04','05','06','07','08','09','11','12','13','14','15',
                         '16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'];
     const lk = limiarNums.filter(n => this.textures.exists(`z1_limiar_${n}`))
@@ -219,12 +221,12 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (lk.length > 0) {
       LIMIAR_POS.forEach(([x, y, s], i) => {
-        const key = lk[i % lk.length];
-        this.add.image(x, y, key).setDisplaySize(s, s).setDepth(3).setAlpha(0.85);
+        const img = this.add.image(x, y, lk[i % lk.length])
+          .setDisplaySize(s * m, s * m).setDepth(3).setAlpha(0.85);
+        this.decoImages.push({ img, baseSize: s });
       });
     }
 
-    // Area boundary markers (subtle, only for non-campo areas)
     [2200].forEach(bx => {
       this.add.rectangle(bx, WORLD_HEIGHT / 2, 4, WORLD_HEIGHT, 0x1a3a22, 0.25).setDepth(3);
     });
@@ -288,36 +290,46 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildFireflies() {
-    const ffKey = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
-    const ffScale = ffKey === 'z1_vagalume' ? { start: 0.22, end: 0 } : { start: 1, end: 0 };
+    // Defaults — debug panel may have already set overrides
+    if (this._vagScale === undefined) this._vagScale = 0.55;
+    if (this._vagQty   === undefined) this._vagQty   = 2;
+    if (this._vagFreq  === undefined) this._vagFreq  = 150;
 
-    const vagScale = ffKey === 'z1_vagalume' ? 0.55 : 1;
+    const ffKey = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
 
     // Dense fireflies in Campo dos Vagalumes (x 0–1100)
-    this.add.particles(0, 0, ffKey, {
+    this.campoEmitter = this.add.particles(0, 0, ffKey, {
       x: { min: 40, max: 1060 },
       y: { min: 40, max: WORLD_HEIGHT - 40 },
       lifespan: { min: 2200, max: 4500 },
       speed: { min: 8, max: 28 },
-      scale: { start: vagScale, end: 0 },
+      scale: { start: this._vagScale, end: 0 },
       alpha: { start: 0.95, end: 0 },
-      quantity: 2,
-      frequency: 150,
+      quantity: this._vagQty,
+      frequency: this._vagFreq,
       blendMode: 'ADD',
     }).setDepth(7);
 
     // Sparse fireflies elsewhere
-    this.add.particles(0, 0, ffKey, {
+    this.sparseEmitter = this.add.particles(0, 0, ffKey, {
       x: { min: 1100, max: 3150 },
       y: { min: 40, max: WORLD_HEIGHT - 40 },
       lifespan: { min: 1800, max: 3500 },
       speed: { min: 5, max: 18 },
-      scale: { start: vagScale * 0.7, end: 0 },
+      scale: { start: this._vagScale * 0.7, end: 0 },
       alpha: { start: 0.65, end: 0 },
-      quantity: 1,
-      frequency: 500,
+      quantity: Math.max(1, Math.round(this._vagQty / 2)),
+      frequency: this._vagFreq * 3,
       blendMode: 'ADD',
     }).setDepth(7);
+  }
+
+  _rebuildFireflies() {
+    this.campoEmitter?.destroy();
+    this.sparseEmitter?.destroy();
+    this.campoEmitter  = null;
+    this.sparseEmitter = null;
+    this._buildFireflies();
   }
 
   // ──────────────────────────────────────────────────────────────────────

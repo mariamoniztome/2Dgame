@@ -8,6 +8,7 @@ import { Zone2Scene }    from './scenes/Zone2Scene.js';
 import { Zone3Scene }    from './scenes/Zone3Scene.js';
 import { CauldronScene } from './scenes/CauldronScene.js';
 import { HUDScene }      from './ui/HUD.js';
+import { DebugPanel }    from './ui/DebugPanel.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -29,9 +30,16 @@ const config = {
     MapScene,   // must be last so it renders over everything when open
   ],
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
+    mode: Phaser.Scale.EXPAND,
+    autoCenter: Phaser.Scale.NO_CENTER,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
   },
 };
 
-new Phaser.Game(config);
+window.game = new Phaser.Game(config);
+
+// Debug panel — toggle with backtick (`) or F2
+window.game.events.once('ready', () => {
+  window.debugPanel = new DebugPanel(window.game);
+});
