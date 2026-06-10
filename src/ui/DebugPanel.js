@@ -39,10 +39,13 @@ export class DebugPanel {
     if (!z1) return;
     this._setSlider('zoom',       z1.cameras.main.zoom);
     this._setSlider('playerSize', z1.player?.displayWidth ?? 260);
-    this._setSlider('vagScale',   z1._vagScale  ?? 0.75);
-    this._setSlider('vagQty',     z1._vagQty    ?? 12);
-    this._setSlider('vagFreq',    z1._vagFreq   ?? 700);
-    this._setSlider('decoMult',   z1._decoMult  ?? 1.9);
+    this._setSlider('vagScale',   z1._vagScale    ?? 0.75);
+    this._setSlider('vagQty',     z1._vagQty      ?? 12);
+    this._setSlider('vagFreq',    z1._vagFreq     ?? 700);
+    this._setSlider('decoMult',   z1._decoMult    ?? 1.9);
+    this._setSlider('placaSize',  z1._placaSize   ?? 130);
+    this._setSlider('placaX',     z1._placaCampoX ?? 110);
+    this._setSlider('placaY',     z1._placaCampoY ?? 110);
   }
 
   // ── build DOM ─────────────────────────────────────────────────────────────
@@ -54,6 +57,9 @@ export class DebugPanel {
       { id: 'vagQty',     label: 'Vagalume Qty',     min: 1,    max: 40,   step: 1,    def: 12   },
       { id: 'vagFreq',    label: 'Vagalume Freq ms', min: 20,   max: 2000, step: 20,   def: 700  },
       { id: 'decoMult',   label: 'Deco Size ×',      min: 0.1,  max: 4,    step: 0.05, def: 1.9  },
+      { id: 'placaSize',  label: 'Placa Tamanho px', min: 20,   max: 400,  step: 4,    def: 130  },
+      { id: 'placaX',     label: 'Placa Campo X',    min: 0,    max: 640,  step: 5,    def: 110  },
+      { id: 'placaY',     label: 'Placa Campo Y',    min: 0,    max: 400,  step: 5,    def: 110  },
     ];
 
     const panel = document.createElement('div');
@@ -193,6 +199,22 @@ export class DebugPanel {
             img.setDisplaySize(baseSize * v, baseSize * v)
           );
         }
+        break;
+
+      case 'placaSize':
+        z1._placaSize = v;
+        if (z1.placaCampo)  z1.placaCampo.setDisplaySize(v, v);
+        if (z1.placaLimiar) z1.placaLimiar.setDisplaySize(v, v);
+        break;
+
+      case 'placaX':
+        z1._placaCampoX = v;
+        if (z1.placaCampo) z1.placaCampo.setX(v);
+        break;
+
+      case 'placaY':
+        z1._placaCampoY = v;
+        if (z1.placaCampo) z1.placaCampo.setY(v);
         break;
     }
   }

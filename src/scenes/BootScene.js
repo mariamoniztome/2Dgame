@@ -169,6 +169,15 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0xffff00, 0.45); g.fillCircle(4, 4, 6);
     g.generateTexture('firefly', 8, 8);
 
+    // ── Missing-plant placeholder — red X ─────────────────────────────────
+    g.clear();
+    g.lineStyle(5, 0xff2222, 1);
+    g.beginPath(); g.moveTo(10, 10); g.lineTo(38, 38); g.strokePath();
+    g.beginPath(); g.moveTo(38, 10); g.lineTo(10, 38); g.strokePath();
+    g.lineStyle(2, 0xff2222, 0.4);
+    g.strokeCircle(24, 24, 20);
+    g.generateTexture('plant_missing', 48, 48);
+
     // ── Vine ──────────────────────────────────────────────────────────────
     g.clear();
     g.fillStyle(0x2e7d32, 1); g.fillRect(11, 0, 9, 80);

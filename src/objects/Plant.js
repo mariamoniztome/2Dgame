@@ -25,12 +25,11 @@ export class Plant extends Phaser.GameObjects.Container {
     // Glow background
     this.glow = scene.add.circle(0, 0, 26, el.color, 0.18);
 
-    // Main sprite (Unsplash image if loaded, else generated placeholder)
+    // Main sprite (SVG image if loaded, else red-X placeholder)
     const imgKey = `plant_img_${data.id}`;
-    const sprKey = `plant_${data.id}`;
     this.sprite = scene.textures.exists(imgKey)
-      ? scene.add.image(0, 0, imgKey).setDisplaySize(44, 44)
-      : scene.add.image(0, 0, sprKey).setDisplaySize(44, 44);
+      ? scene.add.image(0, 0, imgKey).setDisplaySize(80, 80)
+      : scene.add.image(0, 0, 'plant_missing').setDisplaySize(80, 80);
 
     // Label
     this.label = scene.add.text(0, 30, data.name, {
@@ -42,7 +41,7 @@ export class Plant extends Phaser.GameObjects.Container {
     }).setOrigin(0.5).setAlpha(0);
 
     // Interaction hint
-    this.hint = scene.add.text(0, -36, 'E', {
+    this.hint = scene.add.text(0, -36, 'C', {
       fontSize: '13px',
       fontFamily: 'monospace',
       color: '#ffffff',

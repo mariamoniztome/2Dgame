@@ -5,7 +5,6 @@ import { PLANTS } from '../data/plants.js';
 import { SPELLS } from '../data/spells.js';
 import { Player } from '../objects/Player.js';
 import { Plant } from '../objects/Plant.js';
-import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
@@ -24,12 +23,12 @@ const VINE_Y = ZONE_H * 2 - 80;      // y ≈ 1360  (last stretch of Jardim)
 const VINE_CLIMB_Y = ZONE_H * 2 + 110; // y ≈ 1550  (just inside Limiar)
 
 const PLANT_SPAWNS = [
-  { id: 'ventoinha',  x: 320,  y: 200 },
-  { id: 'ventoinha',  x: 960,  y: 520 },
-  { id: 'gotateia',   x: 190,  y: 440 },
-  { id: 'gotateia',   x: 1060, y: 180 },
-  { id: 'farfalha',   x: 400,  y: 950 },
-  { id: 'farfalha',   x: 880,  y: 1220 },
+  { id: 'ventoinha',  x: 320,  y: 200  },   // Campo (y: 0–720)
+  { id: 'ventoinha',  x: 960,  y: 520  },   // Campo
+  { id: 'gotateia',   x: 190,  y: 880  },   // Jardim (y: 720–1440)
+  { id: 'gotateia',   x: 1060, y: 1150 },   // Jardim
+  { id: 'farfalha',   x: 400,  y: 1600 },   // Limiar (y: 1440–2160)
+  { id: 'farfalha',   x: 880,  y: 1850 },   // Limiar
   { id: 'trepadeira', x: VINE_X - 60, y: VINE_Y + 30 },
 ];
 
@@ -40,11 +39,14 @@ export class Zone1Scene extends Phaser.Scene {
     GameState.currentZone = 'Zone1';
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    // Debug-adjustable defaults (vagScale 0.75 with new 512px full-glow texture ≈ 384px display)
-    if (this._vagScale === undefined) this._vagScale = 0.75;
-    if (this._vagQty   === undefined) this._vagQty   = 12;
-    if (this._vagFreq  === undefined) this._vagFreq  = 700;
-    if (this._decoMult === undefined) this._decoMult = 1.9;
+    // Debug-adjustable defaults
+    if (this._vagScale    === undefined) this._vagScale    = 0.75;
+    if (this._vagQty      === undefined) this._vagQty      = 12;
+    if (this._vagFreq     === undefined) this._vagFreq     = 700;
+    if (this._decoMult    === undefined) this._decoMult    = 1.9;
+    if (this._placaSize   === undefined) this._placaSize   = 130;
+    if (this._placaCampoX === undefined) this._placaCampoX = 110;
+    if (this._placaCampoY === undefined) this._placaCampoY = 110;
 
     this._buildBackground();
     this._buildDecorations();
@@ -54,11 +56,10 @@ export class Zone1Scene extends Phaser.Scene {
 
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
-    this._buildCreature();
     this._buildPortal();
     this._buildFireflies();
 
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 105, 90, 22, 0x000000, 0.22).setDepth(4);
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 85, 60, 14, 0x000000, 0.28).setDepth(4);
     this.playerGlow   = this.add.circle(this.player.x, this.player.y, 18, 0xffffff, 0.07).setDepth(9).setBlendMode('ADD');
 
     // Camera — vertical scroller
@@ -141,10 +142,12 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Location signs
     if (this.textures.exists('z1_placa_campo')) {
-      this.add.image(110, 110, 'z1_placa_campo').setDisplaySize(130, 130).setDepth(4);
+      this.placaCampo = this.add.image(this._placaCampoX, this._placaCampoY, 'z1_placa_campo')
+        .setDisplaySize(this._placaSize, this._placaSize).setDepth(4);
     }
     if (this.textures.exists('z1_placa_limiar')) {
-      this.add.image(WORLD_WIDTH - 110, ZONE_H * 2 + 110, 'z1_placa_limiar').setDisplaySize(130, 130).setDepth(4);
+      this.placaLimiar = this.add.image(WORLD_WIDTH - 110, ZONE_H * 2 + 110, 'z1_placa_limiar')
+        .setDisplaySize(this._placaSize, this._placaSize).setDepth(4);
     }
   }
 
@@ -252,15 +255,6 @@ export class Zone1Scene extends Phaser.Scene {
     });
   }
 
-  _buildCreature() {
-    this.creature = new Creature(this, 640, 1050, 'creature_farfalha', {
-      type: 'farfalha',
-      followRange: 550,
-      stealThreshold: 2800,
-      speed: 85,
-    });
-  }
-
   _buildPortal() {
     const locked = !this._vineClimbed;
     this.portal = new Portal(this, 640, 1940, {
@@ -317,10 +311,9 @@ export class Zone1Scene extends Phaser.Scene {
   // ─────────────────────────────────────────────────────────────────────────
   update(time, delta) {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
-    this.creature.update(this.player, delta, GameState);
 
     this.playerGlow.setPosition(this.player.x, this.player.y);
-    this.playerShadow.setPosition(this.player.x, this.player.y + 105);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 85);
 
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;
@@ -506,11 +499,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.game.events.emit('spellCast', GameState.activeSpell);
 
     if (GameState.activeSpell === 'brisa_molhada') {
-      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.creature.x, this.creature.y);
-      if (d < 260) {
-        this.creature.repel(this.player.x, this.player.y);
-        this._emitNarrative('A Brisa Molhada afastou a criatura!');
-      }
+      this._emitNarrative('A Brisa Molhada envolve o ar…');
     }
     if (GameState.activeSpell === 'canto_jardim') this._revealAllPlants();
   }
@@ -642,7 +631,7 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _onPlantStolen(plant) {
-    this._emitNarrative(`A criatura de fogo roubou a ${plant.name}! Usa o feitiço Brisa Molhada.`, 4000);
+    this._emitNarrative(`A ${plant.name} foi trocada por uma cópia falsa!`, 4000);
   }
 
   shutdown() {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, ELEMENTS, WORLD_WIDTH, WORLD_HEIGHT } from '../config.js';
+import { ELEMENTS, WORLD_WIDTH, WORLD_HEIGHT } from '../config.js';
 import { SPELLS } from '../data/spells.js';
 import { PLANTS } from '../data/plants.js';
 import { GameState } from '../GameState.js';
@@ -43,9 +43,6 @@ const MM_W  = 70;
 const MM_H  = 118;
 const MM_PW = MM_W + 16;
 const MM_PH = MM_H + 36;
-const MM_X  = GAME_WIDTH  - 8 - MM_PW + 6;
-const MM_Y  = GAME_HEIGHT - 8 - MM_PH + 14;
-
 // Toast
 const TOAST_W = 260;
 const TOAST_H = 68;
@@ -54,7 +51,7 @@ export class HUDScene extends Phaser.Scene {
   constructor() { super({ key: 'HUD', active: false }); }
 
   create() {
-    const W = GAME_WIDTH, H = GAME_HEIGHT;
+    const W = this.scale.width, H = this.scale.height;
 
     this._slots          = [];
     this._plantDots      = [];
@@ -166,6 +163,11 @@ export class HUDScene extends Phaser.Scene {
 
   // ── BOTTOM-RIGHT: Minimap + potion progress ──────────────────────────────
   _buildMinimap(W, H) {
+    const mmX = W - 8 - MM_PW + 6;
+    const mmY = H - 8 - MM_PH + 14;
+    this._mmX = mmX;
+    this._mmY = mmY;
+
     const px = W - 8, py = H - 8;
 
     // Panel
@@ -173,10 +175,10 @@ export class HUDScene extends Phaser.Scene {
       .setOrigin(1, 1).setStrokeStyle(1, C.border, 0.7);
 
     // "MAPA" label and [M] shortcut
-    this.add.text(MM_X, py - MM_PH + 3, 'MAPA', {
+    this.add.text(mmX, py - MM_PH + 3, 'MAPA', {
       fontSize: '9px', fontFamily: 'monospace', color: C.label,
     });
-    this.add.text(MM_X + MM_W, py - MM_PH + 3, '[M]', {
+    this.add.text(mmX + MM_W, py - MM_PH + 3, '[M]', {
       fontSize: '9px', fontFamily: 'monospace', color: C.dim,
     }).setOrigin(1, 0);
 
@@ -184,15 +186,15 @@ export class HUDScene extends Phaser.Scene {
     this.mmGfx = this.add.graphics().setDepth(58);
 
     // Player dot (yellow)
-    this.mmDot = this.add.circle(W / 2, MM_Y + MM_H / 2, 4, C.accent, 1)
+    this.mmDot = this.add.circle(W / 2, mmY + MM_H / 2, 4, C.accent, 1)
       .setDepth(62).setStrokeStyle(1, 0x0D351E, 0.8);
 
     // Map border
-    this.add.rectangle(MM_X, MM_Y, MM_W, MM_H, 0, 0)
+    this.add.rectangle(mmX, mmY, MM_W, MM_H, 0, 0)
       .setOrigin(0, 0).setStrokeStyle(1, C.border, 0.5).setDepth(63);
 
     // Zone name below map
-    this.mmZoneLabel = this.add.text(MM_X + MM_W / 2, MM_Y + MM_H + 3, '', {
+    this.mmZoneLabel = this.add.text(mmX + MM_W / 2, mmY + MM_H + 3, '', {
       fontSize: '9px', fontFamily: 'Georgia, serif', color: C.text, fontStyle: 'italic',
     }).setOrigin(0.5, 0).setDepth(62);
 
@@ -202,12 +204,12 @@ export class HUDScene extends Phaser.Scene {
     const dotSpan  = MM_W;
     const dotStep  = dotSpan / 5;
     for (let i = 0; i < 5; i++) {
-      const dx = MM_X + dotStep * i + dotStep / 2;
+      const dx = mmX + dotStep * i + dotStep / 2;
       const dot = this.add.circle(dx, dotRowY, 6, 0x1a3a24, 1)
         .setStrokeStyle(1, C.dim, 0.6).setDepth(62);
       this._essentialDots.push(dot);
     }
-    this.cauldronCount = this.add.text(MM_X + MM_W, dotRowY, '0/5', {
+    this.cauldronCount = this.add.text(mmX + MM_W, dotRowY, '0/5', {
       fontSize: '8px', fontFamily: 'monospace', color: '#e8c96a',
     }).setOrigin(1, 0.5).setDepth(62);
 
@@ -285,12 +287,12 @@ export class HUDScene extends Phaser.Scene {
     this._lastZone = zone;
     this.mmGfx.clear();
     this.mmGfx.fillStyle(0x081810, 1);
-    this.mmGfx.fillRect(MM_X, MM_Y, MM_W, MM_H);
+    this.mmGfx.fillRect(this._mmX, this._mmY, MM_W, MM_H);
     (ZONE_STRIPS[zone] || ZONE_STRIPS.Zone1).forEach(s => {
-      const y = MM_Y + (s.yFrom / WORLD_HEIGHT) * MM_H;
+      const y = this._mmY + (s.yFrom / WORLD_HEIGHT) * MM_H;
       const h = ((s.yTo - s.yFrom) / WORLD_HEIGHT) * MM_H;
       this.mmGfx.fillStyle(s.color, 1);
-      this.mmGfx.fillRect(MM_X, y, MM_W, h);
+      this.mmGfx.fillRect(this._mmX, y, MM_W, h);
     });
     this.mmGfx.setDepth(58);
     const names = { Zone1: 'Campo dos Vagalumes', Zone2: 'Floresta Densa', Zone3: 'Terrenos das Sombras', Cauldron: 'Caldeirão' };
@@ -302,8 +304,8 @@ export class HUDScene extends Phaser.Scene {
     this._plantDots.forEach(d => d.destroy());
     this._plantDots = [];
     (GameState.plantSpawns || []).forEach(s => {
-      const dotX = MM_X + (s.x / WORLD_WIDTH) * MM_W;
-      const dotY = MM_Y + (s.y / WORLD_HEIGHT) * MM_H;
+      const dotX = this._mmX + (s.x / WORLD_WIDTH) * MM_W;
+      const dotY = this._mmY + (s.y / WORLD_HEIGHT) * MM_H;
       const plant = PLANTS[s.id];
       const ok  = GameState.collected.has(s.id);
       const el  = plant ? ELEMENTS[plant.element] : null;
@@ -317,8 +319,8 @@ export class HUDScene extends Phaser.Scene {
   _updateMinimap() {
     const zone = GameState.currentZone;
     if (zone !== this._lastZone && ZONE_STRIPS[zone]) this._drawMinimapBg(zone);
-    const dotX = MM_X + (GameState.playerX / WORLD_WIDTH) * MM_W;
-    const dotY = MM_Y + ((GameState.playerY ?? 1200) / WORLD_HEIGHT) * MM_H;
+    const dotX = this._mmX + (GameState.playerX / WORLD_WIDTH) * MM_W;
+    const dotY = this._mmY + ((GameState.playerY ?? 1200) / WORLD_HEIGHT) * MM_H;
     this.mmDot.setPosition(dotX, dotY);
   }
 
@@ -344,7 +346,7 @@ export class HUDScene extends Phaser.Scene {
     const plant = this._toastQueue.shift();
     const el    = ELEMENTS[plant.element] || ELEMENTS.EARTH;
     const hex   = '#' + el.color.toString(16).padStart(6, '0');
-    const W     = GAME_WIDTH;
+    const W     = this.scale.width;
 
     const c = this.add.container(W + 10, 90).setDepth(150);
     c.add([
@@ -444,9 +446,9 @@ export class HUDScene extends Phaser.Scene {
   }
 
   _showUnlock(msg) {
-    this.unlockBanner.setText(msg).setAlpha(0).setY(GAME_HEIGHT / 2);
+    this.unlockBanner.setText(msg).setAlpha(0).setY(this.scale.height / 2);
     this.tweens.add({
-      targets: this.unlockBanner, alpha: 1, y: GAME_HEIGHT / 2 - 14,
+      targets: this.unlockBanner, alpha: 1, y: this.scale.height / 2 - 14,
       duration: 380, ease: 'Back.easeOut',
       onComplete: () => this.time.delayedCall(2600, () =>
         this.tweens.add({ targets: this.unlockBanner, alpha: 0, duration: 500 })

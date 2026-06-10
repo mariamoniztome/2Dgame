@@ -62,7 +62,7 @@ export class Zone2Scene extends Phaser.Scene {
       blendMode: 'ADD',
     }).setDepth(7);
 
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 105, 90, 22, 0x000000, 0.22).setDepth(4);
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 85, 60, 14, 0x000000, 0.28).setDepth(4);
     this.playerGlow   = this.add.circle(this.player.x, this.player.y, 18, 0xffffff, 0.07).setDepth(9).setBlendMode('ADD');
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
@@ -161,7 +161,7 @@ export class Zone2Scene extends Phaser.Scene {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
     this.creature.update(this.player, delta, GameState);
     this.playerGlow.setPosition(this.player.x, this.player.y);
-    this.playerShadow.setPosition(this.player.x, this.player.y + 105);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 85);
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;
 
