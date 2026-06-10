@@ -163,7 +163,7 @@ export class MapScene extends Phaser.Scene {
     // Background
     const bg = this.add.rectangle(x, y, CARD_W, CARD_H, def.bgColor, 0.95)
       .setOrigin(0, 0)
-      .setStrokeStyle(2, unlocked ? def.borderColor : 0x333355, unlocked ? 1 : 0.5)
+      .setStrokeStyle(2, unlocked ? def.borderColor : 0x2a4a2a, unlocked ? 1 : 0.5)
       .setAlpha(alpha);
 
     if (!unlocked) {
@@ -260,7 +260,7 @@ export class MapScene extends Phaser.Scene {
   _buildCauldronCard(x, y, unlocked) {
     const bg = this.add.rectangle(x, y, CAULDRON_W, CAULDRON_H, 0x080e08, 0.95)
       .setOrigin(0, 0)
-      .setStrokeStyle(2, unlocked ? 0x2e7d32 : 0x333355, unlocked ? 1 : 0.4)
+      .setStrokeStyle(2, unlocked ? 0x2e7d32 : 0x2a4a2a, unlocked ? 1 : 0.4)
       .setAlpha(unlocked ? 1 : 0.4);
 
     if (!unlocked) {
@@ -374,14 +374,14 @@ export class MapScene extends Phaser.Scene {
       const dotX = startX + dotSpacing * i + dotSpacing / 2;
       const dotY = panelY + 8;
 
-      const dot = this.add.circle(dotX, dotY, 10, isCollected ? elColor : 0x1a1a3a, isCollected ? 1 : 0.55);
+      const dot = this.add.circle(dotX, dotY, 10, isCollected ? elColor : 0x1a3a1a, isCollected ? 1 : 0.55);
       dot.setStrokeStyle(1.5, isCollected ? elColor : 0x1a3a1a, isCollected ? 1 : 0.45);
 
       if (plant) {
         this.add.text(dotX, dotY + 14, plant.name.split('-')[0].substring(0, 9), {
           fontSize: '8px',
           fontFamily: 'monospace',
-          color: isCollected ? '#c8e8c0' : '#3d2b6a',
+          color: isCollected ? '#c8e8c0' : '#3a5a3a',
         }).setOrigin(0.5, 0);
       }
     });

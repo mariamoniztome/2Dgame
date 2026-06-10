@@ -40,11 +40,11 @@ export class Zone1Scene extends Phaser.Scene {
     GameState.currentZone = 'Zone1';
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    // Debug-adjustable defaults — vagScale 0.59 with 512px texture ≈ 302px display
-    if (this._vagScale === undefined) this._vagScale = 0.59;
-    if (this._vagQty   === undefined) this._vagQty   = 10;
+    // Debug-adjustable defaults (vagScale 0.75 with new 512px full-glow texture ≈ 384px display)
+    if (this._vagScale === undefined) this._vagScale = 0.75;
+    if (this._vagQty   === undefined) this._vagQty   = 12;
     if (this._vagFreq  === undefined) this._vagFreq  = 700;
-    if (this._decoMult === undefined) this._decoMult = 1.7;
+    if (this._decoMult === undefined) this._decoMult = 1.9;
 
     this._buildBackground();
     this._buildDecorations();
@@ -58,12 +58,12 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildPortal();
     this._buildFireflies();
 
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 28, 34, 12, 0x000000, 0.25).setDepth(4);
-    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 12, 0xffffff, 0.08).setDepth(9).setBlendMode('ADD');
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 105, 90, 22, 0x000000, 0.22).setDepth(4);
+    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 18, 0xffffff, 0.07).setDepth(9).setBlendMode('ADD');
 
     // Camera — vertical scroller
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setZoom(1.15);
+    this.cameras.main.setZoom(2.0);
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12));
 
@@ -271,8 +271,8 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildFireflies() {
-    if (this._vagScale === undefined) this._vagScale = 0.59;
-    if (this._vagQty   === undefined) this._vagQty   = 10;
+    if (this._vagScale === undefined) this._vagScale = 0.75;
+    if (this._vagQty   === undefined) this._vagQty   = 12;
     if (this._vagFreq  === undefined) this._vagFreq  = 700;
 
     const ffKey = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
@@ -320,7 +320,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.creature.update(this.player, delta, GameState);
 
     this.playerGlow.setPosition(this.player.x, this.player.y);
-    this.playerShadow.setPosition(this.player.x, this.player.y + 24);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 105);
 
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;

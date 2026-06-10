@@ -9,10 +9,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setCollideWorldBounds(true);
     this.setDepth(10);
-    // SVG texture loaded at 256×256; display at 200px (downscale = crisp)
-    this.setDisplaySize(200, 200);
-    this.body.setSize(57, 83);
-    this.body.setOffset(78, 78);
+    // SVG texture loaded at 512×512; display at 260px — at zoom 2 that's 520 screen px (crisp)
+    this.setDisplaySize(260, 260);
+    this.body.setSize(73, 109);
+    this.body.setOffset(94, 84);
 
     // Speed tracking
     this._recentSpeed = 0;

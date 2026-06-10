@@ -13,38 +13,38 @@ const C = {
   border: 0x639B5A,
   dim:    0x2d5a38,
   accent: 0xE4EF6F,
-  magic:  0xE1A0B1,
+  magic:  0xe8c96a,
   text:   '#BFD8A4',
   label:  '#639B5A',
 };
 
-// Zone color strips for minimap
+// Zone color strips for minimap — vertical world, bands by Y
 const ZONE_STRIPS = {
   Zone1: [
-    { color: 0x1b4a28, xFrom: 0,    xTo: 1100 },
-    { color: 0x2d6644, xFrom: 1100, xTo: 2200 },
-    { color: 0x1a3a52, xFrom: 2200, xTo: 3200 },
+    { color: 0x5a9e5a, yFrom: 0,    yTo: 720  },  // Campo
+    { color: 0x3a7044, yFrom: 720,  yTo: 1440 },  // Jardim
+    { color: 0x060c18, yFrom: 1440, yTo: 2160 },  // Limiar
   ],
   Zone2: [
-    { color: 0x0d2a18, xFrom: 0,    xTo: 900  },
-    { color: 0x1a4428, xFrom: 900,  xTo: 1800 },
-    { color: 0x2d6030, xFrom: 1800, xTo: 2500 },
-    { color: 0x2e1503, xFrom: 2500, xTo: 3200 },
+    { color: 0x0d2a18, yFrom: 0,    yTo: 540  },
+    { color: 0x1a4428, yFrom: 540,  yTo: 1080 },
+    { color: 0x2d6030, yFrom: 1080, yTo: 1620 },
+    { color: 0x2e1503, yFrom: 1620, yTo: 2160 },
   ],
   Zone3: [
-    { color: 0x0d0a18, xFrom: 0,    xTo: 1200 },
-    { color: 0x1a0a2e, xFrom: 1200, xTo: 2400 },
-    { color: 0x0a1018, xFrom: 2400, xTo: 3200 },
+    { color: 0x0d1a08, yFrom: 0,    yTo: 720  },
+    { color: 0x0a1a10, yFrom: 720,  yTo: 1440 },
+    { color: 0x0a0e14, yFrom: 1440, yTo: 2160 },
   ],
 };
 
-// Minimap geometry — bottom-right corner
-const MM_W  = 188;
-const MM_H  = 80;
-const MM_PW = MM_W + 12;           // panel inner width
-const MM_PH = MM_H + 36;           // panel inner height (map + label rows)
-const MM_X  = GAME_WIDTH  - 8 - MM_PW + 6;   // = 1074
-const MM_Y  = GAME_HEIGHT - 8 - MM_PH + 14;  // top of map area
+// Minimap geometry — bottom-right corner, portrait to match vertical world
+const MM_W  = 70;
+const MM_H  = 118;
+const MM_PW = MM_W + 16;
+const MM_PH = MM_H + 36;
+const MM_X  = GAME_WIDTH  - 8 - MM_PW + 6;
+const MM_Y  = GAME_HEIGHT - 8 - MM_PH + 14;
 
 // Toast
 const TOAST_W = 260;
@@ -89,7 +89,7 @@ export class HUDScene extends Phaser.Scene {
     // ── Spell unlock banner (center) ──────────────────────────────────────
     this.unlockBanner = this.add.text(W / 2, H / 2, '', {
       fontSize: '20px', fontFamily: 'Georgia, serif',
-      color: '#E1A0B1', stroke: '#0D351E', strokeThickness: 4, align: 'center',
+      color: '#e8c96a', stroke: '#0D351E', strokeThickness: 4, align: 'center',
     }).setOrigin(0.5).setAlpha(0).setDepth(200);
 
     // ── [H] help hint (top-left) ──────────────────────────────────────────
@@ -208,7 +208,7 @@ export class HUDScene extends Phaser.Scene {
       this._essentialDots.push(dot);
     }
     this.cauldronCount = this.add.text(MM_X + MM_W, dotRowY, '0/5', {
-      fontSize: '8px', fontFamily: 'monospace', color: '#E1A0B1',
+      fontSize: '8px', fontFamily: 'monospace', color: '#e8c96a',
     }).setOrigin(1, 0.5).setDepth(62);
 
     this._drawMinimapBg('Zone1');
@@ -232,7 +232,7 @@ export class HUDScene extends Phaser.Scene {
         color: C.text, align: 'left', lineSpacing: 7,
       }).setOrigin(0.5, 0).setDepth(301).setVisible(false);
     const close = this.add.text(cx, cy + 112, 'Prima H ou ESC para fechar', {
-      fontSize: '11px', fontFamily: 'Georgia, serif', color: '#E1A0B1', fontStyle: 'italic',
+      fontSize: '11px', fontFamily: 'Georgia, serif', color: '#e8c96a', fontStyle: 'italic',
     }).setOrigin(0.5).setDepth(301).setVisible(false);
     this._ctrlGroup = [p, txt, close];
     this.input.keyboard.on('keydown-ESC', () => {
@@ -260,7 +260,7 @@ export class HUDScene extends Phaser.Scene {
         color: C.text, align: 'left', lineSpacing: 6,
       }).setOrigin(0.5, 0).setDepth(301);
     const dismiss = this.add.text(cx, cy + 80, 'Clica para comecar', {
-      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#E1A0B1', fontStyle: 'italic',
+      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#e8c96a', fontStyle: 'italic',
     }).setOrigin(0.5).setDepth(301);
     this.tweens.add({ targets: dismiss, alpha: { from: 0.5, to: 1 }, duration: 900, yoyo: true, repeat: -1 });
     items.push(panel, txt, dismiss);
@@ -287,10 +287,10 @@ export class HUDScene extends Phaser.Scene {
     this.mmGfx.fillStyle(0x081810, 1);
     this.mmGfx.fillRect(MM_X, MM_Y, MM_W, MM_H);
     (ZONE_STRIPS[zone] || ZONE_STRIPS.Zone1).forEach(s => {
-      const x = MM_X + (s.xFrom / WORLD_WIDTH) * MM_W;
-      const w = ((s.xTo - s.xFrom) / WORLD_WIDTH) * MM_W;
+      const y = MM_Y + (s.yFrom / WORLD_HEIGHT) * MM_H;
+      const h = ((s.yTo - s.yFrom) / WORLD_HEIGHT) * MM_H;
       this.mmGfx.fillStyle(s.color, 1);
-      this.mmGfx.fillRect(x, MM_Y, w, MM_H);
+      this.mmGfx.fillRect(MM_X, y, MM_W, h);
     });
     this.mmGfx.setDepth(58);
     const names = { Zone1: 'Campo dos Vagalumes', Zone2: 'Floresta Densa', Zone3: 'Terrenos das Sombras', Cauldron: 'Caldeirão' };

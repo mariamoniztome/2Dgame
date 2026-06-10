@@ -38,22 +38,22 @@ export class DebugPanel {
     const z1 = this._z1();
     if (!z1) return;
     this._setSlider('zoom',       z1.cameras.main.zoom);
-    this._setSlider('playerSize', z1.player?.displayWidth ?? 200);
-    this._setSlider('vagScale',   z1._vagScale  ?? 0.59);
-    this._setSlider('vagQty',     z1._vagQty    ?? 10);
+    this._setSlider('playerSize', z1.player?.displayWidth ?? 260);
+    this._setSlider('vagScale',   z1._vagScale  ?? 0.75);
+    this._setSlider('vagQty',     z1._vagQty    ?? 12);
     this._setSlider('vagFreq',    z1._vagFreq   ?? 700);
-    this._setSlider('decoMult',   z1._decoMult  ?? 1.7);
+    this._setSlider('decoMult',   z1._decoMult  ?? 1.9);
   }
 
   // ── build DOM ─────────────────────────────────────────────────────────────
   _build() {
     const CONTROLS = [
-      { id: 'zoom',       label: 'Camera Zoom',      min: 0.4,  max: 3,    step: 0.05, def: 1.15 },
-      { id: 'playerSize', label: 'Player Size px',   min: 32,   max: 400,  step: 4,    def: 200  },
-      { id: 'vagScale',   label: 'Vagalume Scale',   min: 0.05, max: 1.5,  step: 0.01, def: 0.59 },
-      { id: 'vagQty',     label: 'Vagalume Qty',     min: 1,    max: 40,   step: 1,    def: 10   },
+      { id: 'zoom',       label: 'Camera Zoom',      min: 0.5,  max: 4,    step: 0.05, def: 2.0  },
+      { id: 'playerSize', label: 'Player Size px',   min: 32,   max: 500,  step: 4,    def: 260  },
+      { id: 'vagScale',   label: 'Vagalume Scale',   min: 0.05, max: 1.5,  step: 0.01, def: 0.75 },
+      { id: 'vagQty',     label: 'Vagalume Qty',     min: 1,    max: 40,   step: 1,    def: 12   },
       { id: 'vagFreq',    label: 'Vagalume Freq ms', min: 20,   max: 2000, step: 20,   def: 700  },
-      { id: 'decoMult',   label: 'Deco Size ×',      min: 0.1,  max: 4,    step: 0.05, def: 1.7  },
+      { id: 'decoMult',   label: 'Deco Size ×',      min: 0.1,  max: 4,    step: 0.05, def: 1.9  },
     ];
 
     const panel = document.createElement('div');
