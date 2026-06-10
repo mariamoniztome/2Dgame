@@ -9,17 +9,20 @@ import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
+// Zone 3 — 1280 wide × 2160 tall, three sub-areas stacked top → bottom
+const ZONE_H = 720;
+
 const PLANT_SPAWNS = [
-  { id: 'sombravinha',  x: 700,  y: 495 }, // Vale do Asara
-  { id: 'faisca_mato',  x: 950,  y: 700  }, // Vale do Asara
-  { id: 'sussurreira',  x: 1600, y: 900  }, // Bosque da Confusão
-  { id: 'lunaria_negra', x: 1900, y: 500  }, // Bosque da Confusão (labyrinth end)
+  { id: 'sombravinha',   x: 640,  y: 350 },
+  { id: 'faisca_mato',   x: 880,  y: 580 },
+  { id: 'sussurreira',   x: 460,  y: 1020 },
+  { id: 'lunaria_negra', x: 820,  y: 1300 },
 ];
 
 const AREAS = {
-  valeAsara:     { label: 'Vale do Asara',      minX: 0,    maxX: 1200 },
-  bosqueConfusao: { label: 'Bosque da Confusão', minX: 1200, maxX: 2400 },
-  valeEspelhos:  { label: 'Vale dos Espelhos',  minX: 2400, maxX: 3200 },
+  valeAsara:      { label: 'Vale do Asara',      minY: 0,          maxY: ZONE_H     },
+  bosqueConfusao: { label: 'Bosque da Confusão', minY: ZONE_H,     maxY: ZONE_H * 2 },
+  valeEspelhos:   { label: 'Vale dos Espelhos',  minY: ZONE_H * 2, maxY: ZONE_H * 3 },
 };
 
 export class Zone3Scene extends Phaser.Scene {
@@ -31,13 +34,13 @@ export class Zone3Scene extends Phaser.Scene {
 
     this._buildBackground();
 
-    this.player = new Player(this, 400, 540);
+    this.player = new Player(this, 640, 200);
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
     this._buildCreatures();
     this._buildPortals();
 
-    // Fireflies (dim, eerie)
+    // Dim eerie fireflies across world
     this.add.particles(0, 0, 'firefly', {
       x: { min: 0, max: WORLD_WIDTH },
       y: { min: 0, max: WORLD_HEIGHT },
@@ -50,8 +53,8 @@ export class Zone3Scene extends Phaser.Scene {
       blendMode: 'ADD',
     }).setDepth(7);
 
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 20, 32, 12, 0x000000, 0.35).setDepth(4);
-    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.08).setDepth(9).setBlendMode('ADD');
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 24, 34, 12, 0x000000, 0.35).setDepth(4);
+    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 12, 0xffffff, 0.08).setDepth(9).setBlendMode('ADD');
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setZoom(1.2);
@@ -90,34 +93,33 @@ export class Zone3Scene extends Phaser.Scene {
   _buildBackground() {
     const g = this.add.graphics();
     if (this.textures.exists('bg_zone3')) {
-      this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'bg_zone3').setOrigin(0).setDepth(0);
+      this.add.image(0, 0, 'bg_zone3').setOrigin(0).setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(0);
       g.fillStyle(0x030608, 0.6); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     } else {
       g.fillStyle(0x04050c, 1); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     }
     g.setDepth(1);
 
-    // Misty patches
+    // Dark misty patches
     for (let i = 0; i < 12; i++) {
-      g.fillStyle(0x6a5acd, 0.04);
+      g.fillStyle(0x1a3a2a, 0.05);
       g.fillEllipse(
-        Phaser.Math.Between(100, 3100),
-        Phaser.Math.Between(100, 2300),
+        Phaser.Math.Between(100, 1180),
+        Phaser.Math.Between(100, 2060),
         Phaser.Math.Between(200, 500),
         Phaser.Math.Between(100, 300)
       );
     }
 
     // Dark twisted trees
-    const darkColors = [0x1a0a2e, 0x0d0014, 0x1a1010, 0x0a1a0a];
+    const darkColors = [0x0a0e0a, 0x0d160d, 0x1a1010, 0x0a120a];
     for (let i = 0; i < 28; i++) {
       const c = darkColors[Math.floor(Math.random() * darkColors.length)];
-      const x = Phaser.Math.Between(50, 3150);
-      const y = Phaser.Math.Between(50, 2350);
+      const x = Phaser.Math.Between(50, 1230);
+      const y = Phaser.Math.Between(50, 2110);
       const r = 25 + Math.random() * 55;
       this.add.circle(x, y, r, c, 0.85).setDepth(2);
     }
-
   }
 
   _buildPlants() {
@@ -129,7 +131,6 @@ export class Zone3Scene extends Phaser.Scene {
       const data = PLANTS[id];
       if (!data) return;
       const p = new Plant(this, x, y, data);
-      // Sombravinha starts invisible
       if (id === 'sombravinha') {
         p.isVisible = false;
         p.setAlpha(0);
@@ -141,36 +142,34 @@ export class Zone3Scene extends Phaser.Scene {
 
   _buildCreatures() {
     this.ecos = [];
-    // Create 2 Eco creatures
     for (let i = 0; i < 2; i++) {
-      const eco = new Creature(this, 800 + i * 600, 630, 'creature_eco', {
+      this.ecos.push(new Creature(this, 380 + i * 500, 850, 'creature_eco', {
         type: 'eco',
         followRange: 350,
         stealThreshold: 4000,
         speed: 65,
-      });
-      this.ecos.push(eco);
+      }));
     }
   }
 
   _buildPortals() {
-    this.portalBack = new Portal(this, 200, 400, {
+    this.portalBack = new Portal(this, 200, 200, {
       portalId: 'zone3_back',
       destination: 'Zone2',
       locked: false,
     });
 
     const cauldronUnlocked = GameState.checkCauldronUnlock();
-    this.portalCauldron = new Portal(this, 3050, 500, {
+    this.portalCauldron = new Portal(this, 1050, 1950, {
       portalId: 'zone3_cauldron',
       destination: 'Cauldron',
       locked: !cauldronUnlocked,
     });
 
-    // Dense fireflies cluster near cauldron portal (hint)
+    // Dense firefly cluster hints toward cauldron portal
     this.add.particles(0, 0, 'firefly', {
-      x: { min: 2900, max: 3150 },
-      y: { min: 350, max: 650 },
+      x: { min: 920, max: 1150 },
+      y: { min: 1820, max: 2080 },
       lifespan: { min: 2000, max: 4000 },
       speed: { min: 6, max: 22 },
       scale: { start: 1, end: 0 },
@@ -186,7 +185,7 @@ export class Zone3Scene extends Phaser.Scene {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
     this.ecos.forEach(e => e.update(this.player, delta, GameState));
     this.playerGlow.setPosition(this.player.x, this.player.y);
-    this.playerShadow.setPosition(this.player.x, this.player.y + 20);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 24);
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;
 
@@ -202,10 +201,10 @@ export class Zone3Scene extends Phaser.Scene {
   }
 
   _checkAreaChange() {
-    const px = this.player.x;
+    const py = this.player.y;
     let area = 'valeAsara';
-    if (px >= 2400) area = 'valeEspelhos';
-    else if (px >= 1200) area = 'bosqueConfusao';
+    if (py >= ZONE_H * 2) area = 'valeEspelhos';
+    else if (py >= ZONE_H) area = 'bosqueConfusao';
     if (area !== this._currentArea) {
       this._currentArea = area;
       this.game.events.emit('areaChanged', AREAS[area].label);
@@ -225,15 +224,12 @@ export class Zone3Scene extends Phaser.Scene {
 
       this._nearPlant = plant;
       foundNear = true;
-
       const method = plant.plantData.collectMethod;
 
-      // Sombravinha auto-collects when she has revealed herself
       if (method === 'wait') {
         if (plant._sombraVisible) this._collectPlant(plant);
         return;
       }
-
       if (method === 'interact' || method === 'brave') {
         if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
         this._proximityTimer += delta;
@@ -255,15 +251,12 @@ export class Zone3Scene extends Phaser.Scene {
       this.player.x, this.player.y,
       this._sombraPlant.x, this._sombraPlant.y
     );
-    if (dist > 400) return; // too far
-
-    // "Facing away" = player moving in opposite direction of plant
+    if (dist > 400) return;
     const toPx = this._sombraPlant.x - this.player.x;
     const toPy = this._sombraPlant.y - this.player.y;
     const facingAngle = this.player.facingAngle;
     const dotProduct = Math.cos(facingAngle) * toPx + Math.sin(facingAngle) * toPy;
-    const facingAway = dotProduct < -50; // player faces away from plant
-
+    const facingAway = dotProduct < -50;
     const stillEnough = this.player.recentSpeed < 30;
     this._sombraPlant.updateSombraState(facingAway && stillEnough, delta);
   }
@@ -294,7 +287,6 @@ export class Zone3Scene extends Phaser.Scene {
 
   _handleInteract(time) {
     if (this._nearPortal) { this._usePortal(this._nearPortal); return; }
-    // All plant collection is now handled automatically in _checkPlantProximity
   }
 
   _castSpell() {
@@ -303,10 +295,7 @@ export class Zone3Scene extends Phaser.Scene {
     const spellDef = SPELLS[GameState.activeSpell];
     const fx = this.add.image(this.player.x, this.player.y, spellDef.textureKey)
       .setDisplaySize(50, 50).setAlpha(0.9).setDepth(50).setBlendMode('ADD');
-    this.tweens.add({
-      targets: fx, scale: 4, alpha: 0, duration: 700,
-      onComplete: () => fx.destroy(),
-    });
+    this.tweens.add({ targets: fx, scale: 4, alpha: 0, duration: 700, onComplete: () => fx.destroy() });
     this.game.events.emit('spellCast', GameState.activeSpell);
 
     const spell = GameState.activeSpell;
@@ -387,15 +376,7 @@ export class Zone3Scene extends Phaser.Scene {
     }
   }
 
-  _emitNarrative(text, dur = 3500) {
-    this.game.events.emit('showNarrative', text, dur);
-  }
-
-  _onPlantStolen(plant) {
-    this._emitNarrative(`Os Ecos trocaram a ${plant.name} por uma cópia falsa!`, 4000);
-  }
-
-  shutdown() {
-    this.game.events.off('plantStolen', this._onPlantStolen, this);
-  }
+  _emitNarrative(text, dur = 3500) { this.game.events.emit('showNarrative', text, dur); }
+  _onPlantStolen(plant) { this._emitNarrative(`Os Ecos trocaram a ${plant.name} por uma cópia falsa!`, 4000); }
+  shutdown() { this.game.events.off('plantStolen', this._onPlantStolen, this); }
 }

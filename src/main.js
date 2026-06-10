@@ -30,10 +30,7 @@ const config = {
     MapScene,   // must be last so it renders over everything when open
   ],
   scale: {
-    mode: Phaser.Scale.EXPAND,
-    autoCenter: Phaser.Scale.NO_CENTER,
-    width: GAME_WIDTH,
-    height: GAME_HEIGHT,
+    mode: Phaser.Scale.RESIZE,   // canvas = browser window, zero bars
   },
 };
 

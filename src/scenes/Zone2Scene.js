@@ -9,29 +9,31 @@ import { Creature } from '../objects/Creature.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
-// Zone 2 areas (per GDD)
+// Zone 2 — 1280 wide × 2160 tall, four sub-areas stacked top → bottom
+const ZONE_H = 540; // four zones: 540×4 = 2160
+
 const AREAS = {
-  planiciesFendas: { label: 'Planície das Fendas',   minX: 0,    maxX: 900  },
-  jardimSelvagem:  { label: 'Jardim Selvagem',        minX: 900,  maxX: 1800 },
-  planalto:        { label: 'Planalto dos Furacões',  minX: 1800, maxX: 2500 },
-  pantano:         { label: 'Pântano',                minX: 2500, maxX: 3200 },
+  planiciesFendas: { label: 'Planície das Fendas',   minY: 0,          maxY: ZONE_H     },
+  jardimSelvagem:  { label: 'Jardim Selvagem',        minY: ZONE_H,     maxY: ZONE_H * 2 },
+  planalto:        { label: 'Planalto dos Furacões',  minY: ZONE_H * 2, maxY: ZONE_H * 3 },
+  pantano:         { label: 'Pântano',                minY: ZONE_H * 3, maxY: ZONE_H * 4 },
 };
 
 const PLANT_SPAWNS = [
-  { id: 'tezaluz',       x: 420,  y: 900  }, // Planície das Fendas
-  { id: 'craveira',      x: 680,  y: 610 }, // Planície das Fendas
-  { id: 'espinhosa_doce', x: 1100, y: 700  }, // Jardim Selvagem
-  { id: 'bocarra',       x: 1450, y: 540 }, // Jardim Selvagem
-  { id: 'aurorabromelia', x: 2100, y: 800  }, // Planalto dos Furacões
-  { id: 'ninfaria',      x: 2750, y: 495 }, // Pântano
+  { id: 'tezaluz',        x: 640,  y: 200  },
+  { id: 'craveira',       x: 320,  y: 380  },
+  { id: 'espinhosa_doce', x: 900,  y: 750  },
+  { id: 'bocarra',        x: 420,  y: 920  },
+  { id: 'aurorabromelia', x: 750,  y: 1340 },
+  { id: 'ninfaria',       x: 450,  y: 1820 },
 ];
 
 const TREE_COLORS = [0x1a3a2a, 0x0d3020, 0x2a1a08, 0x182a10];
 const TREE_POS = [
-  {x:80,y:200},{x:200,y:80},{x:400,y:300},{x:120,y:600},{x:350,y:720},
-  {x:700,y:250},{x:800,y:900},{x:600,y:630},{x:1100,y:350},{x:1200,y:540},
-  {x:1400,y:600},{x:1600,y:810},{x:1900,y:400},{x:2000,y:630},{x:2200,y:800},
-  {x:2400,y:720},{x:2600,y:300},{x:2700,y:1100},{x:2900,y:700},{x:3050,y:675},
+  {x: 80, y:180},{x:300, y: 80},{x:550, y:290},{x:180, y:480},{x:800, y:400},
+  {x:1050,y:200},{x:200, y:760},{x:680, y:820},{x:950, y:680},{x:400, y:950},
+  {x:1150,y:900},{x:640, y:1150},{x:180,y:1280},{x:900,y:1300},{x:400,y:1500},
+  {x:720, y:1650},{x:200,y:1800},{x:1000,y:1750},{x:600,y:1950},{x:1100,y:2050},
 ];
 
 export class Zone2Scene extends Phaser.Scene {
@@ -43,13 +45,12 @@ export class Zone2Scene extends Phaser.Scene {
 
     this._buildBackground();
 
-    this.player = new Player(this, 420, 540);
+    this.player = new Player(this, 640, 200);
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
     this._buildCreature();
     this._buildPortals();
 
-    // Firefly particles (sparse)
     this.add.particles(0, 0, 'firefly', {
       x: { min: 0, max: WORLD_WIDTH },
       y: { min: 0, max: WORLD_HEIGHT },
@@ -61,8 +62,8 @@ export class Zone2Scene extends Phaser.Scene {
       blendMode: 'ADD',
     }).setDepth(7);
 
-    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 20, 32, 12, 0x000000, 0.35).setDepth(4);
-    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.08).setDepth(9).setBlendMode('ADD');
+    this.playerShadow = this.add.ellipse(this.player.x, this.player.y + 24, 34, 12, 0x000000, 0.35).setDepth(4);
+    this.playerGlow   = this.add.circle(this.player.x, this.player.y, 12, 0xffffff, 0.08).setDepth(9).setBlendMode('ADD');
 
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setZoom(1.2);
@@ -101,19 +102,19 @@ export class Zone2Scene extends Phaser.Scene {
   _buildBackground() {
     const g = this.add.graphics();
     if (this.textures.exists('bg_zone2')) {
-      this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, 'bg_zone2').setOrigin(0).setDepth(0);
+      this.add.image(0, 0, 'bg_zone2').setOrigin(0).setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(0);
       g.fillStyle(0x071208, 0.5); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     } else {
       g.fillStyle(0x061210, 1); g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     }
     g.setDepth(1);
 
-    // Swamp water in Pântanos area
+    // Swamp water in Pântano area (y: 1620–2160)
     g.fillStyle(0x0d2018, 0.6);
-    g.fillEllipse(400, 1100, 500, 300);
-    g.fillEllipse(250, 1500, 350, 200);
+    g.fillEllipse(640, 1820, 800, 280);
+    g.fillEllipse(380, 1980, 480, 200);
     g.fillStyle(0x1a3a28, 0.4);
-    g.fillEllipse(450, 1150, 460, 260);
+    g.fillEllipse(720, 1870, 700, 240);
 
     TREE_POS.forEach(({ x, y }) => {
       const c = TREE_COLORS[Math.floor(Math.random() * TREE_COLORS.length)];
@@ -121,7 +122,6 @@ export class Zone2Scene extends Phaser.Scene {
       this.add.circle(x, y, r, c, 0.8).setDepth(2);
       this.add.circle(x + 10, y + r * 0.3, r * 0.6, c, 0.5).setDepth(2);
     });
-
   }
 
   _buildPlants() {
@@ -135,7 +135,7 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   _buildCreature() {
-    this.creature = new Creature(this, 1200, 900, 'creature_bocarra', {
+    this.creature = new Creature(this, 700, 950, 'creature_bocarra', {
       type: 'bocarra',
       followRange: 400,
       stealThreshold: 3500,
@@ -144,20 +144,16 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   _buildPortals() {
-    // Portal in Capinzal
-    this.portalBack = new Portal(this, 200, 400, {
+    this.portalBack = new Portal(this, 200, 200, {
       portalId: 'zone2_back',
       destination: 'Zone1',
       locked: false,
     });
-
-    // Portal in Jardim Selvagem
-    this.portalForward = new Portal(this, 2200, 600, {
+    this.portalForward = new Portal(this, 1050, 1950, {
       portalId: 'zone2_forward',
       destination: 'Zone3',
       locked: !GameState.isZoneUnlocked('Zone3'),
     });
-
     this._portals = [this.portalBack, this.portalForward];
   }
 
@@ -165,7 +161,7 @@ export class Zone2Scene extends Phaser.Scene {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
     this.creature.update(this.player, delta, GameState);
     this.playerGlow.setPosition(this.player.x, this.player.y);
-    this.playerShadow.setPosition(this.player.x, this.player.y + 20);
+    this.playerShadow.setPosition(this.player.x, this.player.y + 24);
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;
 
@@ -180,11 +176,11 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   _checkAreaChange() {
-    const px = this.player.x;
+    const py = this.player.y;
     let area = 'planiciesFendas';
-    if (px >= 2500) area = 'pantano';
-    else if (px >= 1800) area = 'planalto';
-    else if (px >= 900) area = 'jardimSelvagem';
+    if (py >= ZONE_H * 3) area = 'pantano';
+    else if (py >= ZONE_H * 2) area = 'planalto';
+    else if (py >= ZONE_H) area = 'jardimSelvagem';
 
     if (area !== this._currentArea) {
       this._currentArea = area;
@@ -209,10 +205,7 @@ export class Zone2Scene extends Phaser.Scene {
       const method = plant.plantData.collectMethod;
       if (method === 'interact' || method === 'brave' || method === 'slow') {
         const tooFast = method === 'slow' && this.player.recentSpeed > 50;
-        if (tooFast) {
-          this._timedPlant = null; this._proximityTimer = 0;
-          return;
-        }
+        if (tooFast) { this._timedPlant = null; this._proximityTimer = 0; return; }
         if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
         this._proximityTimer += delta;
         const holdMs = method === 'brave' ? 900 : 600;
@@ -268,7 +261,6 @@ export class Zone2Scene extends Phaser.Scene {
         this._emitNarrative(`Sacude mais ${left} vez${left !== 1 ? 'es' : ''}… (C)`);
       }
     }
-    // 'interact' and 'brave' are auto-collected via _checkPlantProximity
   }
 
   _castSpell() {
@@ -285,9 +277,7 @@ export class Zone2Scene extends Phaser.Scene {
 
     const spell = GameState.activeSpell;
     if (spell === 'fogo_controlado' || spell === 'raiz_ardente') {
-      const d = Phaser.Math.Distance.Between(
-        this.player.x, this.player.y, this.creature.x, this.creature.y
-      );
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.creature.x, this.creature.y);
       if (d < 320) {
         this.creature.repel(this.player.x, this.player.y);
         this._emitNarrative(spell === 'fogo_controlado'
@@ -295,9 +285,7 @@ export class Zone2Scene extends Phaser.Scene {
           : 'A Raíz Ardente afastou a criatura!');
       }
     }
-    if (spell === 'canto_jardim') {
-      this._revealAllPlants();
-    }
+    if (spell === 'canto_jardim') this._revealAllPlants();
   }
 
   _revealAllPlants() {
@@ -340,11 +328,9 @@ export class Zone2Scene extends Phaser.Scene {
   _usePortal(portal) {
     const dest = portal.destination;
     if (portal.isLocked) {
-      this._emitNarrative(
-        dest === 'Zone3'
-          ? 'Precisas de Ninfária, Aurorabromélia, Tezaluz, Espinhosa-doce e Craveira.'
-          : 'Portal bloqueado.'
-      );
+      this._emitNarrative(dest === 'Zone3'
+        ? 'Precisas de Ninfária, Aurorabromélia, Tezaluz, Espinhosa-doce e Craveira.'
+        : 'Portal bloqueado.');
       return;
     }
     SoundManager.portal();
@@ -375,15 +361,7 @@ export class Zone2Scene extends Phaser.Scene {
     }
   }
 
-  _emitNarrative(text, dur = 3500) {
-    this.game.events.emit('showNarrative', text, dur);
-  }
-
-  _onPlantStolen(plant) {
-    this._emitNarrative(`A Bocarra engoliu a ${plant.name}!`, 4000);
-  }
-
-  shutdown() {
-    this.game.events.off('plantStolen', this._onPlantStolen, this);
-  }
+  _emitNarrative(text, dur = 3500) { this.game.events.emit('showNarrative', text, dur); }
+  _onPlantStolen(plant) { this._emitNarrative(`A Bocarra engoliu a ${plant.name}!`, 4000); }
+  shutdown() { this.game.events.off('plantStolen', this._onPlantStolen, this); }
 }
