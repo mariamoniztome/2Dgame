@@ -403,12 +403,6 @@ export class Zone1Scene extends Phaser.Scene {
     if (!this._vineClimbed && this.player.y < 4) {
       this.player.setY(4);
       if (this.player.body) this.player.body.velocity.y = 0;
-      // Bump feedback — debounced so it doesn't fire every frame
-      if (!this._wallBumpCooldown) {
-        this._wallBumpCooldown = true;
-        this.cameras.main.shake(220, 0.004);
-        this.time.delayedCall(1000, () => { this._wallBumpCooldown = false; });
-      }
     }
 
     const ph = this.player.displayHeight;
@@ -448,7 +442,6 @@ export class Zone1Scene extends Phaser.Scene {
     else if (py < 0)        area = 'limiarSecreto';
 
     if (area !== this._currentArea) {
-      const prevArea = this._currentArea;
       this._currentArea = area;
 
       // Clamp camera Y when in Jardim so the dead zone above is never visible
@@ -456,12 +449,6 @@ export class Zone1Scene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, this._zoneW * 2, this._zoneH);
       } else {
         this.cameras.main.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
-      }
-
-      // Zone transition flash (skip on first load when prevArea is '')
-      if (prevArea !== '') {
-        const dark = area === 'limiarSecreto';
-        this.cameras.main.flash(400, dark ? 30 : 200, dark ? 60 : 240, dark ? 40 : 200);
       }
 
       this.game.events.emit('areaChanged', AREAS[area].label);
