@@ -176,19 +176,12 @@ export class Zone1Scene extends Phaser.Scene {
     // ── Jardim Invertido (right of campo) ────────────────────────────
     g.fillStyle(0x6d8469, 1); g.fillRect(ZW, 0, ZW, ZH);
 
-    // ── Dead-zone fill (top-right) — base layer ──────────────────────
+    // ── Dead-zone fill (top-right) ───────────────────────────────────
     g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -ZH, ZW, ZH);
 
     // ── Vine-gate barrier at y=0 (campo↔limiar) ──────────────────────
     g.fillStyle(0x1a2e1c, 0.9); g.fillRect(0, -18, ZW, 18);
     g.fillStyle(0x0d1a0f, 0.6); g.fillRect(0, -6, ZW, 6);
-
-    // ── High-depth solid over dead zone so it's NEVER visible ────────
-    // Camera bounds are rectangular; when near the (ZW, 0) corner both
-    // Limiar and Jardim are visible, which would expose the dead zone.
-    // This rectangle (above all game objects) ensures it stays opaque.
-    this.add.rectangle(ZW * 1.5, -ZH * 0.5, ZW + 40, ZH + 40, 0x1e2e20)
-      .setDepth(998);
     if (this.textures.exists('z1_parede')) {
       // Paredão de plantas across full width at the border
       this.add.image(ZW / 2, -8, 'z1_parede')
@@ -441,15 +434,31 @@ export class Zone1Scene extends Phaser.Scene {
   //    else        → Campo dos Vagalumes
   // ─────────────────────────────────────────────────────────────────────────
   _checkAreaChange() {
+    if (this._zoneTransition) return;
     const px = this.player.x, py = this.player.y;
     let area = 'campoVagalumes';
     if (px >= this._zoneW)  area = 'jardimInvertido';
     else if (py < 0)        area = 'limiarSecreto';
 
     if (area !== this._currentArea) {
+      const prev = this._currentArea;
       this._currentArea = area;
-      this._applyCameraBounds(area);
       this.game.events.emit('areaChanged', AREAS[area].label);
+
+      // campo ↔ jardim: camera must snap across a full viewport — hide with a
+      // brief black blink (80 ms out, 180 ms in) so the snap is invisible
+      const crossingHorizontal = area === 'jardimInvertido' || prev === 'jardimInvertido';
+      if (crossingHorizontal && prev !== '') {
+        this._zoneTransition = true;
+        this.cameras.main.fade(80, 0, 0, 0);
+        this.time.delayedCall(80, () => {
+          this._applyCameraBounds(area);
+          this.cameras.main.fadeIn(180, 0, 0, 0);
+          this.time.delayedCall(180, () => { this._zoneTransition = false; });
+        });
+      } else {
+        this._applyCameraBounds(area);
+      }
 
       // First-time hint when entering Jardim without any plants
       if (area === 'jardimInvertido' && !this._jardimHintShown) {
@@ -467,18 +476,13 @@ export class Zone1Scene extends Phaser.Scene {
   //  Camera bounds — one zone visible at a time, seamless crossing
   // ─────────────────────────────────────────────────────────────────────────
   _applyCameraBounds(area) {
-    const cam = this.cameras.main;
     const ZW = this._zoneW, ZH = this._zoneH;
-    // Half a viewport of overlap at the boundary so there is no camera snap
-    // when the player crosses x=_zoneW going campo↔jardim.
-    const vw = cam.width / cam.zoom;
-
     if (area === 'jardimInvertido') {
-      // Right column only (no dead zone above, no campo to the left)
-      cam.setBounds(ZW - vw / 2, 0, ZW + vw / 2, ZH);
+      // Right column only — no dead zone above, no campo to the left
+      this.cameras.main.setBounds(ZW, 0, ZW, ZH);
     } else {
-      // Left column: campo + limiar (not jardim or dead zone)
-      cam.setBounds(0, -ZH, ZW + vw / 2, ZH * 2);
+      // Left column: campo + limiar — no jardim, no dead zone
+      this.cameras.main.setBounds(0, -ZH, ZW, ZH * 2);
     }
   }
 
