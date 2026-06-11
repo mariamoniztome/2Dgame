@@ -65,7 +65,8 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildDecorations();
     this._buildVine();
 
-    this.player = new Player(this, 640, Math.round(ZONE_H / 2));
+    // Start player in lower-center of campo (clear of the vine area near y=0)
+    this.player = new Player(this, 640, Math.round(this._zoneH * 0.62));
 
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
@@ -176,6 +177,22 @@ export class Zone1Scene extends Phaser.Scene {
 
     // ── Dead-zone fill (top-right, aesthetic) ────────────────────────
     g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -ZH, ZW, ZH);
+
+    // ── Visible barrier at campo↔limiar border (y=0) ─────────────────
+    // Dark gradient band so the player understands there's a wall here
+    g.fillStyle(0x1a2e1c, 0.9); g.fillRect(0, -18, ZW, 18);
+    g.fillStyle(0x0d1a0f, 0.6); g.fillRect(0, -6, ZW, 6);
+    if (this.textures.exists('z1_parede')) {
+      // Paredão de plantas across full width at the border
+      this.add.image(ZW / 2, -8, 'z1_parede')
+        .setOrigin(0.5, 1).setDepth(5).setAlpha(0.82)
+        .setDisplaySize(ZW, 120);
+    }
+    if (this.textures.exists('z1_fundo_parede')) {
+      this.add.image(ZW / 2, -8, 'z1_fundo_parede')
+        .setOrigin(0.5, 1).setDepth(4).setAlpha(0.65)
+        .setDisplaySize(ZW, 200);
+    }
 
     // Location signs
     if (this.textures.exists('z1_placa_campo')) {
@@ -290,21 +307,28 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildVine() {
-    // Vine hangs at the top of Campo, giving access to Limiar Secreto above
-    this.vine = this.add.image(VINE_X, VINE_Y, 'vine')
-      .setDisplaySize(44, 160).setDepth(6).setOrigin(0.5, 0.5);
-
-    this.vineHint = this.add.text(VINE_X, VINE_Y - 70, 'C — Subir para o Limiar', {
-      fontSize: '13px', fontFamily: 'Georgia, serif',
-      color: '#ffffff', stroke: '#000000', strokeThickness: 2,
-      backgroundColor: '#00000066', padding: { x: 4, y: 2 },
-    }).setOrigin(0.5).setAlpha(0).setDepth(10);
-
-    this.tweens.add({
-      targets: this.vine,
-      angle: { from: -4, to: 4 },
-      duration: 2200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+    // Vine hangs from the top of Campo — the only gateway into Limiar Secreto
+    // Draw a cluster of 3 vines side-by-side for visibility
+    [-24, 0, 24].forEach((dx, i) => {
+      const v = this.add.image(VINE_X + dx, VINE_Y, 'vine')
+        .setDisplaySize(28, 140).setDepth(6).setOrigin(0.5, 1).setAlpha(0.9);
+      this.tweens.add({
+        targets: v,
+        angle: { from: -5 + i * 2, to: 5 - i * 2 },
+        duration: 2000 + i * 300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
     });
+
+    // Glow at the top border to hint at passage
+    this.add.graphics().setDepth(5)
+      .fillStyle(0x88ffaa, 0.12)
+      .fillRect(VINE_X - 60, 0, 120, VINE_Y);
+
+    this.vineHint = this.add.text(VINE_X, VINE_Y - 90, 'C — Subir para o Limiar', {
+      fontSize: '13px', fontFamily: 'Georgia, serif',
+      color: '#c8ffc8', stroke: '#071a07', strokeThickness: 3,
+      backgroundColor: '#00000088', padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setAlpha(0).setDepth(10);
   }
 
   _buildPlants() {
@@ -380,6 +404,14 @@ export class Zone1Scene extends Phaser.Scene {
   // ─────────────────────────────────────────────────────────────────────────
   update(time, delta) {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
+
+    // ── Hard boundary: campo → limiar only via vine ───────────────────────
+    // _vineClimbed is set to true at the START of _climbVine(), so the tween
+    // that moves the player to y<0 is always allowed after pressing C on the vine.
+    if (!this._vineClimbed && this.player.y < 4) {
+      this.player.setY(4);
+      if (this.player.body) this.player.body.velocity.y = 0;
+    }
 
     const ph = this.player.displayHeight;
     this.playerShadow.setPosition(this.player.x, this.player.y + Math.round(ph * 0.24));
