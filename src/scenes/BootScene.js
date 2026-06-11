@@ -35,14 +35,9 @@ export class BootScene extends Phaser.Scene {
       loadTxt.setText(`A carregar… ${Math.round(v * 100)}%`);
     });
 
-    // ── Backgrounds ──────────────────────────────────────────────────────
-    this.load.image('bg_zone1',  unsplashUrl(UNSPLASH.zone1Bg));
-    this.load.image('bg_zone2',  unsplashUrl(UNSPLASH.zone2Bg));
-    this.load.image('bg_zone3',  unsplashUrl(UNSPLASH.zone3Bg));
-    this.load.image('bg_book',   unsplashUrl(UNSPLASH.book, 1280, 720));
+    // ── Backgrounds (Unsplash removed — zones use local SVG backgrounds) ─
 
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
-    // Player character — 1024px raster; display 260px at zoom 2 = 520px screen (2× quality)
     this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 1024, height: 1024 });
     // Plant sprites
     this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 256, height: 256 });

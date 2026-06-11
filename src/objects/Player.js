@@ -25,11 +25,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Facing direction for Sombravinha mechanic
     this.facingAngle = 0;
 
-    // Gentle scale pulse (safe with physics — doesn't touch x/y)
+    // Gentle ±4% scale pulse relative to the display size set above
+    const s = this.scaleX;
     scene.tweens.add({
       targets: this,
-      scaleX: { from: 0.96, to: 1.04 },
-      scaleY: { from: 0.96, to: 1.04 },
+      scaleX: s * 1.04,
+      scaleY: s * 1.04,
       duration: 1000,
       yoyo: true,
       repeat: -1,
