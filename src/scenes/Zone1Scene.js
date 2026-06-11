@@ -960,13 +960,16 @@ export class Zone1Scene extends Phaser.Scene {
   // ─────────────────────────────────────────────────────────────────────────
   //  Debug panel — Tab to toggle
   //  • All deco images + placa become draggable
-  //  • Live coord shown at bottom while dragging
-  //  • Right panel updates after each drop
+  //  • Click/drag selects element (yellow outline)
+  //  • Scroll wheel resizes selected element (±5px per tick)
+  //  • Live coord shown at bottom while dragging/resizing
+  //  • Right panel updates after each drop/resize
   //  • "COPIAR" button writes updated CAMPO_POS to clipboard
   // ─────────────────────────────────────────────────────────────────────────
   _buildDebugPanel() {
     this._debugObjs     = [];
     this._debugDragObjs = [];
+    this._debugSelected = null;
 
     const push = (o) => { this._debugObjs.push(o); return o; };
 
@@ -998,10 +1001,13 @@ export class Zone1Scene extends Phaser.Scene {
       this._debugDragObjs.push(this.placaCampo);
     }
 
+    // ── Selection highlight graphics ──────────────────────────────────────
+    this._debugSelGfx = push(this.add.graphics().setDepth(101));
+
     // ── Bottom coord tip ──────────────────────────────────────────────────
     this._debugTip = push(
       this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 6,
-        '↕  arrasta elementos para reposicionar', {
+        'arrasta para mover · roda para tamanho', {
           fontSize: '11px', fontFamily: 'monospace', color: '#ffff99',
           stroke: '#000000', strokeThickness: 2,
           backgroundColor: '#00000099', padding: { x: 10, y: 4 },
@@ -1035,8 +1041,16 @@ export class Zone1Scene extends Phaser.Scene {
 
     this._debugRefresh();
 
-    this.input.on('drag',    this._onDebugDrag,    this);
-    this.input.on('dragend', this._onDebugDragEnd, this);
+    this.input.on('dragstart', this._onDebugDragStart, this);
+    this.input.on('drag',      this._onDebugDrag,      this);
+    this.input.on('dragend',   this._onDebugDragEnd,   this);
+    this.input.on('wheel',     this._onDebugWheel,     this);
+  }
+
+  _onDebugDragStart(pointer, go) {
+    const di = this.decoImages?.findIndex(d => d.img === go) ?? -1;
+    this._debugSelected = { obj: go, idx: di, isPlaca: go === this.placaCampo };
+    this._debugHighlight(go);
   }
 
   _onDebugDrag(pointer, go, x, y) {
@@ -1055,9 +1069,45 @@ export class Zone1Scene extends Phaser.Scene {
       label = `③ placa  x=${Math.round(x)}  y=${Math.round(y)}  s=${this._placaSize}`;
     }
     if (this._debugTip && label) this._debugTip.setText(label);
+    this._debugHighlight(go);
   }
 
   _onDebugDragEnd() { this._debugRefresh(); }
+
+  _onDebugWheel(pointer, objs, dx, dy) {
+    const sel = this._debugSelected;
+    if (!sel?.obj?.active) return;
+    const step = dy < 0 ? 5 : -5;
+
+    if (sel.idx >= 0 && this._campoPos?.[sel.idx]) {
+      const newS = Math.max(10, this._campoPos[sel.idx][2] + step);
+      this._campoPos[sel.idx][2] = newS;
+      const m = this._decoMult ?? 1;
+      sel.obj.setDisplaySize(newS * m, newS * m);
+      const [x, y] = this._campoPos[sel.idx];
+      this._debugTip?.setText(`d${String(sel.idx).padStart(2,'0')}  x=${x}  y=${y}  s=${newS}`);
+      this._debugHighlight(sel.obj);
+      this._debugRefresh();
+    }
+
+    if (sel.isPlaca && this.placaCampo) {
+      const newS = Math.max(10, (this._placaSize ?? 70) + step);
+      this._placaSize = newS;
+      this.placaCampo.setDisplaySize(newS, newS * 0.5);
+      this._debugTip?.setText(`③ placa  x=${Math.round(this.placaCampo.x)}  y=${Math.round(this.placaCampo.y)}  s=${newS}`);
+      this._debugHighlight(this.placaCampo);
+      this._debugRefresh();
+    }
+  }
+
+  _debugHighlight(go) {
+    if (!this._debugSelGfx || !go?.active) return;
+    const hw = go.displayWidth  / 2 + 4;
+    const hh = go.displayHeight / 2 + 4;
+    this._debugSelGfx.clear();
+    this._debugSelGfx.lineStyle(2, 0xffff00, 0.9);
+    this._debugSelGfx.strokeRect(go.x - hw, go.y - hh, hw * 2, hh * 2);
+  }
 
   _debugRefresh() {
     if (!this._debugPanelTxt) return;
@@ -1094,14 +1144,18 @@ export class Zone1Scene extends Phaser.Scene {
       this._buildDebugPanel();
     } else {
       this._debugVisible = false;
-      this.input.off('drag',    this._onDebugDrag,    this);
-      this.input.off('dragend', this._onDebugDragEnd, this);
+      this.input.off('dragstart', this._onDebugDragStart, this);
+      this.input.off('drag',      this._onDebugDrag,      this);
+      this.input.off('dragend',   this._onDebugDragEnd,   this);
+      this.input.off('wheel',     this._onDebugWheel,     this);
       (this._debugDragObjs || []).forEach(obj => {
         if (obj.active) { obj.disableInteractive(); this.input.setDraggable(obj, false); }
       });
       this._debugDragObjs = [];
+      this._debugSelected = null;
       (this._debugObjs || []).forEach(o => o.destroy());
       this._debugObjs = null; this._debugPanelTxt = null; this._debugTip = null;
+      this._debugSelGfx = null;
     }
   }
 
