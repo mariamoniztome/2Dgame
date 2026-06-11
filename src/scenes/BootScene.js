@@ -249,6 +249,19 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0x333333, 1); g.fillRect(12, 4, 2, 8);
     g.generateTexture('butterfly', 26, 16);
 
+    // ── Sussurro-Ladrão — shadowy prowling lion ───────────────────────────
+    g.clear();
+    g.fillStyle(0x1a0a3a, 0.35); g.fillCircle(26, 26, 22);          // outer aura
+    g.fillStyle(0x0d0520, 1);    g.fillEllipse(20, 30, 28, 13);     // body
+    g.fillStyle(0x1a0a36, 1);    g.fillCircle(32, 21, 12);           // mane
+    g.fillStyle(0x0d0520, 1);    g.fillCircle(32, 21, 8);            // head
+    g.fillTriangle(27, 15, 30, 7, 33, 14);                           // left ear
+    g.fillTriangle(33, 14, 36, 7, 39, 15);                           // right ear
+    g.fillStyle(0x0d0520, 0.7);  g.fillEllipse(6, 30, 14, 6);       // tail
+    g.fillStyle(0xffcc00, 1);    g.fillCircle(29, 20, 2.5);          // left eye
+                                 g.fillCircle(36, 20, 2.5);          // right eye
+    g.generateTexture('sussurro_ladrao', 52, 46);
+
     // ── Map padlock fallback (used if map_cadeado SVG fails to load) ──────
     if (!this.textures.exists('map_cadeado')) {
       g.clear();

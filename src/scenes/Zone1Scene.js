@@ -106,6 +106,10 @@ export class Zone1Scene extends Phaser.Scene {
     this._spellUnlockShown    = null;
     this._tutorialDismiss     = null;
     this._jardimHintShown     = false;
+    this._ladrao              = null;
+    this._ladraoStole         = false;
+    // First appearance: 35s in (player needs time to collect at least one plant)
+    this.time.delayedCall(35000, () => this._scheduleLadrao());
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
 
@@ -358,6 +362,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._updateHints(delta);
     this._updateFootsteps(delta);
     this._checkZoneUnlocks();
+    this._updateLadrao(delta);
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
   }
@@ -690,7 +695,7 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _onPlantStolen(plant) {
-    this._emitNarrative(`A ${plant.name} foi trocada por uma cópia falsa!`, 4000);
+    this._emitNarrative(`O Sussurro-Ladrão levou a tua ${plant.name}! Volta ao Campo para procurar mais.`, 5000);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -812,6 +817,97 @@ export class Zone1Scene extends Phaser.Scene {
         },
       });
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Sussurro-Ladrão — shadowy lion that stalks the player and steals plants
+  // ─────────────────────────────────────────────────────────────────────────
+  _scheduleLadrao() {
+    if (!this.scene.isActive('Zone1')) return;
+    if (GameState.inventory.length === 0) {
+      this.time.delayedCall(12000, () => this._scheduleLadrao());
+      return;
+    }
+    this._spawnLadrao();
+  }
+
+  _spawnLadrao() {
+    if (this._ladrao?.active) return;
+
+    // Spawn off-screen: camera shows 640×360 game units at zoom 2, so >380px away is safe
+    let sx, sy, attempts = 0;
+    do {
+      sx = Phaser.Math.Between(40, ZONE_W * 3 - 40);
+      sy = Phaser.Math.Between(40, ZONE_H - 40);
+      attempts++;
+    } while (
+      Phaser.Math.Distance.Between(sx, sy, this.player.x, this.player.y) < 380
+      && attempts < 20
+    );
+
+    this._ladrao = this.add.image(sx, sy, 'sussurro_ladrao')
+      .setDisplaySize(44, 38).setAlpha(0).setDepth(9);
+    this._ladraoStole = false;
+
+    this.tweens.add({ targets: this._ladrao, alpha: 0.88, duration: 900 });
+    this.time.delayedCall(700, () => {
+      this._emitNarrative('Sombras sussurram entre as ervas…', 2500);
+    });
+  }
+
+  _updateLadrao(delta) {
+    if (!this._ladrao?.active || this._ladraoStole) return;
+
+    // Dismiss if player has nothing left to steal
+    if (GameState.inventory.length === 0) {
+      this._despawnLadrao(false); return;
+    }
+
+    const dist = Phaser.Math.Distance.Between(
+      this._ladrao.x, this._ladrao.y, this.player.x, this.player.y
+    );
+
+    // Speed ramps up as it closes in
+    const spd = dist < 180 ? 68 : 38;
+    const ang = Math.atan2(
+      this.player.y - this._ladrao.y,
+      this.player.x - this._ladrao.x
+    );
+    this._ladrao.x += Math.cos(ang) * spd * (delta / 1000);
+    this._ladrao.y += Math.sin(ang) * spd * (delta / 1000);
+    this._ladrao.setFlipX(Math.cos(ang) < 0);
+
+    // Pulse alpha when close — visual warning
+    if (dist < 180) {
+      this._ladrao.setAlpha(0.65 + Math.sin(Date.now() * 0.01) * 0.3);
+    }
+
+    // Steal range
+    if (dist < 50) {
+      this._ladraoStole = true;
+      const stolen = GameState.stealLastPlant();
+      if (stolen) this.game.events.emit('plantStolen', stolen);
+
+      const fleeAng = ang + Math.PI;
+      this.tweens.add({
+        targets: this._ladrao,
+        x: this._ladrao.x + Math.cos(fleeAng) * 480,
+        y: this._ladrao.y + Math.sin(fleeAng) * 200,
+        alpha: 0,
+        duration: 1800,
+        ease: 'Power2.easeIn',
+        onComplete: () => this._despawnLadrao(true),
+      });
+    }
+  }
+
+  _despawnLadrao(stole) {
+    this._ladrao?.destroy();
+    this._ladrao = null;
+    const delay = stole
+      ? Phaser.Math.Between(55000, 85000)
+      : Phaser.Math.Between(25000, 45000);
+    this.time.delayedCall(delay, () => this._scheduleLadrao());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -971,5 +1067,7 @@ export class Zone1Scene extends Phaser.Scene {
 
   shutdown() {
     this.game.events.off('plantStolen', this._onPlantStolen, this);
+    this._ladrao?.destroy();
+    this._ladrao = null;
   }
 }
