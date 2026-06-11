@@ -453,11 +453,16 @@ export class Zone1Scene extends Phaser.Scene {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
 
     // ── Hard boundary: campo → limiar only via vine ───────────────────────
-    // _vineClimbed is set to true at the START of _climbVine(), so the tween
-    // that moves the player to y<0 is always allowed after pressing C on the vine.
     if (!this._vineClimbed && this.player.y < 4) {
       this.player.setY(4);
       if (this.player.body) this.player.body.velocity.y = 0;
+    }
+
+    // ── Hard boundary: limiar → dead zone (right wall at x=_zoneW) ───────
+    // In Limiar (y<0) the player must NOT cross into the top-right quadrant.
+    if (this.player.y < 0 && this.player.x >= this._zoneW - 2) {
+      this.player.setX(this._zoneW - 2);
+      if (this.player.body) this.player.body.velocity.x = 0;
     }
 
     const ph = this.player.displayHeight;
@@ -494,8 +499,8 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._zoneTransition) return;
     const px = this.player.x, py = this.player.y;
     let area = 'campoVagalumes';
-    if (px >= this._zoneW)  area = 'jardimInvertido';
-    else if (py < 0)        area = 'limiarSecreto';
+    if (px >= this._zoneW && py >= 0) area = 'jardimInvertido';
+    else if (py < 0)                  area = 'limiarSecreto';
 
     if (area !== this._currentArea) {
       const prev = this._currentArea;
