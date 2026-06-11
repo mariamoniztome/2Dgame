@@ -9,9 +9,9 @@ const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 
 
 // ── Color palette ─────────────────────────────────────────────────────────
 const C = {
-  bg:     0x07140f,
-  panel:  0x0c2218,
-  border: 0xb6e8be,
+  bg:     0x0d2918,   // Lighter than before — readable on bright green campo
+  panel:  0x142e1e,
+  border: 0x88c890,
   dim:    0x4a7d5c,
   accent: 0xffef7a,
   magic:  0xffcb79,
@@ -61,7 +61,7 @@ export class HUDScene extends Phaser.Scene {
     // ── BOTTOM-LEFT: plant inventory ──────────────────────────────────────
     this._buildInventory(W, H);
 
-    // ── BOTTOM-RIGHT: minimap + potion progress ───────────────────────────
+    // ── BOTTOM-RIGHT: minimap ─────────────────────────────────────────────
     this._buildMinimap(W, H);
 
     // ── Narrative (center, above bottom panels) ───────────────────────────
@@ -94,7 +94,6 @@ export class HUDScene extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(55);
 
     this._buildControlsPanel(W, H);
-    this._buildAutoHint(W, H);
 
     this.input.keyboard.on('keydown-H', () => this._toggleControls());
 
@@ -115,8 +114,8 @@ export class HUDScene extends Phaser.Scene {
   // ── TOP-RIGHT: Spell panel ───────────────────────────────────────────────
   _buildSpellPanel(W) {
     const x = W - 10, y = 10, pw = 280, ph = 98;
-    this.add.rectangle(x, y, pw, ph, C.bg, 0.95)
-      .setOrigin(1, 0).setStrokeStyle(2, C.border, 0.95);
+    this.add.rectangle(x, y, pw, ph, C.bg, 0.82)
+      .setOrigin(1, 0).setStrokeStyle(1.5, C.border, 0.80);
 
     this.add.text(x - pw + 14, y + 10, 'FEITIÇO', {
       fontSize: '11px', fontFamily: 'monospace', color: C.label,
@@ -139,21 +138,19 @@ export class HUDScene extends Phaser.Scene {
 
   // ── BOTTOM-LEFT: Inventory ───────────────────────────────────────────────
   _buildInventory(W, H) {
-    this.add.rectangle(10, H - 10, 298, 104, C.bg, 0.95)
-      .setOrigin(0, 1).setStrokeStyle(2, C.border, 0.95);
-    this.add.text(24, H - 106, 'PLANTAS', {
-      fontSize: '12px', fontFamily: 'monospace', color: C.label,
+    this.add.rectangle(10, H - 10, 298, 104, C.bg, 0.82)
+      .setOrigin(0, 1).setStrokeStyle(1.5, C.border, 0.80);
+    this.add.text(24, H - 107, 'PLANTAS', {
+      fontSize: '11px', fontFamily: 'monospace', color: C.label,
     });
-    this.add.rectangle(248, H - 102, 90, 18, C.panel, 0.95)
-      .setOrigin(0.5, 0.5).setStrokeStyle(1, C.border, 0.65);
-    this.inventoryCount = this.add.text(292, H - 106, '0/6', {
-      fontSize: '13px', fontFamily: 'monospace', color: '#fff8b4',
+    this.inventoryCount = this.add.text(300, H - 107, '0/6', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#fff8b4',
     }).setOrigin(1, 0);
 
     for (let i = 0; i < 6; i++) {
       const sx = 30 + i * 44, sy = H - 44;
-      const bg   = this.add.rectangle(sx, sy, 36, 36, C.panel, 1)
-        .setStrokeStyle(1.4, C.border, 0.6);
+      const bg   = this.add.rectangle(sx, sy, 36, 36, C.panel, 0.85)
+        .setStrokeStyle(1.2, C.border, 0.55);
       const icon = this.add.image(sx, sy, 'plant_missing')
         .setDisplaySize(24, 24).setAlpha(0);
       const fake = this.add.text(sx, sy, '?', {
@@ -173,8 +170,8 @@ export class HUDScene extends Phaser.Scene {
     const px = W - 10, py = H - 10;
 
     // Panel background
-    this.add.rectangle(px, py, MM_PW, MM_PH, C.bg, 0.95)
-      .setOrigin(1, 1).setStrokeStyle(2, C.border, 0.95);
+    this.add.rectangle(px, py, MM_PW, MM_PH, C.bg, 0.82)
+      .setOrigin(1, 1).setStrokeStyle(1.5, C.border, 0.80);
 
     // "MAPA" label and [M] shortcut
     this.add.text(mmX, py - MM_PH + 6, 'MAPA', {
@@ -219,8 +216,8 @@ export class HUDScene extends Phaser.Scene {
   // ── Controls panel (H toggle) ────────────────────────────────────────────
   _buildControlsPanel(W, H) {
     const cx = W / 2, cy = H / 2;
-    const p   = this.add.rectangle(cx, cy, 370, 270, C.bg, 0.95)
-      .setStrokeStyle(1, C.border, 0.9).setDepth(300).setVisible(false);
+    const p   = this.add.rectangle(cx, cy, 370, 270, C.bg, 0.92)
+      .setStrokeStyle(1.5, C.border, 0.85).setDepth(300).setVisible(false);
     const txt = this.add.text(cx, cy - 110,
       'CONTROLOS\n\n' +
       'WASD / Setas    Mover\n' +
@@ -243,38 +240,6 @@ export class HUDScene extends Phaser.Scene {
         this._ctrlGroup.forEach(e => e.setVisible(false));
       }
     });
-  }
-
-  // ── Auto-hint on Zone1 entry ─────────────────────────────────────────────
-  _buildAutoHint(W, H) {
-    const cx = W / 2, cy = H / 2 - 20;
-    const items = [];
-    const panel = this.add.rectangle(cx, cy, 340, 210, C.bg, 0.92)
-      .setStrokeStyle(1, C.border, 0.7).setDepth(300);
-    const txt = this.add.text(cx, cy - 80,
-      'BEM-VINDA!\n\n' +
-      'WASD / Setas    Mover\n' +
-      'Shift                  Correr\n' +
-      'C                        Apanhar planta\n' +
-      'F                         Feitico\n' +
-      'M / H                Mapa / Ajuda', {
-        fontSize: '14px', fontFamily: 'monospace',
-        color: C.text, align: 'left', lineSpacing: 6,
-      }).setOrigin(0.5, 0).setDepth(301);
-    const dismiss = this.add.text(cx, cy + 80, 'Clica para comecar', {
-      fontSize: '12px', fontFamily: 'Georgia, serif', color: '#e8c96a', fontStyle: 'italic',
-    }).setOrigin(0.5).setDepth(301);
-    this.tweens.add({ targets: dismiss, alpha: { from: 0.5, to: 1 }, duration: 900, yoyo: true, repeat: -1 });
-    items.push(panel, txt, dismiss);
-    const hide = () => {
-      this.tweens.add({
-        targets: items, alpha: 0, duration: 500,
-        onComplete: () => items.forEach(e => e.setVisible(false)),
-      });
-    };
-    this.time.delayedCall(10000, hide);
-    this.input.once('pointerdown', hide);
-    this.input.keyboard.once('keydown', hide);
   }
 
   _toggleControls() {

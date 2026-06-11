@@ -293,10 +293,10 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._vagQty   === undefined) this._vagQty   = 12;
     if (this._vagFreq  === undefined) this._vagFreq  = 700;
 
-    // Always use the generated 8×8 firefly texture for particles.
-    // z1_vagalume is 512px — at any particle scale it produces enormous quads.
-    const ffKey = 'firefly';
-    const baseScale = 2.0 * this._vagScale;  // 16px game → 32px screen at zoom 2
+    // vagalume_degradee is a 512px white radial-gradient glow — the real firefly asset.
+    // Scale ~0.06 gives ~31px game / 62px screen at zoom 2. Fallback to generated dot.
+    const ffKey = this.textures.exists('z1_vagalume_degradee') ? 'z1_vagalume_degradee' : 'firefly';
+    const baseScale = (ffKey === 'z1_vagalume_degradee' ? 0.06 : 2.0) * this._vagScale;
 
     // Dense cluster in Campo
     this.campoEmitter = this.add.particles(0, 0, ffKey, {
@@ -732,7 +732,8 @@ export class Zone1Scene extends Phaser.Scene {
   _buildGuideFireflies() {
     const target = this.plants.find(p => p.plantData.id === 'ventoinha' && !p.isCollected);
     if (!target) return;
-    const key = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
+    // Use the degradê glow image — vagalume.svg is a plain black circle
+    const key = this.textures.exists('z1_vagalume_degradee') ? 'z1_vagalume_degradee' : 'firefly';
     this._guideFireflies = [];
     for (let i = 0; i < 3; i++) {
       const ff = this.add.image(this.player.x, this.player.y, key)
