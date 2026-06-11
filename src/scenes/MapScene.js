@@ -1,50 +1,53 @@
 import Phaser from 'phaser';
 import { GameState } from '../GameState.js';
 
-// ── Layout — all positions as fractions of (W, H) ─────────────────────────
-// Derived from the reference design image (1440 × 800 reference frame)
+// ── Layout — positions as fractions of (W, H) ─────────────────────────────
 
 const ZONE1_ICONS = [
   {
     icon: 'map_icone_limiar',
-    xp: 0.09, yp: 0.19,            // circle centre
-    size: 0.14,                     // diameter as fraction of W
+    xp: 0.09, yp: 0.19,
+    size: 0.20,                   // diameter = 20% of W
     label: 'limiar\nsecreto',
-    lxp: 0.09, lyp: 0.37,
+    lxp: 0.09, lyp: 0.36,
   },
   {
     icon: 'map_icone_campo',
-    xp: 0.09, yp: 0.78,
-    size: 0.14,
+    xp: 0.09, yp: 0.76,
+    size: 0.20,
     label: 'campo dos\nvagalumes',
-    lxp: 0.09, lyp: 0.91,
+    lxp: 0.09, lyp: 0.90,
   },
   {
     icon: 'map_icone_jardim',
-    xp: 0.39, yp: 0.76,
-    size: 0.13,
+    xp: 0.39, yp: 0.74,
+    size: 0.18,
     label: 'jardim\ninvertido',
-    lxp: 0.39, lyp: 0.90,
+    lxp: 0.39, lyp: 0.88,
   },
 ];
 
-// Small plant/creature decorations on the map
+// Decorative plant/creature icons — size as fraction of W
 const DECO_ICONS = [
-  { icon: 'map_icone_ventoinha',  xp: 0.18, yp: 0.88, sizePx: 52 },
-  { icon: 'map_icone_farfalha',   xp: 0.16, yp: 0.10, sizePx: 44 },
-  { icon: 'map_icone_gotateia',   xp: 0.52, yp: 0.87, sizePx: 38 },
-  { icon: 'map_icone_trepadeira', xp: 0.04, yp: 0.30, sizePx: 38 },
+  { icon: 'map_icone_ventoinha',  xp: 0.20, yp: 0.87, sp: 0.060 },
+  { icon: 'map_icone_farfalha',   xp: 0.17, yp: 0.09, sp: 0.055 },
+  { icon: 'map_icone_gotateia',   xp: 0.53, yp: 0.86, sp: 0.050 },
+  { icon: 'map_icone_trepadeira', xp: 0.04, yp: 0.32, sp: 0.048 },
 ];
 
-// Padlock positions for Zone 2 (middle area)
+// Portal icons — entry/exit points between zones
+const PORTAL_ICONS = [
+  { xp: 0.27, yp: 0.42, sp: 0.06 },  // Zone1 → Zone2 passage
+  { xp: 0.72, yp: 0.28, sp: 0.06 },  // Zone2 → Zone3 passage
+];
+
+// Padlocks — Zone 2 (middle area) and Zone 3 (right area)
 const Z2_LOCKS = [
   { xp: 0.38, yp: 0.14 },
   { xp: 0.61, yp: 0.19 },
   { xp: 0.30, yp: 0.49 },
   { xp: 0.61, yp: 0.58 },
 ];
-
-// Padlock positions for Zone 3 (right area)
 const Z3_LOCKS = [
   { xp: 0.86, yp: 0.10 },
   { xp: 0.89, yp: 0.44 },
@@ -70,25 +73,24 @@ export class MapScene extends Phaser.Scene {
       this.add.image(0, 0, 'map_fundo02').setOrigin(0).setDisplaySize(W, H).setDepth(1);
     }
 
-    // ── Zone 1 — always accessible ────────────────────────────────────────
+    // ── Zone 1 circle icons (always accessible) ───────────────────────────
     ZONE1_ICONS.forEach(area => {
       const x    = W * area.xp;
       const y    = H * area.yp;
-      const size = W * area.size;
+      const size = Math.round(W * area.size);
 
       if (this.textures.exists(area.icon)) {
         const img = this.add.image(x, y, area.icon)
           .setDisplaySize(size, size)
           .setDepth(3)
           .setInteractive({ useHandCursor: true });
-
         img.on('pointerover', () => this.tweens.add({ targets: img, scale: 1.08, duration: 120 }));
         img.on('pointerout',  () => this.tweens.add({ targets: img, scale: 1.00, duration: 120 }));
         img.on('pointerdown', () => this._enterZone('Zone1'));
       }
 
       this.add.text(W * area.lxp, H * area.lyp, area.label, {
-        fontSize: `${Math.round(W * 0.012)}px`,
+        fontSize: `${Math.round(W * 0.017)}px`,
         fontFamily: 'Georgia, serif',
         color: '#e8f5e0',
         stroke: '#061006',
@@ -99,11 +101,21 @@ export class MapScene extends Phaser.Scene {
       }).setOrigin(0.5, 0).setDepth(4);
     });
 
-    // ── Decorative plant icons ─────────────────────────────────────────────
-    DECO_ICONS.forEach(({ icon, xp, yp, sizePx }) => {
+    // ── Decorative plant icons ────────────────────────────────────────────
+    DECO_ICONS.forEach(({ icon, xp, yp, sp }) => {
       if (!this.textures.exists(icon)) return;
-      this.add.image(W * xp, H * yp, icon).setDisplaySize(sizePx, sizePx).setDepth(4);
+      const s = Math.round(W * sp);
+      this.add.image(W * xp, H * yp, icon).setDisplaySize(s, s).setDepth(4);
     });
+
+    // ── Portal icons ──────────────────────────────────────────────────────
+    if (this.textures.exists('map_portal')) {
+      PORTAL_ICONS.forEach(({ xp, yp, sp }) => {
+        const s = Math.round(W * sp);
+        this.add.image(W * xp, H * yp, 'map_portal')
+          .setDisplaySize(s, s).setDepth(4).setAlpha(0.85);
+      });
+    }
 
     // ── Zone 2 ────────────────────────────────────────────────────────────
     this._buildZone('Zone2', Z2_LOCKS, W, H, W * 0.50, H * 0.40, W * 0.42, H * 0.80);
@@ -113,7 +125,7 @@ export class MapScene extends Phaser.Scene {
 
     // ── Blocked notice ────────────────────────────────────────────────────
     this._blockedText = this.add.text(W / 2, H - 52, 'Esta zona ainda está bloqueada.', {
-      fontSize: `${Math.round(W * 0.013)}px`,
+      fontSize: `${Math.round(W * 0.016)}px`,
       fontFamily: 'Georgia, serif',
       color: '#ff8080',
       stroke: '#000000',
@@ -123,11 +135,10 @@ export class MapScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0).setDepth(100);
 
     // ── Close hint ────────────────────────────────────────────────────────
-    this.add.text(W / 2, H - 14, 'ESC ou M — voltar ao jogo', {
+    this.add.text(W / 2, H - 12, 'ESC ou M — voltar ao jogo', {
       fontSize: '11px', fontFamily: 'Georgia, serif', color: '#6a9a6a',
     }).setOrigin(0.5, 1).setDepth(5);
 
-    // ── Keys ──────────────────────────────────────────────────────────────
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.keyM   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
@@ -136,11 +147,12 @@ export class MapScene extends Phaser.Scene {
 
   _buildZone(key, lockPositions, W, H, hitX, hitY, hitW, hitH) {
     const unlocked = GameState.isZoneUnlocked(key);
+    const lockSize = Math.round(W * 0.065);
 
     if (unlocked) {
       const label = key === 'Zone2' ? 'Zona 2' : 'Zona 3';
       const btn = this.add.text(hitX, hitY - hitH * 0.15, label, {
-        fontSize: `${Math.round(W * 0.013)}px`,
+        fontSize: `${Math.round(W * 0.016)}px`,
         fontFamily: 'Georgia, serif',
         color: '#e8f5e0',
         stroke: '#061006',
@@ -153,12 +165,10 @@ export class MapScene extends Phaser.Scene {
       btn.on('pointerout',  () => this.tweens.add({ targets: btn, scale: 1.00, duration: 120 }));
       btn.on('pointerdown', () => this._enterZone(key));
     } else {
-      const lockSize = Math.round(W * 0.043);
+      // Always render padlocks — SVG if available, fallback generated texture in BootScene
       lockPositions.forEach(({ xp, yp }) => {
-        if (this.textures.exists('map_cadeado')) {
-          this.add.image(W * xp, H * yp, 'map_cadeado')
-            .setDisplaySize(lockSize, lockSize).setDepth(5);
-        }
+        this.add.image(W * xp, H * yp, 'map_cadeado')
+          .setDisplaySize(lockSize, lockSize).setDepth(5);
       });
       const hitZone = this.add.rectangle(hitX, hitY, hitW, hitH, 0, 0)
         .setDepth(6).setInteractive({ useHandCursor: false });

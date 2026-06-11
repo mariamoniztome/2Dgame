@@ -247,6 +247,16 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0x333333, 1); g.fillRect(12, 4, 2, 8);
     g.generateTexture('butterfly', 26, 16);
 
+    // ── Map padlock fallback (used if map_cadeado SVG fails to load) ──────
+    if (!this.textures.exists('map_cadeado')) {
+      g.clear();
+      g.fillStyle(0x111111, 1);   g.fillRoundedRect(6, 22, 36, 30, 4);
+      g.lineStyle(5, 0x222222, 1); g.strokeEllipse(24, 22, 26, 22);
+      g.fillStyle(0x666666, 1);   g.fillCircle(24, 35, 4);
+      g.fillStyle(0x444444, 1);   g.fillRect(22, 35, 4, 8);
+      g.generateTexture('map_cadeado', 48, 56);
+    }
+
     g.destroy();
   }
 }
