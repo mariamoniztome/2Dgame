@@ -178,9 +178,12 @@ export class Zone1Scene extends Phaser.Scene {
     g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -ZH, ZW, ZH);
 
     // ── Visible barrier at campo↔limiar border (y=0) ─────────────────
-    // Dark gradient band so the player understands there's a wall here
     g.fillStyle(0x1a2e1c, 0.9); g.fillRect(0, -18, ZW, 18);
     g.fillStyle(0x0d1a0f, 0.6); g.fillRect(0, -6, ZW, 6);
+
+    // ── Visible border at campo↔jardim (x=_zoneW) ────────────────────
+    g.fillStyle(0x1a2e1c, 0.75); g.fillRect(ZW - 10, 0, 20, ZH);
+    g.fillStyle(0x0d1a0f, 0.45); g.fillRect(ZW - 3,  0,  6, ZH);
     if (this.textures.exists('z1_parede')) {
       // Paredão de plantas across full width at the border
       this.add.image(ZW / 2, -8, 'z1_parede')
@@ -400,6 +403,12 @@ export class Zone1Scene extends Phaser.Scene {
     if (!this._vineClimbed && this.player.y < 4) {
       this.player.setY(4);
       if (this.player.body) this.player.body.velocity.y = 0;
+      // Bump feedback — debounced so it doesn't fire every frame
+      if (!this._wallBumpCooldown) {
+        this._wallBumpCooldown = true;
+        this.cameras.main.shake(220, 0.004);
+        this.time.delayedCall(1000, () => { this._wallBumpCooldown = false; });
+      }
     }
 
     const ph = this.player.displayHeight;
@@ -439,6 +448,7 @@ export class Zone1Scene extends Phaser.Scene {
     else if (py < 0)        area = 'limiarSecreto';
 
     if (area !== this._currentArea) {
+      const prevArea = this._currentArea;
       this._currentArea = area;
 
       // Clamp camera Y when in Jardim so the dead zone above is never visible
@@ -446,6 +456,12 @@ export class Zone1Scene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, this._zoneW * 2, this._zoneH);
       } else {
         this.cameras.main.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
+      }
+
+      // Zone transition flash (skip on first load when prevArea is '')
+      if (prevArea !== '') {
+        const dark = area === 'limiarSecreto';
+        this.cameras.main.flash(400, dark ? 30 : 200, dark ? 60 : 240, dark ? 40 : 200);
       }
 
       this.game.events.emit('areaChanged', AREAS[area].label);
