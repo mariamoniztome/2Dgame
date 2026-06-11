@@ -66,6 +66,11 @@ export class BootScene extends Phaser.Scene {
     ['03','04','05','06','07','08','09','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
       this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );
+    // Transition wall elements: Campo dos Vagalumes ↔ Limiar Secreto (y=0 border)
+    // Wide panels loaded at larger size; tall narrow ones at 512px height
+    ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','18','19'].forEach(n =>
+      this.load.svg(`z1_cl_${n}`, `/assets/zone1/campo_limiar/elem_${n}.svg`, { width: 512, height: 512 })
+    );
     ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>
       this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 512, height: 512 })
     );

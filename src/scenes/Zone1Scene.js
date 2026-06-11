@@ -179,20 +179,11 @@ export class Zone1Scene extends Phaser.Scene {
     // ── Dead-zone fill (top-right) ───────────────────────────────────
     g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -ZH, ZW, ZH);
 
-    // ── Vine-gate barrier at y=0 (campo↔limiar) ──────────────────────
-    g.fillStyle(0x1a2e1c, 0.9); g.fillRect(0, -18, ZW, 18);
-    g.fillStyle(0x0d1a0f, 0.6); g.fillRect(0, -6, ZW, 6);
-    if (this.textures.exists('z1_parede')) {
-      // Paredão de plantas across full width at the border
-      this.add.image(ZW / 2, -8, 'z1_parede')
-        .setOrigin(0.5, 1).setDepth(5).setAlpha(0.82)
-        .setDisplaySize(ZW, 120);
-    }
-    if (this.textures.exists('z1_fundo_parede')) {
-      this.add.image(ZW / 2, -8, 'z1_fundo_parede')
-        .setOrigin(0.5, 1).setDepth(4).setAlpha(0.65)
-        .setDisplaySize(ZW, 200);
-    }
+    // ── Vine-gate wall at y=0 (campo↔limiar) ────────────────────────
+    // Build the plant wall from the 17 campo_limiar transition SVGs.
+    // Elements are placed straddling y=0 (origin at bottom-centre of each
+    // element so they grow upward into Limiar and root into Campo).
+    this._buildTransitionWall(ZW);
 
     // Location signs
     if (this.textures.exists('z1_placa_campo')) {
@@ -203,6 +194,72 @@ export class Zone1Scene extends Phaser.Scene {
       this.placaLimiar = this.add.image(280, -ZH + 120, 'z1_placa_limiar')
         .setDisplaySize(this._placaSize, this._placaSize).setDepth(4);
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Transition wall — plant elements straddling the Campo/Limiar border (y=0)
+  // ─────────────────────────────────────────────────────────────────────────
+  _buildTransitionWall(ZW) {
+    // All available keys, skipping any that failed to load
+    const nums = ['01','02','03','04','05','06','07','08','09','10',
+                  '11','12','13','14','15','18','19'];
+    const keys = nums.filter(n => this.textures.exists(`z1_cl_${n}`))
+                     .map(n => `z1_cl_${n}`);
+    if (keys.length === 0) return;
+
+    // Known natural sizes (viewBox W×H) for each element — used to pick a
+    // render size that keeps aspect ratio roughly right.
+    const naturalH = {
+      '01':638,'02':786,'03':899,'04':447,'05':122,'06':578,
+      '07':2724,'08':550,'09':488,'10':707,'11':109,'12':493,
+      '13':606,'14':99,'15':447,'18':869,'19':2148,
+    };
+    // Place elements densely across the full campo width.
+    // Each is anchored at origin (0.5, 1) → bottom-centre sits at y=0,
+    // element grows upward into Limiar territory.
+    const placements = [
+      // [key-suffix, x-fraction-of-ZW, render-height, depth, alpha]
+      ['02', 0.00, 500, 4, 0.90],
+      ['03', 0.12, 540, 4, 0.88],
+      ['01', 0.22, 440, 5, 0.92],
+      ['10', 0.30, 460, 4, 0.85],
+      ['06', 0.38, 420, 5, 0.90],
+      ['13', 0.47, 450, 4, 0.87],
+      ['18', 0.55, 500, 4, 0.88],
+      ['08', 0.63, 400, 5, 0.91],
+      ['09', 0.70, 420, 4, 0.86],
+      ['12', 0.78, 440, 5, 0.90],
+      ['03', 0.86, 500, 4, 0.88],
+      ['01', 0.96, 440, 4, 0.90],
+      // Tall background panels for depth
+      ['07', 0.18, 700, 3, 0.70],
+      ['19', 0.72, 700, 3, 0.68],
+      // Small detail elements scattered near ground
+      ['04', 0.06, 260, 6, 0.95],
+      ['15', 0.42, 260, 6, 0.93],
+      ['05', 0.58, 100, 6, 0.88],
+      ['11', 0.65, 90,  6, 0.85],
+      ['14', 0.88, 80,  6, 0.90],
+    ];
+
+    placements.forEach(([n, xf, h, depth, alpha]) => {
+      const key = `z1_cl_${n}`;
+      if (!this.textures.exists(key)) return;
+      const natH = naturalH[n] ?? 500;
+      const natW = this.textures.get(key).getSourceImage().width || 512;
+      const natHsrc = this.textures.get(key).getSourceImage().height || 512;
+      const scale = h / natHsrc;
+      const w = natW * scale;
+      const x = Math.round(xf * ZW);
+      this.add.image(x, 0, key)
+        .setOrigin(0.5, 1)
+        .setDisplaySize(w, h)
+        .setDepth(depth)
+        .setAlpha(alpha);
+    });
+
+    // Vine-gap: leave a clear passage around VINE_X so the vine is visible
+    // (elements placed far from VINE_X=640 naturally leave that corridor open)
   }
 
   // ─────────────────────────────────────────────────────────────────────────
