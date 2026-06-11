@@ -41,7 +41,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, ZONE_W * 3, ZONE_H);
 
     // Debug-adjustable defaults
-    if (this._vagScale    === undefined) this._vagScale    = 0.75;
+    if (this._vagScale    === undefined) this._vagScale    = 1.0;
     if (this._vagQty      === undefined) this._vagQty      = 12;
     if (this._vagFreq     === undefined) this._vagFreq     = 700;
     if (this._decoMult    === undefined) this._decoMult    = 1.0;
@@ -105,6 +105,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._debugVisible        = false;
     this._spellUnlockShown    = null;
     this._tutorialDismiss     = null;
+    this._jardimHintShown     = false;
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
 
@@ -288,11 +289,14 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildFireflies() {
-    if (this._vagScale === undefined) this._vagScale = 0.75;
+    if (this._vagScale === undefined) this._vagScale = 1.0;
     if (this._vagQty   === undefined) this._vagQty   = 12;
     if (this._vagFreq  === undefined) this._vagFreq  = 700;
 
-    const ffKey = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
+    // Always use the generated 8×8 firefly texture for particles.
+    // z1_vagalume is 512px — at any particle scale it produces enormous quads.
+    const ffKey = 'firefly';
+    const baseScale = 2.0 * this._vagScale;  // 16px game → 32px screen at zoom 2
 
     // Dense cluster in Campo
     this.campoEmitter = this.add.particles(0, 0, ffKey, {
@@ -300,7 +304,7 @@ export class Zone1Scene extends Phaser.Scene {
       y: { min: 40, max: ZONE_H - 40 },
       lifespan: { min: 2200, max: 4500 },
       speed:    { min: 8, max: 28 },
-      scale:    { start: this._vagScale, end: 0 },
+      scale:    { start: baseScale, end: 0 },
       alpha:    { start: 0.95, end: 0 },
       quantity:  this._vagQty,
       frequency: this._vagFreq,
@@ -313,7 +317,7 @@ export class Zone1Scene extends Phaser.Scene {
       y: { min: 40, max: ZONE_H - 40 },
       lifespan: { min: 1800, max: 3500 },
       speed:    { min: 5, max: 18 },
-      scale:    { start: this._vagScale * 0.65, end: 0 },
+      scale:    { start: baseScale * 0.65, end: 0 },
       alpha:    { start: 0.6, end: 0 },
       quantity:  Math.max(1, Math.round(this._vagQty / 2)),
       frequency: this._vagFreq * 3,
@@ -359,7 +363,7 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Area detection — y-based now that zones are vertical
+  //  Area detection — x-based (zones are horizontal: 0→1280→2560→3840)
   // ─────────────────────────────────────────────────────────────────────────
   _checkAreaChange() {
     const px = this.player.x;
@@ -370,6 +374,16 @@ export class Zone1Scene extends Phaser.Scene {
     if (area !== this._currentArea) {
       this._currentArea = area;
       this.game.events.emit('areaChanged', AREAS[area].label);
+
+      // First-time hint when entering Jardim without any plants
+      if (area === 'jardimInvertido' && !this._jardimHintShown) {
+        this._jardimHintShown = true;
+        if (GameState.inventory.length === 0) {
+          this.time.delayedCall(700, () => {
+            this._emitNarrative('Dica: explora o Campo (← esquerda) para recolher plantas antes de avançar!', 5000);
+          });
+        }
+      }
     }
   }
 
@@ -722,7 +736,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._guideFireflies = [];
     for (let i = 0; i < 3; i++) {
       const ff = this.add.image(this.player.x, this.player.y, key)
-        .setDisplaySize(18, 18).setAlpha(0).setDepth(8).setBlendMode('ADD');
+        .setDisplaySize(18, 18).setAlpha(0).setDepth(8);
       this._guideFireflies.push(ff);
       this.time.delayedCall(2500 + i * 900, () => this._animateGuideFF(ff, target));
     }

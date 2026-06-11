@@ -65,16 +65,20 @@ export class HUDScene extends Phaser.Scene {
     this._buildMinimap(W, H);
 
     // ── Narrative (center, above bottom panels) ───────────────────────────
-    this.narrativeText = this.add.text(W / 2, H - MM_PH - 16, '', {
+    this.narrativeText = this.add.text(W / 2, H - MM_PH - 18, '', {
       fontSize: '15px', fontFamily: 'Georgia, serif',
-      color: '#f5e6c8', wordWrap: { width: 600 },
-      align: 'center', stroke: '#0D351E', strokeThickness: 3, lineSpacing: 4,
+      color: '#f5e6c8', wordWrap: { width: 580 },
+      align: 'center', stroke: '#071410', strokeThickness: 4, lineSpacing: 5,
+      backgroundColor: 'rgba(5,14,10,0.82)',
+      padding: { x: 20, y: 11 },
     }).setOrigin(0.5, 1).setAlpha(0).setDepth(100);
 
     // ── Area label (top-center) ───────────────────────────────────────────
     this.areaLabel = this.add.text(W / 2, 10, '', {
       fontSize: '14px', fontFamily: 'Georgia, serif',
-      color: '#ffffff', stroke: '#0a2010', strokeThickness: 3, fontStyle: 'italic',
+      color: '#e8ffd8', stroke: '#071410', strokeThickness: 2, fontStyle: 'italic',
+      backgroundColor: 'rgba(5,14,10,0.78)',
+      padding: { x: 14, y: 6 },
     }).setOrigin(0.5, 0).setAlpha(0).setDepth(55);
 
     // ── Spell unlock banner (center) ──────────────────────────────────────
@@ -280,31 +284,39 @@ export class HUDScene extends Phaser.Scene {
 
   // ── Minimap internals ────────────────────────────────────────────────────
   // Map world (zone, x, y) → minimap pixel position
+  // Zone1 layout is HORIZONTAL: campo x:0-1280, jardim x:1280-2560, limiar x:2560-3840
   _worldToMinimap(zone, x, y) {
     const mmX = this._mmX, mmY = this._mmY;
+    const ZONE_W = 1280;
     const ZONE_H = 720;
 
-    let rx0, ry0, rx1, ry1, localY, localH;
+    let rx0, ry0, rx1, ry1;
 
     if (zone === 'Zone1' || !zone) {
-      if (y < ZONE_H) {
-        [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS.Zone1.campo;
-        localY = y; localH = ZONE_H;
-      } else if (y < ZONE_H * 2) {
-        [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS.Zone1.jardim;
-        localY = y - ZONE_H; localH = ZONE_H;
+      let subArea, startX;
+      if (x < ZONE_W) {
+        subArea = MAP_ZONE_REGIONS.Zone1.campo;
+        startX = 0;
+      } else if (x < ZONE_W * 2) {
+        subArea = MAP_ZONE_REGIONS.Zone1.jardim;
+        startX = ZONE_W;
       } else {
-        [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS.Zone1.limiar;
-        localY = y - ZONE_H * 2; localH = ZONE_H;
+        subArea = MAP_ZONE_REGIONS.Zone1.limiar;
+        startX = ZONE_W * 2;
       }
-    } else {
-      [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS[zone] ?? MAP_ZONE_REGIONS.Zone2;
-      localY = y; localH = WORLD_HEIGHT;
+      [rx0, ry0, rx1, ry1] = subArea;
+      const localX = x - startX;
+      const localY = y;
+      return {
+        dotX: mmX + (rx0 + (localX / ZONE_W) * (rx1 - rx0)) * MM_W,
+        dotY: mmY + (ry0 + (localY / ZONE_H) * (ry1 - ry0)) * MM_H,
+      };
     }
 
+    [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS[zone] ?? MAP_ZONE_REGIONS.Zone2;
     return {
       dotX: mmX + (rx0 + (x / WORLD_WIDTH) * (rx1 - rx0)) * MM_W,
-      dotY: mmY + (ry0 + (localY / localH) * (ry1 - ry0)) * MM_H,
+      dotY: mmY + (ry0 + (y / WORLD_HEIGHT) * (ry1 - ry0)) * MM_H,
     };
   }
 
@@ -478,7 +490,15 @@ export class HUDScene extends Phaser.Scene {
 
   _updateArea(name) {
     this.areaLabel.setText(name);
-    this.tweens.add({ targets: this.areaLabel, alpha: { from: 1, to: 0.85 }, duration: 1200 });
+    this.tweens.killTweensOf(this.areaLabel);
+    this.tweens.add({
+      targets: this.areaLabel, alpha: 1, duration: 380, ease: 'Power2.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(3000, () =>
+          this.tweens.add({ targets: this.areaLabel, alpha: 0, duration: 900 })
+        );
+      },
+    });
     SoundManager.areaChange();
   }
 }
