@@ -404,9 +404,6 @@ export class Zone1Scene extends Phaser.Scene {
       if (GameState.collected.has(id)) return;
       const plantData = PLANTS[id];
       if (!plantData) return;
-      const alreadyHave = this.plants.filter(p => p.plantData.id === id).length;
-      const totalSpawns = PLANT_SPAWNS.filter(s => s.id === id).length;
-      if (alreadyHave > 0 && totalSpawns > 1 && GameState.collected.has(id)) return;
       this.plants.push(new Plant(this, x, y, plantData));
     });
   }

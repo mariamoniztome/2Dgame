@@ -252,8 +252,8 @@ export class HUDScene extends Phaser.Scene {
   // Zone1 L-shaped: campo(x:0-1280,y:0-720) · limiar(x:0-1280,y:-720-0) · jardim(x:1280-2560,y:0-720)
   _worldToMinimap(zone, x, y) {
     const mmX = this._mmX, mmY = this._mmY;
-    const ZONE_W = 1280;
-    const ZONE_H = 720;
+    const ZONE_W = this.game.registry.get('debugZoneW') ?? 1920;
+    const ZONE_H = this.game.registry.get('debugZoneH') ?? 1080;
 
     let rx0, ry0, rx1, ry1;
 
