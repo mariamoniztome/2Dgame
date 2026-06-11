@@ -1072,7 +1072,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._debugHighlight(go);
   }
 
-  _onDebugDragEnd() { this._debugRefresh(); }
+  _onDebugDragEnd() { this._debugRefresh(); this._debugLog(); }
 
   _onDebugWheel(pointer, objs, dx, dy) {
     const sel = this._debugSelected;
@@ -1088,6 +1088,7 @@ export class Zone1Scene extends Phaser.Scene {
       this._debugTip?.setText(`d${String(sel.idx).padStart(2,'0')}  x=${x}  y=${y}  s=${newS}`);
       this._debugHighlight(sel.obj);
       this._debugRefresh();
+      this._debugLog();
     }
 
     if (sel.isPlaca && this.placaCampo) {
@@ -1097,7 +1098,14 @@ export class Zone1Scene extends Phaser.Scene {
       this._debugTip?.setText(`③ placa  x=${Math.round(this.placaCampo.x)}  y=${Math.round(this.placaCampo.y)}  s=${newS}`);
       this._debugHighlight(this.placaCampo);
       this._debugRefresh();
+      this._debugLog();
     }
+  }
+
+  _debugLog() {
+    const rows = (this._campoPos || []).map(([x, y, s]) => `  [${x}, ${y}, ${s}]`).join(',\n');
+    console.log('%cCAMPO_POS', 'color:#7bc67e;font-weight:bold;font-size:13px');
+    console.log(`const CAMPO_POS = [\n${rows}\n];`);
   }
 
   _debugHighlight(go) {
