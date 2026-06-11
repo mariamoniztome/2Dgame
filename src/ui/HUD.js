@@ -18,31 +18,23 @@ const C = {
   label:  '#639B5A',
 };
 
-// Zone color strips for minimap — vertical world, bands by Y
-const ZONE_STRIPS = {
-  Zone1: [
-    { color: 0x5a9e5a, yFrom: 0,    yTo: 720  },  // Campo
-    { color: 0x3a7044, yFrom: 720,  yTo: 1440 },  // Jardim
-    { color: 0x060c18, yFrom: 1440, yTo: 2160 },  // Limiar
-  ],
-  Zone2: [
-    { color: 0x0d2a18, yFrom: 0,    yTo: 540  },
-    { color: 0x1a4428, yFrom: 540,  yTo: 1080 },
-    { color: 0x2d6030, yFrom: 1080, yTo: 1620 },
-    { color: 0x2e1503, yFrom: 1620, yTo: 2160 },
-  ],
-  Zone3: [
-    { color: 0x0d1a08, yFrom: 0,    yTo: 720  },
-    { color: 0x0a1a10, yFrom: 720,  yTo: 1440 },
-    { color: 0x0a0e14, yFrom: 1440, yTo: 2160 },
-  ],
-};
-
-// Minimap geometry — bottom-right corner, portrait to match vertical world
-const MM_W  = 70;
-const MM_H  = 118;
+// Minimap geometry — bottom-right corner, landscape 16:9 to match the map SVG
+const MM_W  = 128;
+const MM_H  = 72;   // 128 × 9/16
 const MM_PW = MM_W + 16;
-const MM_PH = MM_H + 36;
+const MM_PH = MM_H + 38;   // room for MAPA label + zone name + potion dots
+
+// Map-image regions (fractions 0-1) for each zone/sub-area.
+// Based on the icon positions used in MapScene.
+const MAP_ZONE_REGIONS = {
+  Zone1: {
+    campo:  [0.00, 0.55, 0.25, 1.00],   // Campo dos Vagalumes — bottom-left
+    jardim: [0.25, 0.55, 0.52, 1.00],   // Jardim Invertido    — bottom-center
+    limiar: [0.00, 0.00, 0.27, 0.52],   // Limiar Secreto      — top-left
+  },
+  Zone2:  [0.28, 0.00, 0.72, 1.00],
+  Zone3:  [0.72, 0.00, 1.00, 1.00],
+};
 // Toast
 const TOAST_W = 260;
 const TOAST_H = 68;
@@ -170,54 +162,54 @@ export class HUDScene extends Phaser.Scene {
 
     const px = W - 8, py = H - 8;
 
-    // Panel
+    // Panel background
     this.add.rectangle(px, py, MM_PW, MM_PH, C.bg, 0.92)
       .setOrigin(1, 1).setStrokeStyle(1, C.border, 0.7);
 
     // "MAPA" label and [M] shortcut
     this.add.text(mmX, py - MM_PH + 3, 'MAPA', {
       fontSize: '9px', fontFamily: 'monospace', color: C.label,
-    });
+    }).setDepth(55);
     this.add.text(mmX + MM_W, py - MM_PH + 3, '[M]', {
       fontSize: '9px', fontFamily: 'monospace', color: C.dim,
-    }).setOrigin(1, 0);
+    }).setOrigin(1, 0).setDepth(55);
 
-    // Map image — show the custom map as minimap background
+    // Map image (landscape, matches the map SVG aspect ratio)
     if (this.textures.exists('map_fundo01')) {
       this.add.image(mmX, mmY, 'map_fundo01')
         .setOrigin(0, 0).setDisplaySize(MM_W, MM_H).setDepth(58);
-      if (this.textures.exists('map_fundo02')) {
-        this.add.image(mmX, mmY, 'map_fundo02')
-          .setOrigin(0, 0).setDisplaySize(MM_W, MM_H).setDepth(59);
-      }
-    } else {
-      // Fallback: dark fill
-      this.add.rectangle(mmX, mmY, MM_W, MM_H, 0x081810, 1)
-        .setOrigin(0, 0).setDepth(58);
     }
+    if (this.textures.exists('map_fundo02')) {
+      this.add.image(mmX, mmY, 'map_fundo02')
+        .setOrigin(0, 0).setDisplaySize(MM_W, MM_H).setDepth(59);
+    }
+    if (!this.textures.exists('map_fundo01')) {
+      this.add.rectangle(mmX, mmY, MM_W, MM_H, 0x081810, 1).setOrigin(0, 0).setDepth(58);
+    }
+
+    // Graphics layer for plant dots (drawn on top of map image)
     this.mmGfx = this.add.graphics().setDepth(60);
 
     // Player dot (yellow)
-    this.mmDot = this.add.circle(W / 2, mmY + MM_H / 2, 4, C.accent, 1)
-      .setDepth(62).setStrokeStyle(1, 0x0D351E, 0.8);
+    this.mmDot = this.add.circle(mmX + MM_W / 2, mmY + MM_H / 2, 3.5, C.accent, 1)
+      .setDepth(62).setStrokeStyle(1, 0x0D351E, 0.9);
 
     // Map border
     this.add.rectangle(mmX, mmY, MM_W, MM_H, 0, 0)
-      .setOrigin(0, 0).setStrokeStyle(1, C.border, 0.5).setDepth(63);
+      .setOrigin(0, 0).setStrokeStyle(1, C.border, 0.7).setDepth(63);
 
     // Zone name below map
-    this.mmZoneLabel = this.add.text(mmX + MM_W / 2, mmY + MM_H + 3, '', {
-      fontSize: '9px', fontFamily: 'Georgia, serif', color: C.text, fontStyle: 'italic',
+    this.mmZoneLabel = this.add.text(mmX + MM_W / 2, mmY + MM_H + 2, '', {
+      fontSize: '8px', fontFamily: 'Georgia, serif', color: C.text, fontStyle: 'italic',
     }).setOrigin(0.5, 0).setDepth(62);
 
-    // Potion progress (5 dots) at the bottom of the panel
+    // Potion progress (5 dots) row — below zone name
     this._essentialDots = [];
-    const dotRowY = py - 10;
-    const dotSpan  = MM_W;
-    const dotStep  = dotSpan / 5;
+    const dotRowY = py - 8;
+    const dotStep  = MM_W / 5;
     for (let i = 0; i < 5; i++) {
       const dx = mmX + dotStep * i + dotStep / 2;
-      const dot = this.add.circle(dx, dotRowY, 6, 0x1a3a24, 1)
+      const dot = this.add.circle(dx, dotRowY, 5, 0x1a3a24, 1)
         .setStrokeStyle(1, C.dim, 0.6).setDepth(62);
       this._essentialDots.push(dot);
     }
@@ -295,6 +287,35 @@ export class HUDScene extends Phaser.Scene {
   }
 
   // ── Minimap internals ────────────────────────────────────────────────────
+  // Map world (zone, x, y) → minimap pixel position
+  _worldToMinimap(zone, x, y) {
+    const mmX = this._mmX, mmY = this._mmY;
+    const ZONE_H = 720;
+
+    let rx0, ry0, rx1, ry1, localY, localH;
+
+    if (zone === 'Zone1' || !zone) {
+      if (y < ZONE_H) {
+        [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS.Zone1.campo;
+        localY = y; localH = ZONE_H;
+      } else if (y < ZONE_H * 2) {
+        [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS.Zone1.jardim;
+        localY = y - ZONE_H; localH = ZONE_H;
+      } else {
+        [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS.Zone1.limiar;
+        localY = y - ZONE_H * 2; localH = ZONE_H;
+      }
+    } else {
+      [rx0, ry0, rx1, ry1] = MAP_ZONE_REGIONS[zone] ?? MAP_ZONE_REGIONS.Zone2;
+      localY = y; localH = WORLD_HEIGHT;
+    }
+
+    return {
+      dotX: mmX + (rx0 + (x / WORLD_WIDTH) * (rx1 - rx0)) * MM_W,
+      dotY: mmY + (ry0 + (localY / localH) * (ry1 - ry0)) * MM_H,
+    };
+  }
+
   _drawMinimapBg(zone) {
     this._lastZone = zone;
     this.mmGfx.clear();
@@ -306,24 +327,24 @@ export class HUDScene extends Phaser.Scene {
   _rebuildPlantDots() {
     this._plantDots.forEach(d => d.destroy());
     this._plantDots = [];
+    const zone = GameState.currentZone || 'Zone1';
     (GameState.plantSpawns || []).forEach(s => {
-      const dotX = this._mmX + (s.x / WORLD_WIDTH) * MM_W;
-      const dotY = this._mmY + (s.y / WORLD_HEIGHT) * MM_H;
+      const { dotX, dotY } = this._worldToMinimap(zone, s.x, s.y);
       const plant = PLANTS[s.id];
       const ok  = GameState.collected.has(s.id);
       const el  = plant ? ELEMENTS[plant.element] : null;
-      const col = ok ? (el?.color ?? 0x7DB98A) : 0x2d5a38;
-      const dot = this.add.circle(dotX, dotY, ok ? 3.5 : 2, col, ok ? 1 : 0.5).setDepth(61);
-      if (ok) dot.setStrokeStyle(0.8, col, 0.6);
+      const col = ok ? (el?.color ?? 0x7DB98A) : 0x4a8060;
+      const r   = ok ? 3 : 2;
+      const dot = this.add.circle(dotX, dotY, r, col, ok ? 0.9 : 0.6).setDepth(61);
+      if (ok) dot.setStrokeStyle(0.8, 0xffffff, 0.3);
       this._plantDots.push(dot);
     });
   }
 
   _updateMinimap() {
     const zone = GameState.currentZone;
-    if (zone !== this._lastZone && ZONE_STRIPS[zone]) this._drawMinimapBg(zone);
-    const dotX = this._mmX + (GameState.playerX / WORLD_WIDTH) * MM_W;
-    const dotY = this._mmY + ((GameState.playerY ?? 1200) / WORLD_HEIGHT) * MM_H;
+    if (zone !== this._lastZone) this._drawMinimapBg(zone || 'Zone1');
+    const { dotX, dotY } = this._worldToMinimap(zone, GameState.playerX ?? 640, GameState.playerY ?? 360);
     this.mmDot.setPosition(dotX, dotY);
   }
 
