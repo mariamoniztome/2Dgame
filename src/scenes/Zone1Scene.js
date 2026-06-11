@@ -90,11 +90,13 @@ export class Zone1Scene extends Phaser.Scene {
     this.physics.add.existing(_wallV, true);
     this.physics.add.collider(this.player, _wallV);
 
-    // Camera
-    this.cameras.main.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
+    // Camera — start bounded to the left column (campo + limiar only)
     this.cameras.main.setZoom(2.0);
     this.cameras.main.startFollow(this.player, true, 1, 1);
-    this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12));
+    this.time.delayedCall(50, () => {
+      this.cameras.main.setLerp(0.12, 0.12);
+      this._applyCameraBounds('campoVagalumes');
+    });
 
     // Input
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -446,14 +448,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (area !== this._currentArea) {
       this._currentArea = area;
-
-      // Clamp camera Y when in Jardim so the dead zone above is never visible
-      if (area === 'jardimInvertido') {
-        this.cameras.main.setBounds(0, 0, this._zoneW * 2, this._zoneH);
-      } else {
-        this.cameras.main.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
-      }
-
+      this._applyCameraBounds(area);
       this.game.events.emit('areaChanged', AREAS[area].label);
 
       // First-time hint when entering Jardim without any plants
@@ -465,6 +460,25 @@ export class Zone1Scene extends Phaser.Scene {
           });
         }
       }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Camera bounds — one zone visible at a time, seamless crossing
+  // ─────────────────────────────────────────────────────────────────────────
+  _applyCameraBounds(area) {
+    const cam = this.cameras.main;
+    const ZW = this._zoneW, ZH = this._zoneH;
+    // Half a viewport of overlap at the boundary so there is no camera snap
+    // when the player crosses x=_zoneW going campo↔jardim.
+    const vw = cam.width / cam.zoom;
+
+    if (area === 'jardimInvertido') {
+      // Right column only (no dead zone above, no campo to the left)
+      cam.setBounds(ZW - vw / 2, 0, ZW + vw / 2, ZH);
+    } else {
+      // Left column: campo + limiar (not jardim or dead zone)
+      cam.setBounds(0, -ZH, ZW + vw / 2, ZH * 2);
     }
   }
 
