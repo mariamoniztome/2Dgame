@@ -506,9 +506,9 @@ export class Zone1Scene extends Phaser.Scene {
 
     this.tweens.add({
       targets: this.player,
-      x: VINE_X,
-      y: VINE_CLIMB_Y,
-      duration: 1600,
+      x: VINE_CLIMB_X,
+      y: this.player.y,
+      duration: 1200,
       ease: 'Sine.easeInOut',
       onComplete: () => {
         this.player.isClimbing = false;
@@ -596,7 +596,10 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (!GameState.isZoneUnlocked('Zone2') && GameState.checkZone2Unlock()) {
       GameState.unlockZone('Zone2');
-      this.time.delayedCall(5000, () => {
+      this.time.delayedCall(600, () => {
+        this._showZoneUnlockTransition('Zona 2 — Planície das Fendas');
+      });
+      this.time.delayedCall(3500, () => {
         this._emitNarrative('Um novo caminho abriu-se. A Zona 2 está acessível pelo portal!');
       });
     }
@@ -767,7 +770,7 @@ export class Zone1Scene extends Phaser.Scene {
 
   _spawnWanderingLight() {
     if (!this.scene.isActive('Zone1')) return;
-    const x = Phaser.Math.Between(60, WORLD_WIDTH - 60);
+    const x = Phaser.Math.Between(60, ZONE_W - 60);
     const y = Phaser.Math.Between(40, ZONE_H - 40);
     const r = Phaser.Math.Between(35, 65);
     const circle = this.add.circle(x, y, r, 0xffffff, 0).setDepth(14);
@@ -861,7 +864,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     mark(640, 200, '①bruxinha', 0x00ffff);
 
-    PLANT_SPAWNS.filter(s => s.y < ZONE_H).forEach((s, i) => {
+    PLANT_SPAWNS.filter(s => s.x < ZONE_W).forEach((s, i) => {
       mark(s.x, s.y, `②v${i}`, 0x00ff88);
     });
 
@@ -874,7 +877,7 @@ export class Zone1Scene extends Phaser.Scene {
     // Screen panel listing all values
     const lines = ['[TAB] Debug — Campo dos Vagalumes', ''];
     lines.push(`① Bruxinha    x=640   y=200`);
-    PLANT_SPAWNS.filter(s => s.y < ZONE_H).forEach((s, i) => {
+    PLANT_SPAWNS.filter(s => s.x < ZONE_W).forEach((s, i) => {
       lines.push(`② ventoinha[${i}]  x=${s.x}  y=${s.y}`);
     });
     if (this.placaCampo) {
@@ -911,6 +914,44 @@ export class Zone1Scene extends Phaser.Scene {
       (this._debugPanel || []).forEach(o => o.destroy());
       this._debugPanel = null;
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Zone-unlock full-screen transition
+  // ─────────────────────────────────────────────────────────────────────────
+  _showZoneUnlockTransition(zoneName) {
+    const W = GAME_WIDTH, H = GAME_HEIGHT;
+    const overlay = this.add.graphics().setScrollFactor(0).setDepth(200);
+    overlay.fillStyle(0x000000, 0);
+    overlay.fillRect(0, 0, W, H);
+
+    const bg = this.textures.exists('z1_bg_trans')
+      ? this.add.image(W / 2, H / 2, 'z1_bg_trans')
+          .setDisplaySize(W, H).setScrollFactor(0).setDepth(199).setAlpha(0)
+      : null;
+
+    const label = this.add.text(W / 2, H / 2, `Nova área desbloqueada\n${zoneName}`, {
+      fontSize: '22px', fontFamily: 'Georgia, serif',
+      color: '#f0f8e0', stroke: '#000000', strokeThickness: 3,
+      align: 'center',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setAlpha(0);
+
+    const objs = [overlay, label, ...(bg ? [bg] : [])];
+
+    this.tweens.add({
+      targets: [overlay, ...(bg ? [bg] : [])],
+      alpha: 1,
+      duration: 600,
+      onComplete: () => {
+        this.tweens.add({ targets: label, alpha: 1, duration: 400 });
+        this.time.delayedCall(2400, () => {
+          this.tweens.add({
+            targets: objs, alpha: 0, duration: 700,
+            onComplete: () => objs.forEach(o => o.destroy()),
+          });
+        });
+      },
+    });
   }
 
   shutdown() {
