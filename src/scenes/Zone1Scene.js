@@ -131,17 +131,25 @@ export class Zone1Scene extends Phaser.Scene {
       this.add.image(0, ZONE_H, 'z1_bg_trans')
         .setOrigin(0, 0).setDisplaySize(WORLD_WIDTH, ZONE_H).setDepth(1);
     }
-    const jTint = this.add.graphics().setDepth(2);
-    jTint.fillStyle(0x050e08, 0.25); jTint.fillRect(0, ZONE_H, WORLD_WIDTH, ZONE_H);
+    // Caminho/path overlay in the transition zone
+    if (this.textures.exists('z1_caminho')) {
+      this.add.image(WORLD_WIDTH / 2, ZONE_H + ZONE_H * 0.5, 'z1_caminho')
+        .setOrigin(0.5).setDisplaySize(WORLD_WIDTH, ZONE_H).setDepth(2).setAlpha(0.9);
+    }
 
     // ── Limiar Secreto  y:1440–2160 ─────────────────────────────────────
     g.fillStyle(0x060c18, 1); g.fillRect(0, ZONE_H * 2, WORLD_WIDTH, ZONE_H);
 
-    // Parede as horizontal band at the Jardim→Limiar boundary
+    // Parede background at the Jardim→Limiar boundary
+    if (this.textures.exists('z1_fundo_parede')) {
+      this.add.image(WORLD_WIDTH / 2, ZONE_H * 2, 'z1_fundo_parede')
+        .setOrigin(0.5, 0.5).setDepth(2).setAlpha(0.95)
+        .setDisplaySize(WORLD_WIDTH, ZONE_H * 0.5);
+    }
     if (this.textures.exists('z1_parede')) {
       this.add.image(WORLD_WIDTH / 2, ZONE_H * 2, 'z1_parede')
-        .setOrigin(0.5).setDepth(3).setAlpha(0.45)
-        .setDisplaySize(WORLD_WIDTH, 160);
+        .setOrigin(0.5).setDepth(3).setAlpha(0.55)
+        .setDisplaySize(WORLD_WIDTH, 180);
     }
 
     // Location signs

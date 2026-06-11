@@ -25,11 +25,13 @@ export class Plant extends Phaser.GameObjects.Container {
     // Glow background
     this.glow = scene.add.circle(0, 0, 26, el.color, 0.18);
 
-    // Main sprite (SVG image if loaded, else red-X placeholder)
-    const imgKey = `plant_img_${data.id}`;
-    this.sprite = scene.textures.exists(imgKey)
-      ? scene.add.image(0, 0, imgKey).setDisplaySize(80, 80)
-      : scene.add.image(0, 0, 'plant_missing').setDisplaySize(80, 80);
+    // Main sprite: SVG → element-circle fallback → red-X last resort
+    const imgKey      = `plant_img_${data.id}`;
+    const circleKey   = `plant_${data.id}`;
+    const resolvedKey = scene.textures.exists(imgKey)    ? imgKey    :
+                        scene.textures.exists(circleKey) ? circleKey :
+                        'plant_missing';
+    this.sprite = scene.add.image(0, 0, resolvedKey).setDisplaySize(80, 80);
 
     // Label
     this.label = scene.add.text(0, 30, data.name, {

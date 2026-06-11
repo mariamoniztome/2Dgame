@@ -51,9 +51,11 @@ export class BootScene extends Phaser.Scene {
     // Firefly sprite — load at 512 so scale ~0.59 downscales cleanly (no upscale blur)
     this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 512, height: 512 });
     // Area backgrounds (already large — keep as-is)
-    this.load.svg('z1_bg_campo', '/assets/zone1/campo/bg_campo.svg',   { width: 1920, height: 1080 });
-    this.load.svg('z1_bg_trans', '/assets/zone1/transicao/fundo.svg',  { width: 1920, height: 1080 });
-    this.load.svg('z1_parede',   '/assets/zone1/transicao/parede.svg', { width: 1920, height: 1432 });
+    this.load.svg('z1_bg_campo',    '/assets/zone1/campo/bg_campo.svg',         { width: 1920, height: 1080 });
+    this.load.svg('z1_bg_trans',    '/assets/zone1/transicao/fundo.svg',        { width: 1920, height: 1080 });
+    this.load.svg('z1_fundo_parede','/assets/zone1/transicao/fundo_parede.svg', { width: 1920, height: 1080 });
+    this.load.svg('z1_caminho',     '/assets/zone1/transicao/caminho.svg',      { width: 1920, height: 1080 });
+    this.load.svg('z1_parede',      '/assets/zone1/transicao/parede.svg',       { width: 1920, height: 1432 });
     // Location signs — 512px raster for crisp display at large sizes (up to zoom 2)
     this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 512, height: 512 });
     this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 512, height: 512 });

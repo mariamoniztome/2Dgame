@@ -19,7 +19,7 @@ export class Portal extends Phaser.GameObjects.Container {
     }).setOrigin(0.5).setVisible(this.isLocked);
 
     // Hint
-    this.hintText = scene.add.text(0, 50, 'E — Portal', {
+    this.hintText = scene.add.text(0, 50, 'C — Portal', {
       fontSize: '11px',
       fontFamily: 'Georgia, serif',
       color: '#ffffff',

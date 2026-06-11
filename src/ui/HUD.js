@@ -9,13 +9,13 @@ const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 
 
 // ── Color palette ─────────────────────────────────────────────────────────
 const C = {
-  bg:     0x0D351E,
-  border: 0x639B5A,
-  dim:    0x2d5a38,
-  accent: 0xE4EF6F,
-  magic:  0xe8c96a,
-  text:   '#BFD8A4',
-  label:  '#639B5A',
+  bg:     0x0a2416,
+  border: 0x7bc67e,
+  dim:    0x3a6e45,
+  accent: 0xf0f870,
+  magic:  0xf0c860,
+  text:   '#d8f0c0',
+  label:  '#a8e898',
 };
 
 // Minimap geometry — bottom-right corner, landscape 16:9 to match the map SVG
@@ -71,8 +71,8 @@ export class HUDScene extends Phaser.Scene {
 
     // ── Area label (top-center) ───────────────────────────────────────────
     this.areaLabel = this.add.text(W / 2, 10, '', {
-      fontSize: '13px', fontFamily: 'Georgia, serif',
-      color: C.text, stroke: '#0D351E', strokeThickness: 2, fontStyle: 'italic',
+      fontSize: '14px', fontFamily: 'Georgia, serif',
+      color: '#ffffff', stroke: '#0a2010', strokeThickness: 3, fontStyle: 'italic',
     }).setOrigin(0.5, 0).setAlpha(0).setDepth(55);
 
     // ── Spell unlock banner (center) ──────────────────────────────────────
@@ -107,44 +107,44 @@ export class HUDScene extends Phaser.Scene {
 
   // ── TOP-RIGHT: Spell panel ───────────────────────────────────────────────
   _buildSpellPanel(W) {
-    const x = W - 8, y = 8, pw = 192, ph = 76;
-    this.add.rectangle(x, y, pw, ph, C.bg, 0.88)
-      .setOrigin(1, 0).setStrokeStyle(1, C.border, 0.6);
+    const x = W - 8, y = 8, pw = 200, ph = 72;
+    this.add.rectangle(x, y, pw, ph, C.bg, 0.92)
+      .setOrigin(1, 0).setStrokeStyle(1, C.border, 0.8);
 
-    this.add.text(x - pw + 10, y + 6, 'FEITICO', {
-      fontSize: '10px', fontFamily: 'monospace', color: C.label,
-    });
-    this.add.text(x - 10, y + 6, 'Q = mudar', {
+    this.add.text(x - pw + 10, y + 7, 'FEITIÇO', {
       fontSize: '9px', fontFamily: 'monospace', color: C.label,
+    });
+    this.add.text(x - 10, y + 7, '[Q] mudar · [F] lançar', {
+      fontSize: '8px', fontFamily: 'monospace', color: C.dim,
     }).setOrigin(1, 0);
 
     this.spellGfx = this.add.image(x - pw + 26, y + 44, 'spell_brisa')
-      .setDisplaySize(32, 32).setAlpha(0.3);
+      .setDisplaySize(34, 34).setAlpha(0.5);
 
-    this.spellName = this.add.text(x - pw + 50, y + 36, '—', {
-      fontSize: '12px', fontFamily: 'Georgia, serif', color: C.text,
+    this.spellName = this.add.text(x - pw + 50, y + 38, 'nenhum', {
+      fontSize: '14px', fontFamily: 'Georgia, serif',
+      color: '#ffffff', fontStyle: 'italic',
     }).setOrigin(0, 0.5);
 
-    this.add.text(x - 10, y + 68, 'F = lancar', {
-      fontSize: '8px', fontFamily: 'monospace', color: C.label,
-    }).setOrigin(1, 1);
+    // Thin separator
+    this.add.rectangle(x - pw + 8, y + 26, pw - 16, 1, C.border, 0.3).setOrigin(0, 0.5);
   }
 
   // ── BOTTOM-LEFT: Inventory ───────────────────────────────────────────────
   _buildInventory(W, H) {
-    this.add.rectangle(8, H - 8, 220, 76, C.bg, 0.88)
-      .setOrigin(0, 1).setStrokeStyle(1, C.border, 0.6);
+    this.add.rectangle(8, H - 8, 220, 76, C.bg, 0.92)
+      .setOrigin(0, 1).setStrokeStyle(1, C.border, 0.8);
     this.add.text(18, H - 78, 'PLANTAS', {
       fontSize: '10px', fontFamily: 'monospace', color: C.label,
     });
     this.inventoryCount = this.add.text(212, H - 78, '0/6', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#E4EF6F',
+      fontSize: '10px', fontFamily: 'monospace', color: C.accent,
     }).setOrigin(1, 0);
 
     for (let i = 0; i < 6; i++) {
       const sx = 20 + i * 34, sy = H - 30;
-      const bg   = this.add.rectangle(sx, sy, 28, 28, 0x1a3a24, 0.9)
-        .setStrokeStyle(1, C.dim, 0.7);
+      const bg   = this.add.rectangle(sx, sy, 28, 28, 0x112a1c, 1)
+        .setStrokeStyle(1, C.border, 0.5);
       const icon = this.add.circle(sx, sy, 10, C.dim, 0).setAlpha(0);
       const fake = this.add.text(sx, sy, '?', {
         fontSize: '11px', fontFamily: 'monospace', color: '#886688',
@@ -426,10 +426,10 @@ export class HUDScene extends Phaser.Scene {
     const spell = GameState.activeSpell ? SPELLS[GameState.activeSpell] : null;
     if (spell) {
       this.spellGfx.setTexture(spell.textureKey).setAlpha(0.9);
-      this.spellName.setText(spell.name).setColor(C.text);
+      this.spellName.setText(spell.name).setColor('#ffffff');
     } else {
-      this.spellGfx.setAlpha(0.25);
-      this.spellName.setText('nenhum').setColor(C.label);
+      this.spellGfx.setAlpha(0.3);
+      this.spellName.setText('nenhum').setColor('#a0b890');
     }
   }
 

@@ -64,13 +64,13 @@ export class MapScene extends Phaser.Scene {
     this._blockedTimer = null;
 
     // ── Backgrounds ───────────────────────────────────────────────────────
+    // Solid base guarantees no zone scene bleeds through when map is open
+    this.add.rectangle(0, 0, W, H, 0x1c3a1c, 1).setOrigin(0).setDepth(0);
     if (this.textures.exists('map_fundo01')) {
-      this.add.image(0, 0, 'map_fundo01').setOrigin(0).setDisplaySize(W, H).setDepth(0);
-    } else {
-      this.add.rectangle(0, 0, W, H, 0x2a4a2a).setOrigin(0).setDepth(0);
+      this.add.image(0, 0, 'map_fundo01').setOrigin(0).setDisplaySize(W, H).setDepth(1);
     }
     if (this.textures.exists('map_fundo02')) {
-      this.add.image(0, 0, 'map_fundo02').setOrigin(0).setDisplaySize(W, H).setDepth(1);
+      this.add.image(0, 0, 'map_fundo02').setOrigin(0).setDisplaySize(W, H).setDepth(2);
     }
 
     // ── Zone 1 circle icons (always accessible) ───────────────────────────
