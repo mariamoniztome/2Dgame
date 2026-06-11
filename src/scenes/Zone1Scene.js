@@ -42,25 +42,23 @@ export class Zone1Scene extends Phaser.Scene {
 
   create() {
     GameState.currentZone = 'Zone1';
-    // L-shaped world sized by _zoneW × _zoneH (tunable in DebugPanel F2)
-    this.physics.world.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
 
-    // Debug-adjustable defaults
-    if (this._vagScale    === undefined) this._vagScale    = 1.0;
-    if (this._vagQty      === undefined) this._vagQty      = 12;
-    if (this._vagFreq     === undefined) this._vagFreq     = 700;
-    if (this._decoMult    === undefined) this._decoMult    = 1.0;
-    if (this._placaSize   === undefined) this._placaSize   = 70;
+    // Zone physical size — MUST be read first (used in setBounds below)
+    this._zoneW = this.game.registry.get('debugZoneW') ?? 1920;
+    this._zoneH = this.game.registry.get('debugZoneH') ?? 1080;
+
+    // Debug-adjustable defaults (keep existing values on scene.restart)
+    if (this._vagScale       === undefined) this._vagScale       = 1.0;
+    if (this._vagQty         === undefined) this._vagQty         = 12;
+    if (this._vagFreq        === undefined) this._vagFreq        = 700;
+    if (this._decoMult       === undefined) this._decoMult       = 1.0;
+    if (this._placaSize      === undefined) this._placaSize      = 70;
     if (this._placaCampoX    === undefined) this._placaCampoX    = 520;
     if (this._placaCampoY    === undefined) this._placaCampoY    = 400;
     if (this._globalSizeMult === undefined) this._globalSizeMult = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
 
-    // Zone physical size — adjustable via DebugPanel (F2) → "Reiniciar Zona"
-    // _zoneW = width of campo = width of jardim = width of limiar
-    // _zoneH = height of campo = height of jardim = height of limiar
-    // Area detection boundary stays at ZONE_W=1280 for existing content positions
-    this._zoneW = this.game.registry.get('debugZoneW') ?? 1920;
-    this._zoneH = this.game.registry.get('debugZoneH') ?? 1080;
+    // L-shaped world physics bounds
+    this.physics.world.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
 
     this._buildBackground();
     this._buildDecorations();
@@ -442,6 +440,14 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (area !== this._currentArea) {
       this._currentArea = area;
+
+      // Clamp camera Y when in Jardim so the dead zone above is never visible
+      if (area === 'jardimInvertido') {
+        this.cameras.main.setBounds(0, 0, this._zoneW * 2, this._zoneH);
+      } else {
+        this.cameras.main.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
+      }
+
       this.game.events.emit('areaChanged', AREAS[area].label);
 
       // First-time hint when entering Jardim without any plants
