@@ -38,7 +38,7 @@ export class DebugPanel {
     const z1 = this._z1();
     if (!z1) return;
     this._setSlider('zoom',       z1.cameras.main.zoom);
-    this._setSlider('playerSize', z1.player?.displayWidth ?? 500);
+    this._setSlider('playerSize', z1.player?.displayWidth ?? 260);
     this._setSlider('vagScale',   z1._vagScale    ?? 0.75);
     this._setSlider('vagQty',     z1._vagQty      ?? 12);
     this._setSlider('vagFreq',    z1._vagFreq     ?? 700);
@@ -52,7 +52,7 @@ export class DebugPanel {
   _build() {
     const CONTROLS = [
       { id: 'zoom',       label: 'Camera Zoom',      min: 0.5,  max: 4,    step: 0.05, def: 2.0  },
-      { id: 'playerSize', label: 'Player Size px',   min: 32,   max: 700,  step: 4,    def: 500  },
+      { id: 'playerSize', label: 'Player Size px',   min: 32,   max: 600,  step: 4,    def: 260  },
       { id: 'vagScale',   label: 'Vagalume Scale',   min: 0.05, max: 1.5,  step: 0.01, def: 0.75 },
       { id: 'vagQty',     label: 'Vagalume Qty',     min: 1,    max: 40,   step: 1,    def: 12   },
       { id: 'vagFreq',    label: 'Vagalume Freq ms', min: 20,   max: 2000, step: 20,   def: 700  },
@@ -140,7 +140,7 @@ export class DebugPanel {
       if (!z1) { this._msg('Zona 1 não está ativa'); return; }
       const cfg = {
         zoom:       z1.cameras.main.zoom,
-        playerSize: z1.player?.displayWidth ?? 500,
+        playerSize: z1.player?.displayWidth ?? 260,
         vagScale:   z1._vagScale  ?? 0.55,
         vagQty:     z1._vagQty    ?? 2,
         vagFreq:    z1._vagFreq   ?? 150,
