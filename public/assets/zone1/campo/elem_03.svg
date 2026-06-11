@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 1080">
+<svg id="Camada_1" data-name="Camada 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1029.31 3435.4">
   <defs>
     <style>
       .cls-1 {
@@ -8,45 +8,11 @@
       }
 
       .cls-2 {
-        fill: url(#Gradiente_sem_nome_16);
-        mix-blend-mode: soft-light;
-      }
-
-      .cls-3 {
-        isolation: isolate;
-      }
-
-      .cls-4 {
-        fill: #2f4933;
+        fill: #172318;
       }
     </style>
-    <radialGradient id="Gradiente_sem_nome_16" data-name="Gradiente sem nome 16" cx="540" cy="540" fx="540" fy="540" r="40.98" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fff"/>
-      <stop offset=".19" stop-color="#fff" stop-opacity=".99"/>
-      <stop offset=".32" stop-color="#fff" stop-opacity=".95"/>
-      <stop offset=".44" stop-color="#fff" stop-opacity=".89"/>
-      <stop offset=".54" stop-color="#fff" stop-opacity=".8"/>
-      <stop offset=".64" stop-color="#fff" stop-opacity=".69"/>
-      <stop offset=".74" stop-color="#fff" stop-opacity=".55"/>
-      <stop offset=".83" stop-color="#fff" stop-opacity=".39"/>
-      <stop offset=".92" stop-color="#fff" stop-opacity=".2"/>
-      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-    </radialGradient>
   </defs>
-  <g class="cls-3">
-    <g id="Camada_1" data-name="Camada 1">
-      <g>
-        <circle cx="540" cy="540" r=".81"/>
-        <circle class="cls-2" cx="540" cy="540" r="40.98"/>
-        <circle class="cls-2" cx="540" cy="540" r="40.98"/>
-      </g>
-      <g>
-        <ellipse class="cls-1" cx="567.59" cy="689.5" rx="44.35" ry="8.93"/>
-        <g>
-          <path class="cls-4" d="M485.42,530.92c.24-1.63-.88-3.77-3.02-7.76-7.29-13.56-11.73-28.66-12.93-44-.69-8.79-.28-17.86,2.98-26.06,3.26-8.2,9.72-15.44,18.14-18.04,2.77-18.2,13.14-35.4,28.76-45.14,15.62-9.74,36.38-11.32,52.7-2.82s27.08,27.3,24.84,45.57c-2.32,18.84-16.66,33.72-30.88,46.28,8.45-.37,16.99-.67,25.31.82,8.33,1.49,16.54,4.93,22.39,11.04,18.65,19.5,24.3,50.35,13.78,75.19-19.62,46.33-84.35,57-128.59,51.74-11.88-1.41-23.92-4.18-33.9-10.77-9.99-6.59-17.66-17.59-17.73-29.56-.06-10.2,5.34-19.83,12.56-27.04,5.5-5.49,12.07-9.92,18.78-13.8,4.44-2.57,6.54-3.77,6.82-5.65Z"/>
-          <path d="M538.16,444.15c2.17,81.73,2.56,163.5,2.94,245.26-3.02.32-6.04.64-9.06.96-1.73-17.2,1.11-36.18,1.32-53.63.24-19.76.24-39.52-.02-59.28-.51-39.52-2.01-79.03-4.5-118.47-.22-3.46-.42-7.08,1-10.25s5.02-5.65,8.32-4.58Z"/>
-        </g>
-      </g>
-    </g>
-  </g>
+  <ellipse class="cls-1" cx="624.8" cy="3314.92" rx="307.91" ry="120.49"/>
+  <path class="cls-2" d="M75.41,2682.81C1.18,2498.39-1.81,2294.02.48,2095.23c3.55-308.07,17.43-617.24,73.38-920.21C150.67,759.09,307.17,358.03,532.37,0c428,761.57,588.28,1670.21,446.68,2532.25-20.61,125.44-48.95,253.64-121.34,358.14-234,337.76-660.77,94.34-782.29-207.58Z"/>
+  <path d="M498.73,442.99c-51.54,236.91-65.85,479.8-56.91,721.53,17.45,485.36,112.33,962.79,131.18,1449.36,10.14,243.74,6.81,487.59-1.38,730.56l-107.17-5.6c17.05-241.06,29.22-482.1,28.09-723.06-.38-721.77-178.08-1459.74,6.19-2172.78h0Z"/>
 </svg>

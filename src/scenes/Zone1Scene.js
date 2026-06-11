@@ -125,6 +125,12 @@ export class Zone1Scene extends Phaser.Scene {
         .setOrigin(0, 0).setDisplaySize(WORLD_WIDTH, ZONE_H).setDepth(1);
     }
 
+    // Campo path overlay
+    if (this.textures.exists('z1_campo_caminho')) {
+      this.add.image(WORLD_WIDTH / 2, ZONE_H / 2, 'z1_campo_caminho')
+        .setOrigin(0.5).setDisplaySize(WORLD_WIDTH, ZONE_H).setDepth(2).setAlpha(0.85);
+    }
+
     // ── Jardim Invertido  y:720–1440 ────────────────────────────────────
     g.fillStyle(0x4a7a50, 1); g.fillRect(0, ZONE_H, WORLD_WIDTH, ZONE_H);
     if (this.textures.exists('z1_bg_trans')) {
@@ -166,8 +172,8 @@ export class Zone1Scene extends Phaser.Scene {
     const m = this._decoMult ?? 1;
 
     // ── Campo (x:0–1280, y:0–720) ────────────────────────────────────────
-    const campoNums = ['03','04','05','06','07','08','09','10','11','12',
-                       '13','14','15','17','18','19','20','21','22','23','24'];
+    const campoNums = ['02','03','04','05','06','07','08','09','10','11',
+                       '13','14','17','18','19','20','21','22','23','24','25'];
     const ck = campoNums.filter(n => this.textures.exists(`z1_campo_${n}`))
                         .map(n => `z1_campo_${n}`);
 

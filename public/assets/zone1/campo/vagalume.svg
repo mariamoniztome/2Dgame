@@ -1,36 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 1080">
-  <defs>
-    <style>
-      .cls-1 {
-        fill: url(#Gradiente_sem_nome_16);
-        mix-blend-mode: soft-light;
-      }
-
-      .cls-2 {
-        isolation: isolate;
-      }
-    </style>
-    <radialGradient id="Gradiente_sem_nome_16" data-name="Gradiente sem nome 16" cx="540" cy="540" fx="540" fy="540" r="40.98" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fff"/>
-      <stop offset=".19" stop-color="#fff" stop-opacity=".99"/>
-      <stop offset=".32" stop-color="#fff" stop-opacity=".95"/>
-      <stop offset=".44" stop-color="#fff" stop-opacity=".89"/>
-      <stop offset=".54" stop-color="#fff" stop-opacity=".8"/>
-      <stop offset=".64" stop-color="#fff" stop-opacity=".69"/>
-      <stop offset=".74" stop-color="#fff" stop-opacity=".55"/>
-      <stop offset=".83" stop-color="#fff" stop-opacity=".39"/>
-      <stop offset=".92" stop-color="#fff" stop-opacity=".2"/>
-      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <g class="cls-2">
-    <g id="Camada_1" data-name="Camada 1">
-      <g>
-        <circle cx="540" cy="540" r=".81"/>
-        <circle class="cls-1" cx="540" cy="540" r="40.98"/>
-        <circle class="cls-1" cx="540" cy="540" r="40.98"/>
-      </g>
-    </g>
-  </g>
+<svg id="Camada_1" data-name="Camada 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16.82 16.82">
+  <circle cx="8.41" cy="8.41" r="8.41"/>
 </svg>

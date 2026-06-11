@@ -60,9 +60,14 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 512, height: 512 });
     this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 512, height: 512 });
     // Decorative elements — load at 512×512 so they stay sharp at 300–450px display size
-    ['03','04','05','06','07','08','09','10','11','12','13','14','15','17','18','19','20','21','22','23','24'].forEach(n =>
+    ['02','03','04','05','06','07','08','09','10','11','13','14','17','18','19','20','21','22','23','24','25'].forEach(n =>
       this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 512, height: 512 })
     );
+    // Campo path overlay
+    this.load.svg('z1_campo_caminho', '/assets/zone1/campo/caminho.svg', { width: 1920, height: 1080 });
+    // Degradê variants for firefly and Ventoinha
+    this.load.svg('z1_vagalume_degradee',  '/assets/zone1/campo/vagalume_degradee.svg',  { width: 512, height: 512 });
+    this.load.svg('z1_ventoinha_degradee', '/assets/zone1/campo/ventoinha_degradee.svg', { width: 512, height: 512 });
     ['03','04','05','06','07','08','09','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
       this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );

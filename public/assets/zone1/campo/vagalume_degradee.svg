@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 847.74 847.74">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#Gradiente_sem_nome_12);
+        mix-blend-mode: soft-light;
+      }
+
+      .cls-2 {
+        isolation: isolate;
+      }
+    </style>
+    <radialGradient id="Gradiente_sem_nome_12" data-name="Gradiente sem nome 12" cx="423.87" cy="423.87" fx="423.87" fy="423.87" r="336.96" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset=".07" stop-color="#fff" stop-opacity=".91"/>
+      <stop offset=".33" stop-color="#fff" stop-opacity=".59"/>
+      <stop offset=".57" stop-color="#fff" stop-opacity=".34"/>
+      <stop offset=".76" stop-color="#fff" stop-opacity=".16"/>
+      <stop offset=".91" stop-color="#fff" stop-opacity=".04"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g class="cls-2">
+    <g id="Camada_1" data-name="Camada 1">
+      <circle class="cls-1" cx="423.87" cy="423.87" r="423.87"/>
+    </g>
+  </g>
+</svg>
