@@ -42,8 +42,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bg_book',   unsplashUrl(UNSPLASH.book, 1280, 720));
 
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
-    // Player character — 512px raster; display 260px at zoom 2 = 520px screen
-    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 512, height: 512 });
+    // Player character — 1024px raster; display 260px at zoom 2 = 520px screen (2× quality)
+    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 1024, height: 1024 });
     // Plant sprites
     this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 256, height: 256 });
     this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });
@@ -54,9 +54,9 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('z1_bg_campo', '/assets/zone1/campo/bg_campo.svg',   { width: 1920, height: 1080 });
     this.load.svg('z1_bg_trans', '/assets/zone1/transicao/fundo.svg',  { width: 1920, height: 1080 });
     this.load.svg('z1_parede',   '/assets/zone1/transicao/parede.svg', { width: 1920, height: 1432 });
-    // Location signs
-    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 256, height: 256 });
-    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 256, height: 256 });
+    // Location signs — 512px raster for crisp display at large sizes (up to zoom 2)
+    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 512, height: 512 });
+    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 512, height: 512 });
     // Decorative elements — load at 512×512 so they stay sharp at 300–450px display size
     ['03','04','05','06','07','08','09','10','11','12','13','14','15','17','18','19','20','21','22','23','24'].forEach(n =>
       this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 512, height: 512 })
@@ -73,9 +73,9 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('map_fundo01',       '/assets/map/map_fundo01.svg',       { width: 1280, height: 720 });
     this.load.svg('map_fundo02',       '/assets/map/map_fundo02.svg',       { width: 1280, height: 720 });
     // Icons & decorations — 256px raster for circle icons, 128px for small ones
-    this.load.svg('map_icone_campo',   '/assets/map/map_icone_campo.svg',   { width: 256, height: 256 });
-    this.load.svg('map_icone_jardim',  '/assets/map/map_icone_jardim.svg',  { width: 256, height: 256 });
-    this.load.svg('map_icone_limiar',  '/assets/map/map_icone_limiar.svg',  { width: 256, height: 256 });
+    this.load.svg('map_icone_campo',   '/assets/map/map_icone_campo.svg',   { width: 512, height: 512 });
+    this.load.svg('map_icone_jardim',  '/assets/map/map_icone_jardim.svg',  { width: 512, height: 512 });
+    this.load.svg('map_icone_limiar',  '/assets/map/map_icone_limiar.svg',  { width: 512, height: 512 });
     this.load.svg('map_cadeado',       '/assets/map/map_cadeado.svg',       { width: 128, height: 128 });
     this.load.svg('map_portal',        '/assets/map/map_portal.svg',        { width: 128, height: 128 });
     this.load.svg('map_icone_ventoinha',  '/assets/map/map_icone_ventoinha.svg',  { width: 128, height: 128 });

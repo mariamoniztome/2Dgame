@@ -44,9 +44,9 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._vagQty      === undefined) this._vagQty      = 12;
     if (this._vagFreq     === undefined) this._vagFreq     = 700;
     if (this._decoMult    === undefined) this._decoMult    = 1.9;
-    if (this._placaSize   === undefined) this._placaSize   = 130;
-    if (this._placaCampoX === undefined) this._placaCampoX = 110;
-    if (this._placaCampoY === undefined) this._placaCampoY = 110;
+    if (this._placaSize   === undefined) this._placaSize   = 364;
+    if (this._placaCampoX === undefined) this._placaCampoX = 510;
+    if (this._placaCampoY === undefined) this._placaCampoY = 255;
 
     this._buildBackground();
     this._buildDecorations();
@@ -61,8 +61,8 @@ export class Zone1Scene extends Phaser.Scene {
 
     const ph1 = this.player.displayHeight;
     this.playerShadow = this.add.ellipse(
-      this.player.x, this.player.y + ph1 / 3,
-      Math.round(ph1 * 0.23), Math.max(6, Math.round(ph1 * 0.053)),
+      this.player.x, this.player.y + Math.round(ph1 * 0.24),
+      Math.round(ph1 * 0.16), Math.max(4, Math.round(ph1 * 0.038)),
       0x000000, 0.28
     ).setDepth(4);
 
@@ -317,8 +317,8 @@ export class Zone1Scene extends Phaser.Scene {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
 
     const ph = this.player.displayHeight;
-    this.playerShadow.setPosition(this.player.x, this.player.y + ph / 3);
-    this.playerShadow.setSize(Math.round(ph * 0.23), Math.max(6, Math.round(ph * 0.053)));
+    this.playerShadow.setPosition(this.player.x, this.player.y + Math.round(ph * 0.24));
+    this.playerShadow.setSize(Math.round(ph * 0.16), Math.max(4, Math.round(ph * 0.038)));
 
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;

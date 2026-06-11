@@ -55,8 +55,8 @@ export class Zone3Scene extends Phaser.Scene {
 
     const ph1 = this.player.displayHeight;
     this.playerShadow = this.add.ellipse(
-      this.player.x, this.player.y + ph1 / 3,
-      Math.round(ph1 * 0.23), Math.max(6, Math.round(ph1 * 0.053)),
+      this.player.x, this.player.y + Math.round(ph1 * 0.24),
+      Math.round(ph1 * 0.16), Math.max(4, Math.round(ph1 * 0.038)),
       0x000000, 0.28
     ).setDepth(4);
 
@@ -189,8 +189,8 @@ export class Zone3Scene extends Phaser.Scene {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
     this.ecos.forEach(e => e.update(this.player, delta, GameState));
     const ph = this.player.displayHeight;
-    this.playerShadow.setPosition(this.player.x, this.player.y + ph / 3);
-    this.playerShadow.setSize(Math.round(ph * 0.23), Math.max(6, Math.round(ph * 0.053)));
+    this.playerShadow.setPosition(this.player.x, this.player.y + Math.round(ph * 0.24));
+    this.playerShadow.setSize(Math.round(ph * 0.16), Math.max(4, Math.round(ph * 0.038)));
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;
 

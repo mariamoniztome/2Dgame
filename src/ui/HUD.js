@@ -182,8 +182,20 @@ export class HUDScene extends Phaser.Scene {
       fontSize: '9px', fontFamily: 'monospace', color: C.dim,
     }).setOrigin(1, 0);
 
-    // Map graphics
-    this.mmGfx = this.add.graphics().setDepth(58);
+    // Map image — show the custom map as minimap background
+    if (this.textures.exists('map_fundo01')) {
+      this.add.image(mmX, mmY, 'map_fundo01')
+        .setOrigin(0, 0).setDisplaySize(MM_W, MM_H).setDepth(58);
+      if (this.textures.exists('map_fundo02')) {
+        this.add.image(mmX, mmY, 'map_fundo02')
+          .setOrigin(0, 0).setDisplaySize(MM_W, MM_H).setDepth(59);
+      }
+    } else {
+      // Fallback: dark fill
+      this.add.rectangle(mmX, mmY, MM_W, MM_H, 0x081810, 1)
+        .setOrigin(0, 0).setDepth(58);
+    }
+    this.mmGfx = this.add.graphics().setDepth(60);
 
     // Player dot (yellow)
     this.mmDot = this.add.circle(W / 2, mmY + MM_H / 2, 4, C.accent, 1)
@@ -286,15 +298,6 @@ export class HUDScene extends Phaser.Scene {
   _drawMinimapBg(zone) {
     this._lastZone = zone;
     this.mmGfx.clear();
-    this.mmGfx.fillStyle(0x081810, 1);
-    this.mmGfx.fillRect(this._mmX, this._mmY, MM_W, MM_H);
-    (ZONE_STRIPS[zone] || ZONE_STRIPS.Zone1).forEach(s => {
-      const y = this._mmY + (s.yFrom / WORLD_HEIGHT) * MM_H;
-      const h = ((s.yTo - s.yFrom) / WORLD_HEIGHT) * MM_H;
-      this.mmGfx.fillStyle(s.color, 1);
-      this.mmGfx.fillRect(this._mmX, y, MM_W, h);
-    });
-    this.mmGfx.setDepth(58);
     const names = { Zone1: 'Campo dos Vagalumes', Zone2: 'Floresta Densa', Zone3: 'Terrenos das Sombras', Cauldron: 'Caldeirão' };
     this.mmZoneLabel?.setText(names[zone] || zone);
     this._rebuildPlantDots();
