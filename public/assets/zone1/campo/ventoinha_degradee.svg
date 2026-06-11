@@ -7,10 +7,10 @@
       }
     </style>
     <radialGradient id="Gradiente_sem_nome_8" data-name="Gradiente sem nome 8" cx="341.54" cy="341.54" fx="341.54" fy="341.54" r="341.54" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#e294ff"/>
-      <stop offset=".37" stop-color="#e294ff" stop-opacity=".62"/>
-      <stop offset=".8" stop-color="#e294ff" stop-opacity=".18"/>
-      <stop offset="1" stop-color="#e294ff" stop-opacity="0"/>
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".37" stop-color="#ffffff" stop-opacity=".62"/>
+      <stop offset=".8" stop-color="#ffffff" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <circle class="cls-1" cx="341.54" cy="341.54" r="341.54"/>

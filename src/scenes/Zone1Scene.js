@@ -64,8 +64,18 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildDecorations();
     this._buildVine();
 
-    // Start player in lower-center of campo (clear of the vine area near y=0)
-    this.player = new Player(this, 640, Math.round(this._zoneH * 0.62));
+    // Start player at the area selected in the map (or default: lower campo)
+    const startArea = this.game.registry.get('startArea') || 'campoVagalumes';
+    this.game.registry.remove('startArea'); // consume once
+    let startX = 640, startY = Math.round(this._zoneH * 0.62);
+    if (startArea === 'limiarSecreto') {
+      startX = Math.round(this._zoneW * 0.35);
+      startY = Math.round(-this._zoneH * 0.5);
+    } else if (startArea === 'jardimInvertido') {
+      startX = Math.round(this._zoneW + this._zoneW * 0.4);
+      startY = Math.round(this._zoneH * 0.5);
+    }
+    this.player = new Player(this, startX, startY);
 
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));

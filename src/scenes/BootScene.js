@@ -8,25 +8,26 @@ export class BootScene extends Phaser.Scene {
   preload() {
     this.load.crossOrigin = 'anonymous';
 
-    // Loading bar
-    const bar = this.add.rectangle(
-      this.cameras.main.centerX - 200, this.cameras.main.centerY,
-      0, 16, 0x7bc67e
-    ).setOrigin(0, 0.5);
+    // Loading bar — light background, dark elements
+    this.cameras.main.setBackgroundColor('#f0f5f0');
     this.add.rectangle(
       this.cameras.main.centerX - 202, this.cameras.main.centerY,
-      404, 20, 0x1a3a1e
+      404, 20, 0xd4e8d4
+    ).setOrigin(0, 0.5);
+    const bar = this.add.rectangle(
+      this.cameras.main.centerX - 200, this.cameras.main.centerY,
+      0, 16, 0x1a3a1e
     ).setOrigin(0, 0.5);
     this.add.text(
       this.cameras.main.centerX, this.cameras.main.centerY - 30,
       'Bruxa, Bruxinha', {
-        fontSize: '28px', fontFamily: 'Georgia, serif', color: '#7bc67e',
+        fontSize: '28px', fontFamily: 'Georgia, serif', color: '#1a3a1e',
       }
     ).setOrigin(0.5);
     const loadTxt = this.add.text(
       this.cameras.main.centerX, this.cameras.main.centerY + 30,
       'A carregar o jardim mágico...', {
-        fontSize: '14px', fontFamily: 'Georgia, serif', color: '#9ed89e',
+        fontSize: '14px', fontFamily: 'Georgia, serif', color: '#355138',
       }
     ).setOrigin(0.5);
 

@@ -7,9 +7,10 @@ const ZONE1_ICONS = [
   {
     icon: 'map_icone_limiar',
     xp: 0.09, yp: 0.19,
-    size: 0.20,                   // diameter = 20% of W
+    size: 0.20,
     label: 'limiar\nsecreto',
     lxp: 0.09, lyp: 0.36,
+    startArea: 'limiarSecreto',
   },
   {
     icon: 'map_icone_campo',
@@ -17,6 +18,7 @@ const ZONE1_ICONS = [
     size: 0.20,
     label: 'campo dos\nvagalumes',
     lxp: 0.09, lyp: 0.90,
+    startArea: 'campoVagalumes',
   },
   {
     icon: 'map_icone_jardim',
@@ -24,6 +26,7 @@ const ZONE1_ICONS = [
     size: 0.18,
     label: 'jardim\ninvertido',
     lxp: 0.39, lyp: 0.88,
+    startArea: 'jardimInvertido',
   },
 ];
 
@@ -86,7 +89,7 @@ export class MapScene extends Phaser.Scene {
           .setInteractive({ useHandCursor: true });
         img.on('pointerover', () => this.tweens.add({ targets: img, scale: 1.08, duration: 120 }));
         img.on('pointerout',  () => this.tweens.add({ targets: img, scale: 1.00, duration: 120 }));
-        img.on('pointerdown', () => this._enterZone('Zone1'));
+        img.on('pointerdown', () => this._enterZone('Zone1', area.startArea));
       }
 
       this.add.text(W * area.lxp, H * area.lyp, area.label, {
@@ -191,7 +194,8 @@ export class MapScene extends Phaser.Scene {
     });
   }
 
-  _enterZone(key) {
+  _enterZone(key, startArea) {
+    if (startArea) this.game.registry.set('startArea', startArea);
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start(key);
