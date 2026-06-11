@@ -1129,13 +1129,53 @@ export class Zone1Scene extends Phaser.Scene {
   _debugCopy() {
     const rows = (this._campoPos || []).map(([x, y, s]) => `  [${x}, ${y}, ${s}]`).join(',\n');
     const out = `const CAMPO_POS = [\n${rows}\n];`;
-    navigator.clipboard.writeText(out)
-      .then(() => this._debugTip?.setText('✓ CAMPO_POS copiado! Cola no Zone1Scene.js'))
-      .catch(() => {
-        console.log('%cCAMPO_POS:', 'color:#7bc67e;font-weight:bold');
-        console.log(out);
-        this._debugTip?.setText('→ Ver consola (F12) para copiar');
-      });
+
+    // Try modern clipboard API first; fall through to DOM textarea if blocked
+    const tryClipboard = navigator.clipboard?.writeText?.(out);
+    if (tryClipboard) {
+      tryClipboard
+        .then(() => this._debugTip?.setText('✓ copiado! Cola no Zone1Scene.js'))
+        .catch(() => this._debugShowCopyBox(out));
+    } else {
+      this._debugShowCopyBox(out);
+    }
+  }
+
+  _debugShowCopyBox(text) {
+    // Remove any existing copy box
+    document.getElementById('_debugCopyBox')?.remove();
+
+    const ta = document.createElement('textarea');
+    ta.id = '_debugCopyBox';
+    ta.value = text;
+    Object.assign(ta.style, {
+      position: 'fixed', top: '50%', left: '50%',
+      transform: 'translate(-50%,-50%)',
+      width: '520px', height: '260px',
+      background: '#0a1f0e', color: '#b8ffb0',
+      border: '2px solid #55cc66', borderRadius: '6px',
+      fontFamily: 'monospace', fontSize: '12px',
+      padding: '12px', zIndex: '99999',
+      whiteSpace: 'pre', overflowY: 'auto',
+      resize: 'none',
+    });
+
+    const close = document.createElement('button');
+    close.textContent = '✕ Fechar';
+    Object.assign(close.style, {
+      position: 'fixed', top: 'calc(50% - 130px)', left: 'calc(50% + 200px)',
+      transform: 'translateY(-100%)',
+      background: '#333', color: '#fff', border: 'none',
+      borderRadius: '4px', padding: '4px 10px',
+      cursor: 'pointer', fontSize: '12px', zIndex: '100000',
+    });
+    close.onclick = () => { ta.remove(); close.remove(); };
+
+    document.body.appendChild(ta);
+    document.body.appendChild(close);
+    ta.focus();
+    ta.select();
+    this._debugTip?.setText('Seleciona tudo (Ctrl+A) e copia (Ctrl+C)');
   }
 
   _toggleDebugPanel() {
@@ -1156,6 +1196,7 @@ export class Zone1Scene extends Phaser.Scene {
       (this._debugObjs || []).forEach(o => o.destroy());
       this._debugObjs = null; this._debugPanelTxt = null; this._debugTip = null;
       this._debugSelGfx = null;
+      document.getElementById('_debugCopyBox')?.remove();
     }
   }
 
