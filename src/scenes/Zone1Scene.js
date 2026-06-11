@@ -8,28 +8,29 @@ import { Plant } from '../objects/Plant.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
-// Zone 1 — 1280 wide × 2160 tall, three sub-areas stacked top → bottom
+// Zone 1 — 3840 wide × 720 tall, three sub-areas side-by-side left → right
+const ZONE_W = 1280;
 const ZONE_H = 720;
 
 const AREAS = {
-  campoVagalumes:  { label: 'Campo dos Vagalumes', minY: 0,          maxY: ZONE_H     },
-  jardimInvertido: { label: 'Jardim Invertido',    minY: ZONE_H,     maxY: ZONE_H * 2 },
-  limiarSecreto:   { label: 'Limiar Secreto',      minY: ZONE_H * 2, maxY: ZONE_H * 3 },
+  campoVagalumes:  { label: 'Campo dos Vagalumes', minX: 0,         maxX: ZONE_W     },
+  jardimInvertido: { label: 'Jardim Invertido',    minX: ZONE_W,    maxX: ZONE_W * 2 },
+  limiarSecreto:   { label: 'Limiar Secreto',      minX: ZONE_W*2,  maxX: ZONE_W * 3 },
 };
 
-// Vine sits at the bottom of Jardim; climbing takes player DOWN into Limiar
-const VINE_X = 850;
-const VINE_Y = ZONE_H * 2 - 80;      // y ≈ 1360  (last stretch of Jardim)
-const VINE_CLIMB_Y = ZONE_H * 2 + 110; // y ≈ 1550  (just inside Limiar)
+// Vine sits at the Jardim→Limiar boundary
+const VINE_X = ZONE_W * 2 - 80;
+const VINE_Y = ZONE_H / 2;
+const VINE_CLIMB_X = ZONE_W * 2 + 140;
 
 const PLANT_SPAWNS = [
-  { id: 'ventoinha',  x: 320,  y: 200  },   // Campo (y: 0–720)
-  { id: 'ventoinha',  x: 960,  y: 520  },   // Campo
-  { id: 'gotateia',   x: 190,  y: 880  },   // Jardim (y: 720–1440)
-  { id: 'gotateia',   x: 1060, y: 1150 },   // Jardim
-  { id: 'farfalha',   x: 400,  y: 1600 },   // Limiar (y: 1440–2160)
-  { id: 'farfalha',   x: 880,  y: 1850 },   // Limiar
-  { id: 'trepadeira', x: VINE_X - 60, y: VINE_Y + 30 },
+  { id: 'ventoinha',  x: 260,  y: 250 },   // Campo left
+  { id: 'ventoinha',  x: 950,  y: 540 },   // Campo right
+  { id: 'gotateia',   x: 1500, y: 350 },   // Jardim left
+  { id: 'gotateia',   x: 2200, y: 560 },   // Jardim right
+  { id: 'farfalha',   x: 2800, y: 300 },   // Limiar left
+  { id: 'farfalha',   x: 3400, y: 520 },   // Limiar right
+  { id: 'trepadeira', x: VINE_X - 50, y: VINE_Y },
 ];
 
 export class Zone1Scene extends Phaser.Scene {
@@ -37,7 +38,7 @@ export class Zone1Scene extends Phaser.Scene {
 
   create() {
     GameState.currentZone = 'Zone1';
-    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.physics.world.setBounds(0, 0, ZONE_W * 3, ZONE_H);
 
     // Debug-adjustable defaults
     if (this._vagScale    === undefined) this._vagScale    = 0.75;
@@ -52,7 +53,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildDecorations();
     this._buildVine();
 
-    this.player = new Player(this, 640, 200);
+    this.player = new Player(this, 640, Math.round(ZONE_H / 2));
 
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
@@ -68,8 +69,8 @@ export class Zone1Scene extends Phaser.Scene {
       0x000000, 0.28
     ).setDepth(4);
 
-    // Camera — vertical scroller
-    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    // Camera — horizontal scroller
+    this.cameras.main.setBounds(0, 0, ZONE_W * 3, ZONE_H);
     this.cameras.main.setZoom(2.0);
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.time.delayedCall(50, () => this.cameras.main.setLerp(0.12, 0.12));
@@ -121,45 +122,43 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Background — three zones stacked vertically
+  //  Background — three zones side-by-side horizontally
   // ─────────────────────────────────────────────────────────────────────────
   _buildBackground() {
     const g = this.add.graphics().setDepth(0);
 
-    // ── Campo dos Vagalumes  y:0–720 ────────────────────────────────────
-    g.fillStyle(0x9ed89e, 1); g.fillRect(0, 0, WORLD_WIDTH, ZONE_H);
+    // ── Campo dos Vagalumes  x:0–1280 ──────────────────────────────────
+    g.fillStyle(0x9ed89e, 1); g.fillRect(0, 0, ZONE_W, ZONE_H);
     if (this.textures.exists('z1_bg_campo')) {
       this.add.image(0, 0, 'z1_bg_campo')
-        .setOrigin(0, 0).setDisplaySize(WORLD_WIDTH, ZONE_H).setDepth(1);
+        .setOrigin(0, 0).setDisplaySize(ZONE_W, ZONE_H).setDepth(1);
     }
-
-    // Campo path overlay
     if (this.textures.exists('z1_campo_caminho')) {
-      this.add.image(WORLD_WIDTH / 2, ZONE_H / 2, 'z1_campo_caminho')
-        .setOrigin(0.5).setDisplaySize(WORLD_WIDTH, ZONE_H).setDepth(2).setAlpha(0.85);
+      this.add.image(ZONE_W / 2, ZONE_H / 2, 'z1_campo_caminho')
+        .setOrigin(0.5).setDisplaySize(ZONE_W, ZONE_H).setDepth(2).setAlpha(0.85);
     }
 
-    // ── Jardim Invertido  y:720–1440 ────────────────────────────────────
-    g.fillStyle(0x4a7a50, 1); g.fillRect(0, ZONE_H, WORLD_WIDTH, ZONE_H);
+    // ── Jardim Invertido  x:1280–2560 ──────────────────────────────────
+    g.fillStyle(0x4a7a50, 1); g.fillRect(ZONE_W, 0, ZONE_W, ZONE_H);
     if (this.textures.exists('z1_bg_trans')) {
-      this.add.image(0, ZONE_H, 'z1_bg_trans')
-        .setOrigin(0, 0).setDisplaySize(WORLD_WIDTH, ZONE_H).setDepth(1);
+      this.add.image(ZONE_W, 0, 'z1_bg_trans')
+        .setOrigin(0, 0).setDisplaySize(ZONE_W, ZONE_H).setDepth(1);
     }
 
-    // ── Limiar Secreto  y:1440–2160 ─────────────────────────────────────
-    g.fillStyle(0x060c18, 1); g.fillRect(0, ZONE_H * 2, WORLD_WIDTH, ZONE_H);
-
-    // Parede at Jardim→Limiar boundary
+    // ── Boundary wall at Jardim→Limiar  x≈2560 ─────────────────────────
     if (this.textures.exists('z1_fundo_parede')) {
-      this.add.image(WORLD_WIDTH / 2, ZONE_H * 2, 'z1_fundo_parede')
-        .setOrigin(0.5, 1).setDepth(2).setAlpha(0.9)
-        .setDisplaySize(WORLD_WIDTH, ZONE_H * 0.4);
+      this.add.image(ZONE_W * 2, ZONE_H / 2, 'z1_fundo_parede')
+        .setOrigin(0.5).setDepth(2).setAlpha(0.9)
+        .setDisplaySize(ZONE_W * 0.35, ZONE_H);
     }
     if (this.textures.exists('z1_parede')) {
-      this.add.image(WORLD_WIDTH / 2, ZONE_H * 2, 'z1_parede')
+      this.add.image(ZONE_W * 2, ZONE_H / 2, 'z1_parede')
         .setOrigin(0.5).setDepth(3).setAlpha(0.55)
-        .setDisplaySize(WORLD_WIDTH, 180);
+        .setDisplaySize(180, ZONE_H);
     }
+
+    // ── Limiar Secreto  x:2560–3840 ────────────────────────────────────
+    g.fillStyle(0x060c18, 1); g.fillRect(ZONE_W * 2, 0, ZONE_W, ZONE_H);
 
     // Location signs
     if (this.textures.exists('z1_placa_campo')) {
@@ -167,7 +166,7 @@ export class Zone1Scene extends Phaser.Scene {
         .setDisplaySize(this._placaSize, this._placaSize).setDepth(4);
     }
     if (this.textures.exists('z1_placa_limiar')) {
-      this.placaLimiar = this.add.image(WORLD_WIDTH - 110, ZONE_H * 2 + 110, 'z1_placa_limiar')
+      this.placaLimiar = this.add.image(ZONE_W * 2 + 200, ZONE_H / 2, 'z1_placa_limiar')
         .setDisplaySize(this._placaSize, this._placaSize).setDepth(4);
     }
   }
@@ -211,11 +210,11 @@ export class Zone1Scene extends Phaser.Scene {
                         .map(n => `z1_trans_${n}`);
 
     const TRANS_POS = [
-      [ 70, 760, 120],[260, 748,  40],[480, 772,  90],[700, 752, 140],[920, 778,  50],[1148,758, 105],
-      [ 80, 898,  45],[298, 882, 130],[518, 908,  35],[738, 892, 110],[958, 918,  60],[1178,898, 135],
-      [ 65,1048, 140],[285,1032,  45],[505,1058, 115],[725,1038,  35],[945,1062, 130],[1165,1042, 50],
-      [ 80,1188,  45],[298,1172, 120],[518,1198,  35],[738,1178, 140],[958,1202,  55],[1178,1182,110],
-      [ 70,1338, 130],[288,1322,  45],[508,1348, 145],[728,1328,  35],[948,1352,  95],[1168,1332, 55],
+      [1350, 40,120],[1540, 28, 40],[1760, 52, 90],[1980, 32,140],[2200, 58, 50],[2428, 38,105],
+      [1360,178, 45],[1578,162,130],[1798,188, 35],[2018,172,110],[2238,198, 60],[2458,178,135],
+      [1345,328,140],[1565,312, 45],[1785,338,115],[2005,318, 35],[2225,342,130],[2445,322, 50],
+      [1360,468, 45],[1578,452,120],[1798,478, 35],[2018,458,140],[2238,482, 55],[2458,462,110],
+      [1350,618,130],[1568,602, 45],[1788,628,145],[2008,608, 35],[2228,632, 95],[2448,612, 55],
     ];
 
     if (tk.length > 0) {
@@ -233,11 +232,11 @@ export class Zone1Scene extends Phaser.Scene {
                          .map(n => `z1_limiar_${n}`);
 
     const LIMIAR_POS = [
-      [ 80,1478, 110],[298,1462,  35],[518,1488, 135],[738,1468,  50],[958,1492, 120],[1178,1472, 40],
-      [ 70,1618,  40],[288,1602, 140],[508,1628,  50],[728,1608, 120],[948,1632,  35],[1168,1612,145],
-      [ 80,1758, 150],[298,1742,  45],[518,1768,  95],[738,1748, 150],[958,1772,  40],[1178,1752,130],
-      [ 70,1898,  45],[288,1882, 135],[508,1908,  35],[728,1888, 120],[948,1912,  55],[1168,1892,140],
-      [ 80,2038, 130],[298,2022,  40],[518,2048, 150],[738,2028,  45],[958,2052, 110],[1178,2032, 35],
+      [2640, 38,110],[2858, 22, 35],[3078, 48,135],[3298, 28, 50],[3518, 52,120],[3738, 32, 40],
+      [2630,178, 40],[2848,162,140],[3068,188, 50],[3288,168,120],[3508,192, 35],[3728,172,145],
+      [2640,318,150],[2858,302, 45],[3078,328, 95],[3298,308,150],[3518,332, 40],[3738,312,130],
+      [2630,458, 45],[2848,442,135],[3068,468, 35],[3288,448,120],[3508,472, 55],[3728,452,140],
+      [2640,598,130],[2858,582, 40],[3078,608,150],[3298,588, 45],[3518,612,110],[3738,592, 35],
     ];
 
     if (lk.length > 0) {
@@ -251,9 +250,9 @@ export class Zone1Scene extends Phaser.Scene {
 
   _buildVine() {
     this.vine = this.add.image(VINE_X, VINE_Y, 'vine')
-      .setDisplaySize(44, 160).setDepth(6).setOrigin(0.5, 1);
+      .setDisplaySize(44, 160).setDepth(6).setOrigin(0.5, 0.5);
 
-    this.vineHint = this.add.text(VINE_X, VINE_Y - 100, 'C — Atravessar', {
+    this.vineHint = this.add.text(VINE_X, VINE_Y - 60, 'C — Atravessar', {
       fontSize: '13px', fontFamily: 'Georgia, serif',
       color: '#ffffff', stroke: '#000000', strokeThickness: 2,
       backgroundColor: '#00000066', padding: { x: 4, y: 2 },
@@ -281,7 +280,7 @@ export class Zone1Scene extends Phaser.Scene {
 
   _buildPortal() {
     const locked = !this._vineClimbed;
-    this.portal = new Portal(this, 640, 1940, {
+    this.portal = new Portal(this, ZONE_W * 3 - 200, ZONE_H / 2, {
       portalId: 'zone1_limiar',
       destination: 'Zone2',
       locked,
@@ -297,7 +296,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Dense cluster in Campo
     this.campoEmitter = this.add.particles(0, 0, ffKey, {
-      x: { min: 40, max: WORLD_WIDTH - 40 },
+      x: { min: 40, max: ZONE_W - 40 },
       y: { min: 40, max: ZONE_H - 40 },
       lifespan: { min: 2200, max: 4500 },
       speed:    { min: 8, max: 28 },
@@ -310,8 +309,8 @@ export class Zone1Scene extends Phaser.Scene {
 
     // Sparse in the rest of the world
     this.sparseEmitter = this.add.particles(0, 0, ffKey, {
-      x: { min: 40, max: WORLD_WIDTH - 40 },
-      y: { min: ZONE_H, max: WORLD_HEIGHT - 40 },
+      x: { min: ZONE_W + 40, max: ZONE_W * 3 - 40 },
+      y: { min: 40, max: ZONE_H - 40 },
       lifespan: { min: 1800, max: 3500 },
       speed:    { min: 5, max: 18 },
       scale:    { start: this._vagScale * 0.65, end: 0 },
@@ -363,10 +362,10 @@ export class Zone1Scene extends Phaser.Scene {
   //  Area detection — y-based now that zones are vertical
   // ─────────────────────────────────────────────────────────────────────────
   _checkAreaChange() {
-    const py = this.player.y;
+    const px = this.player.x;
     let area = 'campoVagalumes';
-    if (py >= ZONE_H * 2) area = 'limiarSecreto';
-    else if (py >= ZONE_H) area = 'jardimInvertido';
+    if (px >= ZONE_W * 2) area = 'limiarSecreto';
+    else if (px >= ZONE_W) area = 'jardimInvertido';
 
     if (area !== this._currentArea) {
       this._currentArea = area;
