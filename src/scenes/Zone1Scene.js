@@ -958,62 +958,134 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Debug panel — Tab to toggle, shows all campo element positions
+  //  Debug panel — Tab to toggle
+  //  • All deco images + placa become draggable
+  //  • Live coord shown at bottom while dragging
+  //  • Right panel updates after each drop
+  //  • "COPIAR" button writes updated CAMPO_POS to clipboard
   // ─────────────────────────────────────────────────────────────────────────
   _buildDebugPanel() {
-    const objs = [];
+    this._debugObjs     = [];
+    this._debugDragObjs = [];
 
+    const push = (o) => { this._debugObjs.push(o); return o; };
+
+    // Tiny yellow/cyan dot markers (visual reference only)
     const mark = (x, y, label, col = 0xffff00) => {
-      objs.push(
-        this.add.circle(x, y, 8, col, 0.75).setDepth(99),
-        this.add.text(x, y - 14, label, {
-          fontSize: '9px', fontFamily: 'monospace',
-          color: '#ffff00', stroke: '#000000', strokeThickness: 2,
-        }).setOrigin(0.5).setDepth(100)
-      );
+      push(this.add.circle(x, y, 6, col, 0.7).setDepth(99));
+      push(this.add.text(x, y - 11, label, {
+        fontSize: '9px', fontFamily: 'monospace',
+        color: '#ffff00', stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(100));
     };
 
-    mark(640, 200, '①bruxinha', 0x00ffff);
-
-    PLANT_SPAWNS.filter(s => s.x < ZONE_W).forEach((s, i) => {
-      mark(s.x, s.y, `②v${i}`, 0x00ff88);
-    });
-
+    mark(640, Math.round(ZONE_H / 2), '①bruxinha', 0x00ffff);
+    PLANT_SPAWNS.filter(s => s.x < ZONE_W).forEach((s, i) => mark(s.x, s.y, `②v${i}`, 0x00ff88));
     if (this.placaCampo) mark(this.placaCampo.x, this.placaCampo.y, '③placa', 0xff8800);
+    (this._campoPos || []).forEach(([x, y], i) =>
+      mark(x, y, `d${String(i).padStart(2, '0')}`, 0xdddddd)
+    );
 
-    (this._campoPos || []).forEach(([x, y], i) => {
-      mark(x, y, `d${String(i).padStart(2, '0')}`, 0xffffff);
-    });
-
-    // Screen panel listing all values
-    const lines = ['[TAB] Debug — Campo dos Vagalumes', ''];
-    lines.push(`① Bruxinha    x=640   y=200`);
-    PLANT_SPAWNS.filter(s => s.x < ZONE_W).forEach((s, i) => {
-      lines.push(`② ventoinha[${i}]  x=${s.x}  y=${s.y}`);
+    // ── Make every deco image and the placa draggable ─────────────────────
+    this.decoImages.forEach(({ img }) => {
+      img.setInteractive({ draggable: true, useHandCursor: true });
+      this.input.setDraggable(img);
+      this._debugDragObjs.push(img);
     });
     if (this.placaCampo) {
-      lines.push(`③ Placa  x=${Math.round(this.placaCampo.x)}  y=${Math.round(this.placaCampo.y)}  s=${this._placaSize}`);
+      this.placaCampo.setInteractive({ draggable: true, useHandCursor: true });
+      this.input.setDraggable(this.placaCampo);
+      this._debugDragObjs.push(this.placaCampo);
+    }
+
+    // ── Bottom coord tip ──────────────────────────────────────────────────
+    this._debugTip = push(
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 6,
+        '↕  arrasta elementos para reposicionar', {
+          fontSize: '11px', fontFamily: 'monospace', color: '#ffff99',
+          stroke: '#000000', strokeThickness: 2,
+          backgroundColor: '#00000099', padding: { x: 10, y: 4 },
+        }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(102)
+    );
+
+    // ── Right panel ───────────────────────────────────────────────────────
+    const PW = 290, px = GAME_WIDTH - PW - 6, py = 6;
+    const pbg = this.add.graphics().setScrollFactor(0).setDepth(98);
+    pbg.fillStyle(0x000000, 0.88); pbg.fillRoundedRect(px, py, PW, GAME_HEIGHT - 12, 6);
+    push(pbg);
+
+    // Copy button at top of panel
+    push(
+      this.add.text(px + PW / 2, py + 7, '[ COPIAR CAMPO_POS ]', {
+        fontSize: '10px', fontFamily: 'monospace', color: '#ffcc00',
+        backgroundColor: '#003300', padding: { x: 6, y: 3 },
+      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(101)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this._debugCopy())
+        .on('pointerover', function() { this.setColor('#ffffff'); })
+        .on('pointerout',  function() { this.setColor('#ffcc00'); })
+    );
+
+    this._debugPanelTxt = push(
+      this.add.text(px + 7, py + 30, '', {
+        fontSize: '10px', fontFamily: 'monospace',
+        color: '#d8f8d8', lineSpacing: 1,
+      }).setScrollFactor(0).setDepth(99)
+    );
+
+    this._debugRefresh();
+
+    this.input.on('drag',    this._onDebugDrag,    this);
+    this.input.on('dragend', this._onDebugDragEnd, this);
+  }
+
+  _onDebugDrag(pointer, go, x, y) {
+    go.setPosition(x, y);
+
+    let label = '';
+    const di = this.decoImages?.findIndex(d => d.img === go) ?? -1;
+    if (di >= 0 && this._campoPos?.[di]) {
+      this._campoPos[di][0] = Math.round(x);
+      this._campoPos[di][1] = Math.round(y);
+      label = `d${String(di).padStart(2,'0')}  x=${Math.round(x)}  y=${Math.round(y)}  s=${this._campoPos[di][2]}`;
+    }
+    if (go === this.placaCampo) {
+      this._placaCampoX = Math.round(x);
+      this._placaCampoY = Math.round(y);
+      label = `③ placa  x=${Math.round(x)}  y=${Math.round(y)}  s=${this._placaSize}`;
+    }
+    if (this._debugTip && label) this._debugTip.setText(label);
+  }
+
+  _onDebugDragEnd() { this._debugRefresh(); }
+
+  _debugRefresh() {
+    if (!this._debugPanelTxt) return;
+    const lines = ['[TAB] Campo dos Vagalumes', '── arrasta · COPIAR exporta ──', ''];
+    lines.push(`① bruxinha  x=640  y=${Math.round(ZONE_H / 2)}`);
+    PLANT_SPAWNS.filter(s => s.x < ZONE_W).forEach((s, i) =>
+      lines.push(`② ventoinha[${i}]  x=${s.x}  y=${s.y}`)
+    );
+    if (this.placaCampo) {
+      lines.push(`③ placa  x=${Math.round(this._placaCampoX)}  y=${Math.round(this._placaCampoY)}  s=${this._placaSize}`);
     }
     lines.push('', '── Decorações ──');
-    (this._campoPos || []).forEach(([x, y, s], i) => {
-      lines.push(`d${String(i).padStart(2,'0')}  x=${x}  y=${y}  s=${s}`);
-    });
+    (this._campoPos || []).forEach(([x, y, s], i) =>
+      lines.push(`d${String(i).padStart(2,'0')}  x=${x}  y=${y}  s=${s}`)
+    );
+    this._debugPanelTxt.setText(lines.join('\n'));
+  }
 
-    const PW = 300, lineH = 14, PH = Math.min(lines.length * lineH + 16, GAME_HEIGHT - 16);
-    const px = GAME_WIDTH - PW - 6, py = 6;
-
-    const pbg = this.add.graphics().setScrollFactor(0).setDepth(98);
-    pbg.fillStyle(0x000000, 0.84);
-    pbg.fillRoundedRect(px, py, PW, PH, 6);
-    objs.unshift(pbg);
-
-    const pt = this.add.text(px + 7, py + 7, lines.join('\n'), {
-      fontSize: '10px', fontFamily: 'monospace',
-      color: '#d8f8d8', lineSpacing: 1,
-    }).setScrollFactor(0).setDepth(99);
-    objs.unshift(pt);
-
-    this._debugPanel = objs;
+  _debugCopy() {
+    const rows = (this._campoPos || []).map(([x, y, s]) => `  [${x}, ${y}, ${s}]`).join(',\n');
+    const out = `const CAMPO_POS = [\n${rows}\n];`;
+    navigator.clipboard.writeText(out)
+      .then(() => this._debugTip?.setText('✓ CAMPO_POS copiado! Cola no Zone1Scene.js'))
+      .catch(() => {
+        console.log('%cCAMPO_POS:', 'color:#7bc67e;font-weight:bold');
+        console.log(out);
+        this._debugTip?.setText('→ Ver consola (F12) para copiar');
+      });
   }
 
   _toggleDebugPanel() {
@@ -1022,8 +1094,14 @@ export class Zone1Scene extends Phaser.Scene {
       this._buildDebugPanel();
     } else {
       this._debugVisible = false;
-      (this._debugPanel || []).forEach(o => o.destroy());
-      this._debugPanel = null;
+      this.input.off('drag',    this._onDebugDrag,    this);
+      this.input.off('dragend', this._onDebugDragEnd, this);
+      (this._debugDragObjs || []).forEach(obj => {
+        if (obj.active) { obj.disableInteractive(); this.input.setDraggable(obj, false); }
+      });
+      this._debugDragObjs = [];
+      (this._debugObjs || []).forEach(o => o.destroy());
+      this._debugObjs = null; this._debugPanelTxt = null; this._debugTip = null;
     }
   }
 
