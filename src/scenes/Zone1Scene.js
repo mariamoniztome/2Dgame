@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { WORLD_WIDTH, WORLD_HEIGHT, PLAYER_INTERACTION_RADIUS } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, PLAYER_INTERACTION_RADIUS } from '../config.js';
 import { GameState } from '../GameState.js';
 import { PLANTS } from '../data/plants.js';
 import { SPELLS } from '../data/spells.js';
@@ -58,6 +58,8 @@ export class Zone1Scene extends Phaser.Scene {
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
     this._buildPortal();
     this._buildFireflies();
+    this._buildGuideFireflies();
+    this._buildVisionBlockers();
 
     const ph1 = this.player.displayHeight;
     this.playerShadow = this.add.ellipse(
@@ -85,6 +87,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.keyF     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    this.keyTab   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
@@ -97,12 +100,17 @@ export class Zone1Scene extends Phaser.Scene {
     this._timedPlant     = null;
     this._hintLevel      = 0;
     this._footTimer      = 0;
+    this._ventoinhaSlowTimers = new Map();
+    this._debugVisible        = false;
+    this._spellUnlockShown    = null;
+    this._tutorialDismiss     = null;
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
 
     this.time.delayedCall(900, () => {
       this._emitNarrative('Bem-vinda ao jardim, bruxinha. Explora. As plantas esperam por ti.');
     });
+    this.time.delayedCall(1400, () => { this._showTutorial(); });
 
     this.game.events.on('plantStolen', this._onPlantStolen, this);
 
@@ -186,6 +194,7 @@ export class Zone1Scene extends Phaser.Scene {
       [ 80, 525,  40],[298, 510, 120],[520, 538,  55],[738, 522, 140],[958, 542,  45],[1178,528,  95],
       [ 62, 662, 130],[ 280, 648,  45],[498, 672, 145],[718, 655,  40],[938, 668, 115],[1158,655,  60],
     ];
+    this._campoPos = CAMPO_POS;
 
     if (ck.length > 0) {
       CAMPO_POS.forEach(([x, y, s], i) => {
@@ -334,6 +343,10 @@ export class Zone1Scene extends Phaser.Scene {
     GameState.playerX = this.player.x;
     GameState.playerY = this.player.y;
 
+    if (this._tutorialDismiss && this.player.recentSpeed > 20) {
+      this._tutorialDismiss();
+      this._tutorialDismiss = null;
+    }
     this._checkAreaChange();
     this._checkPlantProximity(time, delta);
     this._checkVineProximity();
@@ -380,12 +393,23 @@ export class Zone1Scene extends Phaser.Scene {
         plant.showHint(inRange);
       }
 
-      if (!inRange) return;
+      if (!inRange) { this._ventoinhaSlowTimers.delete(plant); return; }
       this._nearPlant = plant;
       foundNear = true;
 
       if (method === 'fast') {
-        if (this.player.recentSpeed >= 120) this._collectPlant(plant);
+        if (this.player.recentSpeed >= 120) {
+          this._ventoinhaSlowTimers.delete(plant);
+          this._collectPlant(plant);
+        } else {
+          const t = (this._ventoinhaSlowTimers.get(plant) || 0) + delta;
+          this._ventoinhaSlowTimers.set(plant, t);
+          if (t > 1400 && plant.isVisible && !plant._spinning) {
+            this._ventoinhaSlowTimers.delete(plant);
+            plant.spinAndHide();
+            this._emitNarrative('Demasiado devagar — a Ventoinha fugiu!', 2500);
+          }
+        }
         return;
       }
 
@@ -434,6 +458,7 @@ export class Zone1Scene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch('Map');
     }
+    if (Phaser.Input.Keyboard.JustDown(this.keyTab)) this._toggleDebugPanel();
   }
 
   _handleInteract(time) {
@@ -561,6 +586,8 @@ export class Zone1Scene extends Phaser.Scene {
       return;
     }
     plant.collect();
+    this._showPlantPaper(data);
+    this._checkSpellUnlock();
     this.plants = this.plants.filter(p => {
       if (p !== plant && p.plantData.id === data.id) { p.destroy(); return false; }
       return p !== plant;
@@ -648,6 +675,243 @@ export class Zone1Scene extends Phaser.Scene {
 
   _onPlantStolen(plant) {
     this._emitNarrative(`A ${plant.name} foi trocada por uma cópia falsa!`, 4000);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Tutorial overlay
+  // ─────────────────────────────────────────────────────────────────────────
+  _showTutorial() {
+    const W = 400, H = 96, sx = 30, sy = 30;
+    const bg = this.add.graphics().setScrollFactor(0).setDepth(60);
+    bg.fillStyle(0x0a1a0a, 0.86);
+    bg.fillRoundedRect(sx, sy, W, H, 10);
+    bg.lineStyle(1, 0x7bc67e, 0.55);
+    bg.strokeRoundedRect(sx, sy, W, H, 10);
+    const rows = [
+      'WASD / setas — mover       Shift — correr',
+      'C — interagir com plantas e portais',
+      'M — mapa     Q — mudar feitiço     F — lançar',
+    ];
+    const texts = rows.map((r, i) =>
+      this.add.text(sx + 14, sy + 10 + i * 26, r, {
+        fontSize: '12px', fontFamily: 'monospace', color: '#b8e8a8',
+      }).setScrollFactor(0).setDepth(61)
+    );
+    const objs = [bg, ...texts];
+    const dismiss = () => {
+      if (!bg.active) return;
+      this.tweens.add({
+        targets: objs, alpha: 0, duration: 600,
+        onComplete: () => objs.forEach(o => o.destroy()),
+      });
+      this._tutorialDismiss = null;
+    };
+    this._tutorialDismiss = dismiss;
+    this.time.delayedCall(6000, () => dismiss());
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Guide fireflies — drift toward nearest Ventoinha-branca
+  // ─────────────────────────────────────────────────────────────────────────
+  _buildGuideFireflies() {
+    const target = this.plants.find(p => p.plantData.id === 'ventoinha' && !p.isCollected);
+    if (!target) return;
+    const key = this.textures.exists('z1_vagalume') ? 'z1_vagalume' : 'firefly';
+    this._guideFireflies = [];
+    for (let i = 0; i < 3; i++) {
+      const ff = this.add.image(this.player.x, this.player.y, key)
+        .setDisplaySize(18, 18).setAlpha(0).setDepth(8).setBlendMode('ADD');
+      this._guideFireflies.push(ff);
+      this.time.delayedCall(2500 + i * 900, () => this._animateGuideFF(ff, target));
+    }
+  }
+
+  _animateGuideFF(ff, target) {
+    if (!ff.active || target.isCollected) { if (ff.active) ff.destroy(); return; }
+    ff.setPosition(
+      this.player.x + Phaser.Math.Between(-25, 25),
+      this.player.y + Phaser.Math.Between(-25, 25)
+    );
+    this.tweens.add({
+      targets: ff, alpha: 0.9, duration: 400,
+      onComplete: () => {
+        this.tweens.add({
+          targets: ff,
+          x: target.x + Phaser.Math.Between(-15, 15),
+          y: target.y + Phaser.Math.Between(-15, 15),
+          duration: 2800, ease: 'Sine.easeInOut',
+          onComplete: () => {
+            this.tweens.add({
+              targets: ff, alpha: 0, duration: 400,
+              onComplete: () => {
+                if (!target.isCollected) {
+                  this.time.delayedCall(4000, () => ff.active && this._animateGuideFF(ff, target));
+                } else {
+                  ff.destroy();
+                }
+              },
+            });
+          },
+        });
+      },
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Vision blockers — wandering bright spots (firefly glow)
+  // ─────────────────────────────────────────────────────────────────────────
+  _buildVisionBlockers() {
+    for (let i = 0; i < 3; i++) {
+      this.time.delayedCall(i * 1300, () => this._spawnWanderingLight());
+    }
+  }
+
+  _spawnWanderingLight() {
+    if (!this.scene.isActive('Zone1')) return;
+    const x = Phaser.Math.Between(60, WORLD_WIDTH - 60);
+    const y = Phaser.Math.Between(40, ZONE_H - 40);
+    const r = Phaser.Math.Between(35, 65);
+    const circle = this.add.circle(x, y, r, 0xffffff, 0).setDepth(14);
+    this.tweens.add({ targets: circle, alpha: 0.6, duration: 500 });
+    const wander = () => {
+      if (!circle.active) return;
+      this.tweens.add({
+        targets: circle,
+        x: Phaser.Math.Between(60, WORLD_WIDTH - 60),
+        y: Phaser.Math.Between(40, ZONE_H - 40),
+        duration: Phaser.Math.Between(1800, 3600),
+        ease: 'Sine.easeInOut',
+        onComplete: wander,
+      });
+    };
+    wander();
+    this.time.delayedCall(Phaser.Math.Between(5000, 11000), () => {
+      if (!circle.active) return;
+      this.tweens.add({
+        targets: circle, alpha: 0, duration: 600,
+        onComplete: () => {
+          circle.destroy();
+          this.time.delayedCall(Phaser.Math.Between(1500, 4000), () => this._spawnWanderingLight());
+        },
+      });
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Plant paper — shown on collection
+  // ─────────────────────────────────────────────────────────────────────────
+  _showPlantPaper(plantData) {
+    const W = 440, H = 90, pad = 12;
+    const sx = Math.round((GAME_WIDTH - W) / 2);
+    const sy = GAME_HEIGHT - H - 18;
+    const bg = this.add.graphics().setScrollFactor(0).setDepth(70);
+    bg.fillStyle(0xf5e6c0, 0.96);
+    bg.fillRoundedRect(sx, sy, W, H, 8);
+    bg.lineStyle(2, 0x9b7a1a, 0.85);
+    bg.strokeRoundedRect(sx, sy, W, H, 8);
+    bg.lineStyle(1, 0xc4a44a, 0.35);
+    bg.lineBetween(sx + pad, sy + 28, sx + W - pad, sy + 28);
+    const nameT = this.add.text(sx + W / 2, sy + 7, plantData.name, {
+      fontSize: '13px', fontFamily: 'Georgia, serif',
+      color: '#3a2000', fontStyle: 'bold',
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(71);
+    const pistaT = this.add.text(sx + pad, sy + 33, plantData.narrativeText || '', {
+      fontSize: '10px', fontFamily: 'Georgia, serif',
+      color: '#5a3200', wordWrap: { width: W - pad * 2 },
+    }).setScrollFactor(0).setDepth(71);
+    const objs = [bg, nameT, pistaT];
+    this.tweens.add({ targets: objs, alpha: { from: 0, to: 1 }, duration: 300 });
+    this.time.delayedCall(5000, () => {
+      this.tweens.add({
+        targets: objs, alpha: 0, duration: 600,
+        onComplete: () => objs.forEach(o => o.destroy()),
+      });
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Spell unlock notification
+  // ─────────────────────────────────────────────────────────────────────────
+  _checkSpellUnlock() {
+    const id = GameState.spellJustUnlocked;
+    if (!id || id === this._spellUnlockShown) return;
+    this._spellUnlockShown = id;
+    GameState.spellJustUnlocked = null;
+    const spell = SPELLS[id];
+    this.time.delayedCall(800, () => {
+      this._emitNarrative(`Feitiço desbloqueado: ${spell.name}! (Q seleccionar · F lançar)`, 5000);
+      this.game.events.emit('spellUnlocked', id);
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Debug panel — Tab to toggle, shows all campo element positions
+  // ─────────────────────────────────────────────────────────────────────────
+  _buildDebugPanel() {
+    const objs = [];
+
+    const mark = (x, y, label, col = 0xffff00) => {
+      objs.push(
+        this.add.circle(x, y, 8, col, 0.75).setDepth(99),
+        this.add.text(x, y - 14, label, {
+          fontSize: '9px', fontFamily: 'monospace',
+          color: '#ffff00', stroke: '#000000', strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(100)
+      );
+    };
+
+    mark(640, 200, '①bruxinha', 0x00ffff);
+
+    PLANT_SPAWNS.filter(s => s.y < ZONE_H).forEach((s, i) => {
+      mark(s.x, s.y, `②v${i}`, 0x00ff88);
+    });
+
+    if (this.placaCampo) mark(this.placaCampo.x, this.placaCampo.y, '③placa', 0xff8800);
+
+    (this._campoPos || []).forEach(([x, y], i) => {
+      mark(x, y, `d${String(i).padStart(2, '0')}`, 0xffffff);
+    });
+
+    // Screen panel listing all values
+    const lines = ['[TAB] Debug — Campo dos Vagalumes', ''];
+    lines.push(`① Bruxinha    x=640   y=200`);
+    PLANT_SPAWNS.filter(s => s.y < ZONE_H).forEach((s, i) => {
+      lines.push(`② ventoinha[${i}]  x=${s.x}  y=${s.y}`);
+    });
+    if (this.placaCampo) {
+      lines.push(`③ Placa  x=${Math.round(this.placaCampo.x)}  y=${Math.round(this.placaCampo.y)}  s=${this._placaSize}`);
+    }
+    lines.push('', '── Decorações ──');
+    (this._campoPos || []).forEach(([x, y, s], i) => {
+      lines.push(`d${String(i).padStart(2,'0')}  x=${x}  y=${y}  s=${s}`);
+    });
+
+    const PW = 300, lineH = 14, PH = Math.min(lines.length * lineH + 16, GAME_HEIGHT - 16);
+    const px = GAME_WIDTH - PW - 6, py = 6;
+
+    const pbg = this.add.graphics().setScrollFactor(0).setDepth(98);
+    pbg.fillStyle(0x000000, 0.84);
+    pbg.fillRoundedRect(px, py, PW, PH, 6);
+    objs.unshift(pbg);
+
+    const pt = this.add.text(px + 7, py + 7, lines.join('\n'), {
+      fontSize: '10px', fontFamily: 'monospace',
+      color: '#d8f8d8', lineSpacing: 1,
+    }).setScrollFactor(0).setDepth(99);
+    objs.unshift(pt);
+
+    this._debugPanel = objs;
+  }
+
+  _toggleDebugPanel() {
+    if (!this._debugVisible) {
+      this._debugVisible = true;
+      this._buildDebugPanel();
+    } else {
+      this._debugVisible = false;
+      (this._debugPanel || []).forEach(o => o.destroy());
+      this._debugPanel = null;
+    }
   }
 
   shutdown() {
