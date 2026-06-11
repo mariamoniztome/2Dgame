@@ -39,13 +39,15 @@ export class DebugPanel {
     if (!z1) return;
     this._setSlider('zoom',       z1.cameras.main.zoom);
     this._setSlider('playerSize', z1.player?.displayWidth ?? 260);
-    this._setSlider('vagScale',   z1._vagScale    ?? 0.75);
+    this._setSlider('vagScale',   z1._vagScale    ?? 1.0);
     this._setSlider('vagQty',     z1._vagQty      ?? 12);
     this._setSlider('vagFreq',    z1._vagFreq     ?? 700);
-    this._setSlider('decoMult',   z1._decoMult    ?? 1.9);
-    this._setSlider('placaSize',  z1._placaSize   ?? 130);
-    this._setSlider('placaX',     z1._placaCampoX ?? 110);
-    this._setSlider('placaY',     z1._placaCampoY ?? 110);
+    this._setSlider('decoMult',   z1._decoMult    ?? 1.0);
+    this._setSlider('placaSize',  z1._placaSize   ?? 70);
+    this._setSlider('placaX',     z1._placaCampoX ?? 520);
+    this._setSlider('placaY',     z1._placaCampoY ?? 400);
+    this._setSlider('zoneW',      z1._zoneW       ?? 1920);
+    this._setSlider('zoneH',      z1._zoneH       ?? 1080);
   }
 
   // ── build DOM ─────────────────────────────────────────────────────────────
@@ -58,8 +60,10 @@ export class DebugPanel {
       { id: 'vagFreq',    label: 'Vagalume Freq ms', min: 20,   max: 2000, step: 20,   def: 700  },
       { id: 'decoMult',   label: 'Deco Size ×',      min: 0.1,  max: 4,    step: 0.05, def: 1.9  },
       { id: 'placaSize',  label: 'Placa Tamanho px', min: 20,   max: 400,  step: 4,    def: 130  },
-      { id: 'placaX',     label: 'Placa Campo X',    min: 0,    max: 640,  step: 5,    def: 110  },
-      { id: 'placaY',     label: 'Placa Campo Y',    min: 0,    max: 400,  step: 5,    def: 110  },
+      { id: 'placaX',     label: 'Placa Campo X',    min: 0,    max: 2000, step: 5,    def: 520  },
+      { id: 'placaY',     label: 'Placa Campo Y',    min: 0,    max: 2000, step: 5,    def: 400  },
+      { id: 'zoneW',      label: '── Zona Width px', min: 1280, max: 3840, step: 128,  def: 1920 },
+      { id: 'zoneH',      label: 'Zona Height px',   min: 720,  max: 2160, step: 72,   def: 1080 },
     ];
 
     const panel = document.createElement('div');
@@ -94,7 +98,7 @@ export class DebugPanel {
         </div>
       `).join('')}
 
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #2a5a2a;display:flex;gap:6px">
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #2a5a2a;display:flex;gap:6px;flex-wrap:wrap">
         <button id="dp-rebuild-ff"
           style="flex:1;background:#1a4a1a;color:#9ed89e;border:1px solid #3a7a3a;
                  border-radius:4px;padding:4px;cursor:pointer;font-size:11px">
@@ -104,6 +108,11 @@ export class DebugPanel {
           style="flex:1;background:#1a4a1a;color:#9ed89e;border:1px solid #3a7a3a;
                  border-radius:4px;padding:4px;cursor:pointer;font-size:11px">
           📋 Copiar Config
+        </button>
+        <button id="dp-restart-zone"
+          style="flex:1 1 100%;background:#2a1a00;color:#ffcc66;border:1px solid #7a5a1a;
+                 border-radius:4px;padding:5px;cursor:pointer;font-size:11px">
+          ↺ Reiniciar Zona (aplica tamanho)
         </button>
       </div>
       <div id="dp-msg" style="color:#7bc67e;font-size:11px;margin-top:6px;min-height:14px"></div>
@@ -121,6 +130,18 @@ export class DebugPanel {
         lbl.textContent = this._fmt(v);
         this._apply(id, v);
       });
+    });
+
+    // ── restart zone button ─────────────────────────────────────────────────
+    document.getElementById('dp-restart-zone').addEventListener('click', () => {
+      const z1 = this._z1();
+      if (!z1) { this._msg('Zona 1 não está ativa'); return; }
+      const wv = parseFloat(document.getElementById('dp-zoneW').value);
+      const hv = parseFloat(document.getElementById('dp-zoneH').value);
+      this._game.registry.set('debugZoneW', wv);
+      this._game.registry.set('debugZoneH', hv);
+      z1.scene.restart();
+      this._msg(`Zona reiniciada: ${wv}×${hv} ✓`);
     });
 
     // ── rebuild button ──────────────────────────────────────────────────────
@@ -215,6 +236,12 @@ export class DebugPanel {
       case 'placaY':
         z1._placaCampoY = v;
         if (z1.placaCampo) z1.placaCampo.setY(v);
+        break;
+
+      case 'zoneW':
+      case 'zoneH':
+        // Applied on "Reiniciar Zona" button — just update label for now
+        this._msg(`${id}=${v} → clica "↺ Reiniciar Zona" para aplicar`);
         break;
     }
   }

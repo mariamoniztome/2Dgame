@@ -28,7 +28,7 @@ export class Plant extends Phaser.GameObjects.Container {
     // Degradée glow behind plant (e.g. ventoinha_degradee.png loaded as z1_ventoinha_degradee)
     const degradeeKey = `z1_${data.id}_degradee`;
     this.degradee = scene.textures.exists(degradeeKey)
-      ? scene.add.image(0, 0, degradeeKey).setDisplaySize(140, 140).setAlpha(0.55).setBlendMode('ADD')
+      ? scene.add.image(0, 0, degradeeKey).setDisplaySize(90, 90).setAlpha(0.45).setBlendMode('ADD')
       : null;
 
     // Main sprite: SVG → element-circle fallback → red-X last resort
