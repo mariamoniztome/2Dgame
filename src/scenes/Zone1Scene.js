@@ -174,16 +174,19 @@ export class Zone1Scene extends Phaser.Scene {
     // ── Jardim Invertido (right of campo) ────────────────────────────
     g.fillStyle(0x6d8469, 1); g.fillRect(ZW, 0, ZW, ZH);
 
-    // ── Dead-zone fill (top-right, aesthetic) ────────────────────────
+    // ── Dead-zone fill (top-right) — base layer ──────────────────────
     g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -ZH, ZW, ZH);
 
-    // ── Visible barrier at campo↔limiar border (y=0) ─────────────────
+    // ── Vine-gate barrier at y=0 (campo↔limiar) ──────────────────────
     g.fillStyle(0x1a2e1c, 0.9); g.fillRect(0, -18, ZW, 18);
     g.fillStyle(0x0d1a0f, 0.6); g.fillRect(0, -6, ZW, 6);
 
-    // ── Visible border at campo↔jardim (x=_zoneW) ────────────────────
-    g.fillStyle(0x1a2e1c, 0.75); g.fillRect(ZW - 10, 0, 20, ZH);
-    g.fillStyle(0x0d1a0f, 0.45); g.fillRect(ZW - 3,  0,  6, ZH);
+    // ── High-depth solid over dead zone so it's NEVER visible ────────
+    // Camera bounds are rectangular; when near the (ZW, 0) corner both
+    // Limiar and Jardim are visible, which would expose the dead zone.
+    // This rectangle (above all game objects) ensures it stays opaque.
+    this.add.rectangle(ZW * 1.5, -ZH * 0.5, ZW + 40, ZH + 40, 0x1e2e20)
+      .setDepth(998);
     if (this.textures.exists('z1_parede')) {
       // Paredão de plantas across full width at the border
       this.add.image(ZW / 2, -8, 'z1_parede')
