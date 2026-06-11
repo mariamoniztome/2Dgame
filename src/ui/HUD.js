@@ -9,20 +9,22 @@ const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 
 
 // ── Color palette ─────────────────────────────────────────────────────────
 const C = {
-  bg:     0x0a2416,
-  border: 0x7bc67e,
-  dim:    0x3a6e45,
-  accent: 0xf0f870,
-  magic:  0xf0c860,
-  text:   '#d8f0c0',
-  label:  '#a8e898',
+  bg:     0x07140f,
+  panel:  0x0c2218,
+  border: 0xb6e8be,
+  dim:    0x4a7d5c,
+  accent: 0xffef7a,
+  magic:  0xffcb79,
+  text:   '#ecffe3',
+  label:  '#c8f2bf',
+  muted:  '#97ba9f',
 };
 
 // Minimap geometry — bottom-right corner, landscape 16:9 to match the map SVG
-const MM_W  = 128;
-const MM_H  = 72;   // 128 × 9/16
-const MM_PW = MM_W + 16;
-const MM_PH = MM_H + 38;   // room for MAPA label + zone name + potion dots
+const MM_W  = 184;
+const MM_H  = 104;   // 16:9
+const MM_PW = MM_W + 24;
+const MM_PH = MM_H + 30;   // room for MAPA label + zone name
 
 // Map-image regions (fractions 0-1) for each zone/sub-area.
 // Based on the icon positions used in MapScene.
@@ -82,8 +84,9 @@ export class HUDScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0).setDepth(200);
 
     // ── [H] help hint (top-left) ──────────────────────────────────────────
-    this.add.text(10, 10, '[H] ajuda', {
-      fontSize: '10px', fontFamily: 'monospace', color: C.label,
+    this.add.text(12, 10, '[H] ajuda', {
+      fontSize: '16px', fontFamily: 'monospace', color: '#eefedd',
+      stroke: '#0a2010', strokeThickness: 3,
     }).setOrigin(0, 0).setDepth(55);
 
     this._buildControlsPanel(W, H);
@@ -107,71 +110,74 @@ export class HUDScene extends Phaser.Scene {
 
   // ── TOP-RIGHT: Spell panel ───────────────────────────────────────────────
   _buildSpellPanel(W) {
-    const x = W - 8, y = 8, pw = 200, ph = 72;
-    this.add.rectangle(x, y, pw, ph, C.bg, 0.92)
-      .setOrigin(1, 0).setStrokeStyle(1, C.border, 0.8);
+    const x = W - 10, y = 10, pw = 280, ph = 98;
+    this.add.rectangle(x, y, pw, ph, C.bg, 0.95)
+      .setOrigin(1, 0).setStrokeStyle(2, C.border, 0.95);
 
-    this.add.text(x - pw + 10, y + 7, 'FEITIÇO', {
-      fontSize: '9px', fontFamily: 'monospace', color: C.label,
+    this.add.text(x - pw + 14, y + 10, 'FEITIÇO', {
+      fontSize: '11px', fontFamily: 'monospace', color: C.label,
     });
-    this.add.text(x - 10, y + 7, '[Q] mudar · [F] lançar', {
-      fontSize: '8px', fontFamily: 'monospace', color: C.dim,
+    this.add.text(x - 14, y + 10, '[Q] mudar · [F] lançar', {
+      fontSize: '10px', fontFamily: 'monospace', color: C.muted,
     }).setOrigin(1, 0);
 
-    this.spellGfx = this.add.image(x - pw + 26, y + 44, 'spell_brisa')
-      .setDisplaySize(34, 34).setAlpha(0.5);
+    this.spellGfx = this.add.image(x - pw + 40, y + 62, 'spell_brisa')
+      .setDisplaySize(46, 46).setAlpha(0.6);
 
-    this.spellName = this.add.text(x - pw + 50, y + 38, 'nenhum', {
-      fontSize: '14px', fontFamily: 'Georgia, serif',
+    this.spellName = this.add.text(x - pw + 78, y + 60, 'nenhum', {
+      fontSize: '20px', fontFamily: 'Georgia, serif',
       color: '#ffffff', fontStyle: 'italic',
     }).setOrigin(0, 0.5);
 
     // Thin separator
-    this.add.rectangle(x - pw + 8, y + 26, pw - 16, 1, C.border, 0.3).setOrigin(0, 0.5);
+    this.add.rectangle(x - pw + 10, y + 36, pw - 20, 1, C.border, 0.35).setOrigin(0, 0.5);
   }
 
   // ── BOTTOM-LEFT: Inventory ───────────────────────────────────────────────
   _buildInventory(W, H) {
-    this.add.rectangle(8, H - 8, 220, 76, C.bg, 0.92)
-      .setOrigin(0, 1).setStrokeStyle(1, C.border, 0.8);
-    this.add.text(18, H - 78, 'PLANTAS', {
-      fontSize: '10px', fontFamily: 'monospace', color: C.label,
+    this.add.rectangle(10, H - 10, 298, 104, C.bg, 0.95)
+      .setOrigin(0, 1).setStrokeStyle(2, C.border, 0.95);
+    this.add.text(24, H - 106, 'PLANTAS', {
+      fontSize: '12px', fontFamily: 'monospace', color: C.label,
     });
-    this.inventoryCount = this.add.text(212, H - 78, '0/6', {
-      fontSize: '10px', fontFamily: 'monospace', color: C.accent,
+    this.add.rectangle(248, H - 102, 90, 18, C.panel, 0.95)
+      .setOrigin(0.5, 0.5).setStrokeStyle(1, C.border, 0.65);
+    this.inventoryCount = this.add.text(292, H - 106, '0/6', {
+      fontSize: '13px', fontFamily: 'monospace', color: '#fff8b4',
     }).setOrigin(1, 0);
 
     for (let i = 0; i < 6; i++) {
-      const sx = 20 + i * 34, sy = H - 30;
-      const bg   = this.add.rectangle(sx, sy, 28, 28, 0x112a1c, 1)
-        .setStrokeStyle(1, C.border, 0.5);
-      const icon = this.add.circle(sx, sy, 10, C.dim, 0).setAlpha(0);
+      const sx = 30 + i * 44, sy = H - 44;
+      const bg   = this.add.rectangle(sx, sy, 36, 36, C.panel, 1)
+        .setStrokeStyle(1.4, C.border, 0.6);
+      const icon = this.add.image(sx, sy, 'plant_missing')
+        .setDisplaySize(24, 24).setAlpha(0);
       const fake = this.add.text(sx, sy, '?', {
-        fontSize: '11px', fontFamily: 'monospace', color: '#886688',
-      }).setOrigin(0.5).setAlpha(0);
+        fontSize: '14px', fontFamily: 'monospace', color: '#b28cbf',
+      }).setOrigin(0.5).setAlpha(0).setDepth(56);
       this._slots.push({ bg, icon, fake });
     }
   }
 
   // ── BOTTOM-RIGHT: Minimap + potion progress ──────────────────────────────
   _buildMinimap(W, H) {
-    const mmX = W - 8 - MM_PW + 6;
-    const mmY = H - 8 - MM_PH + 14;
+    const mmX = W - 10 - MM_PW + 12;
+    const mmY = H - 10 - MM_PH + 12;
     this._mmX = mmX;
     this._mmY = mmY;
 
-    const px = W - 8, py = H - 8;
+    const px = W - 10, py = H - 10;
 
     // Panel background
-    this.add.rectangle(px, py, MM_PW, MM_PH, C.bg, 0.92)
-      .setOrigin(1, 1).setStrokeStyle(1, C.border, 0.7);
+    this.add.rectangle(px, py, MM_PW, MM_PH, C.bg, 0.95)
+      .setOrigin(1, 1).setStrokeStyle(2, C.border, 0.95);
 
     // "MAPA" label and [M] shortcut
-    this.add.text(mmX, py - MM_PH + 3, 'MAPA', {
-      fontSize: '9px', fontFamily: 'monospace', color: C.label,
+    this.add.text(mmX, py - MM_PH + 6, 'MAPA', {
+      fontSize: '11px', fontFamily: 'monospace', color: C.label,
     }).setDepth(55);
-    this.add.text(mmX + MM_W, py - MM_PH + 3, '[M]', {
-      fontSize: '9px', fontFamily: 'monospace', color: C.dim,
+    this.add.text(mmX + MM_W, py - MM_PH + 6, '[M]', {
+      fontSize: '10px', fontFamily: 'monospace', color: C.muted,
     }).setOrigin(1, 0).setDepth(55);
 
     // Map image (landscape, matches the map SVG aspect ratio)
@@ -184,38 +190,24 @@ export class HUDScene extends Phaser.Scene {
         .setOrigin(0, 0).setDisplaySize(MM_W, MM_H).setDepth(59);
     }
     if (!this.textures.exists('map_fundo01')) {
-      this.add.rectangle(mmX, mmY, MM_W, MM_H, 0x081810, 1).setOrigin(0, 0).setDepth(58);
+      this.add.rectangle(mmX, mmY, MM_W, MM_H, C.panel, 1).setOrigin(0, 0).setDepth(58);
     }
 
     // Graphics layer for plant dots (drawn on top of map image)
     this.mmGfx = this.add.graphics().setDepth(60);
 
     // Player dot (yellow)
-    this.mmDot = this.add.circle(mmX + MM_W / 2, mmY + MM_H / 2, 3.5, C.accent, 1)
-      .setDepth(62).setStrokeStyle(1, 0x0D351E, 0.9);
+    this.mmDot = this.add.circle(mmX + MM_W / 2, mmY + MM_H / 2, 4.8, C.accent, 1)
+      .setDepth(62).setStrokeStyle(1.2, 0x0D351E, 0.9);
 
     // Map border
     this.add.rectangle(mmX, mmY, MM_W, MM_H, 0, 0)
-      .setOrigin(0, 0).setStrokeStyle(1, C.border, 0.7).setDepth(63);
+      .setOrigin(0, 0).setStrokeStyle(1.6, C.border, 0.8).setDepth(63);
 
     // Zone name below map
-    this.mmZoneLabel = this.add.text(mmX + MM_W / 2, mmY + MM_H + 2, '', {
-      fontSize: '8px', fontFamily: 'Georgia, serif', color: C.text, fontStyle: 'italic',
+    this.mmZoneLabel = this.add.text(mmX + MM_W / 2, mmY + MM_H + 4, '', {
+      fontSize: '10px', fontFamily: 'Georgia, serif', color: C.text, fontStyle: 'italic',
     }).setOrigin(0.5, 0).setDepth(62);
-
-    // Potion progress (5 dots) row — below zone name
-    this._essentialDots = [];
-    const dotRowY = py - 8;
-    const dotStep  = MM_W / 5;
-    for (let i = 0; i < 5; i++) {
-      const dx = mmX + dotStep * i + dotStep / 2;
-      const dot = this.add.circle(dx, dotRowY, 5, 0x1a3a24, 1)
-        .setStrokeStyle(1, C.dim, 0.6).setDepth(62);
-      this._essentialDots.push(dot);
-    }
-    this.cauldronCount = this.add.text(mmX + MM_W, dotRowY, '0/5', {
-      fontSize: '8px', fontFamily: 'monospace', color: '#e8c96a',
-    }).setOrigin(1, 0.5).setDepth(62);
 
     this._drawMinimapBg('Zone1');
   }
@@ -349,6 +341,7 @@ export class HUDScene extends Phaser.Scene {
   }
 
   _updateCauldronDots() {
+    if (!this._essentialDots?.length && !this.cauldronCount) return;
     const count = ESSENTIAL_IDS.filter(id => GameState.collected.has(id)).length;
     this._essentialDots.forEach((d, i) => {
       d.setFillStyle(i < count ? 0xE1A0B1 : 0x1a3a24, 1)
@@ -411,13 +404,16 @@ export class HUDScene extends Phaser.Scene {
       if (plant) {
         const el  = ELEMENTS[plant.element] || ELEMENTS.EARTH;
         const col = plant.isFake ? 0x886688 : el.color;
-        s.icon.setFillStyle(col, 0.9).setAlpha(1);
+        const plantKey = `plant_${plant.id}`;
+        const texture = this.textures.exists(plantKey) ? plantKey : 'plant_missing';
+        s.icon.setTexture(texture).setAlpha(0.98).setTint(0xffffff).setScale(1);
+        if (plant.isFake) s.icon.setTint(0xc8a6d4);
         s.fake.setAlpha(plant.isFake ? 1 : 0);
-        s.bg.setStrokeStyle(1, col, 0.6);
+        s.bg.setStrokeStyle(1.4, col, 0.9);
       } else {
         s.icon.setAlpha(0);
         s.fake.setAlpha(0);
-        s.bg.setStrokeStyle(1, C.dim, 0.7);
+        s.bg.setStrokeStyle(1.2, C.dim, 0.7);
       }
     });
   }

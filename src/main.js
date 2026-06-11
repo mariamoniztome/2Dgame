@@ -14,7 +14,13 @@ const config = {
   type: Phaser.AUTO,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  resolution: window.devicePixelRatio || 1,
+  // Snap fractional DPR (ex: 1.25) to cleaner buckets to reduce blur.
+  resolution: Math.max(1, Math.min(2, Math.round((window.devicePixelRatio || 1) * 2) / 2)),
+  render: {
+    antialias: true,
+    pixelArt: false,
+    roundPixels: false,
+  },
   backgroundColor: '#7ec87e',
   physics: {
     default: 'arcade',
