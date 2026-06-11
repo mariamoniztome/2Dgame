@@ -52,7 +52,7 @@ export class DebugPanel {
   _build() {
     const CONTROLS = [
       { id: 'zoom',       label: 'Camera Zoom',      min: 0.5,  max: 4,    step: 0.05, def: 2.0  },
-      { id: 'playerSize', label: 'Player Size px',   min: 32,   max: 600,  step: 4,    def: 260  },
+      { id: 'playerSize', label: 'Player Size px',   min: 32,   max: 500,  step: 4,    def: 260  },
       { id: 'vagScale',   label: 'Vagalume Scale',   min: 0.05, max: 1.5,  step: 0.01, def: 0.75 },
       { id: 'vagQty',     label: 'Vagalume Qty',     min: 1,    max: 40,   step: 1,    def: 12   },
       { id: 'vagFreq',    label: 'Vagalume Freq ms', min: 20,   max: 2000, step: 20,   def: 700  },
