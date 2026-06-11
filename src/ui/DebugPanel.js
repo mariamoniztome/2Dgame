@@ -46,8 +46,9 @@ export class DebugPanel {
     this._setSlider('placaSize',  z1._placaSize   ?? 70);
     this._setSlider('placaX',     z1._placaCampoX ?? 520);
     this._setSlider('placaY',     z1._placaCampoY ?? 400);
-    this._setSlider('zoneW',      z1._zoneW       ?? 1920);
-    this._setSlider('zoneH',      z1._zoneH       ?? 1080);
+    this._setSlider('zoneW',          z1._zoneW           ?? 1920);
+    this._setSlider('zoneH',          z1._zoneH           ?? 1080);
+    this._setSlider('globalSizeMult', z1._globalSizeMult  ?? 1.0);
   }
 
   // ── build DOM ─────────────────────────────────────────────────────────────
@@ -62,8 +63,9 @@ export class DebugPanel {
       { id: 'placaSize',  label: 'Placa Tamanho px', min: 20,   max: 400,  step: 4,    def: 130  },
       { id: 'placaX',     label: 'Placa Campo X',    min: 0,    max: 2000, step: 5,    def: 520  },
       { id: 'placaY',     label: 'Placa Campo Y',    min: 0,    max: 2000, step: 5,    def: 400  },
-      { id: 'zoneW',      label: '── Zona Width px', min: 1280, max: 3840, step: 128,  def: 1920 },
-      { id: 'zoneH',      label: 'Zona Height px',   min: 720,  max: 2160, step: 72,   def: 1080 },
+      { id: 'zoneW',        label: '── Zona Width px',    min: 1280, max: 3840, step: 128,  def: 1920 },
+      { id: 'zoneH',        label: 'Zona Height px',     min: 720,  max: 2160, step: 72,   def: 1080 },
+      { id: 'globalSizeMult', label: '── Tudo × (global)', min: 0.1,  max: 5,    step: 0.05, def: 1.0  },
     ];
 
     const panel = document.createElement('div');
@@ -242,6 +244,20 @@ export class DebugPanel {
       case 'zoneH':
         // Applied on "Reiniciar Zona" button — just update label for now
         this._msg(`${id}=${v} → clica "↺ Reiniciar Zona" para aplicar`);
+        break;
+
+      case 'globalSizeMult':
+        z1._globalSizeMult = v;
+        this._game.registry.set('debugGlobalSizeMult', v);
+        if (z1.decoImages) {
+          z1.decoImages.forEach(({ img, baseSize }) => {
+            const s = baseSize * (z1._decoMult ?? 1.0) * v;
+            img.setDisplaySize(s, s);
+          });
+        }
+        if (z1.placaCampo)  z1.placaCampo.setDisplaySize(z1._placaSize * v, z1._placaSize * v);
+        if (z1.placaLimiar) z1.placaLimiar.setDisplaySize(z1._placaSize * v, z1._placaSize * v);
+        if (z1.player)      z1.player.setDisplaySize(z1.player.displayWidth, z1.player.displayWidth);
         break;
     }
   }

@@ -51,8 +51,9 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._vagFreq     === undefined) this._vagFreq     = 700;
     if (this._decoMult    === undefined) this._decoMult    = 1.0;
     if (this._placaSize   === undefined) this._placaSize   = 70;
-    if (this._placaCampoX === undefined) this._placaCampoX = 520;
-    if (this._placaCampoY === undefined) this._placaCampoY = 400;
+    if (this._placaCampoX    === undefined) this._placaCampoX    = 520;
+    if (this._placaCampoY    === undefined) this._placaCampoY    = 400;
+    if (this._globalSizeMult === undefined) this._globalSizeMult = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
 
     // Zone physical size — adjustable via DebugPanel (F2) → "Reiniciar Zona"
     // _zoneW = width of campo = width of jardim = width of limiar
@@ -377,18 +378,8 @@ export class Zone1Scene extends Phaser.Scene {
       blendMode: 'ADD',
     }).setDepth(7);
 
-    // Sparse in Jardim (right block)
-    this.sparseEmitter = this.add.particles(0, 0, ffKey, {
-      x: { min: this._zoneW + 40, max: this._zoneW * 2 - 40 },
-      y: { min: 40, max: this._zoneH - 40 },
-      lifespan: { min: 1800, max: 3500 },
-      speed:    { min: 5, max: 18 },
-      scale:    { start: baseScale * 0.55, end: 0 },
-      alpha:    { start: 0.45, end: 0 },
-      quantity:  Math.max(1, Math.round(this._vagQty / 3)),
-      frequency: this._vagFreq * 4,
-      blendMode: 'ADD',
-    }).setDepth(7);
+    // Vagalumes only exist in Campo dos Vagalumes — sparseEmitter removed
+    this.sparseEmitter = null;
   }
 
   _rebuildFireflies() {
