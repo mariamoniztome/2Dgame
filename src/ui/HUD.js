@@ -249,7 +249,7 @@ export class HUDScene extends Phaser.Scene {
 
   // ── Minimap internals ────────────────────────────────────────────────────
   // Map world (zone, x, y) → minimap pixel position
-  // Zone1 layout is HORIZONTAL: campo x:0-1280, jardim x:1280-2560, limiar x:2560-3840
+  // Zone1 L-shaped: campo(x:0-1280,y:0-720) · limiar(x:0-1280,y:-720-0) · jardim(x:1280-2560,y:0-720)
   _worldToMinimap(zone, x, y) {
     const mmX = this._mmX, mmY = this._mmY;
     const ZONE_W = 1280;
@@ -258,20 +258,21 @@ export class HUDScene extends Phaser.Scene {
     let rx0, ry0, rx1, ry1;
 
     if (zone === 'Zone1' || !zone) {
-      let subArea, startX;
-      if (x < ZONE_W) {
-        subArea = MAP_ZONE_REGIONS.Zone1.campo;
-        startX = 0;
-      } else if (x < ZONE_W * 2) {
+      let subArea, localX, localY;
+      if (x >= ZONE_W) {
         subArea = MAP_ZONE_REGIONS.Zone1.jardim;
-        startX = ZONE_W;
-      } else {
+        localX  = x - ZONE_W;
+        localY  = y;
+      } else if (y < 0) {
         subArea = MAP_ZONE_REGIONS.Zone1.limiar;
-        startX = ZONE_W * 2;
+        localX  = x;
+        localY  = y + ZONE_H;  // remap -720..0 → 0..720
+      } else {
+        subArea = MAP_ZONE_REGIONS.Zone1.campo;
+        localX  = x;
+        localY  = y;
       }
       [rx0, ry0, rx1, ry1] = subArea;
-      const localX = x - startX;
-      const localY = y;
       return {
         dotX: mmX + (rx0 + (localX / ZONE_W) * (rx1 - rx0)) * MM_W,
         dotY: mmY + (ry0 + (localY / ZONE_H) * (ry1 - ry0)) * MM_H,

@@ -25,6 +25,12 @@ export class Plant extends Phaser.GameObjects.Container {
     // Glow background
     this.glow = scene.add.circle(0, 0, 26, el.color, 0.18);
 
+    // Degradée glow behind plant (e.g. ventoinha_degradee.png loaded as z1_ventoinha_degradee)
+    const degradeeKey = `z1_${data.id}_degradee`;
+    this.degradee = scene.textures.exists(degradeeKey)
+      ? scene.add.image(0, 0, degradeeKey).setDisplaySize(140, 140).setAlpha(0.55).setBlendMode('ADD')
+      : null;
+
     // Main sprite: SVG → element-circle fallback → red-X last resort
     const imgKey      = `plant_img_${data.id}`;
     const circleKey   = `plant_${data.id}`;
@@ -51,7 +57,10 @@ export class Plant extends Phaser.GameObjects.Container {
       padding: { x: 4, y: 2 },
     }).setOrigin(0.5).setAlpha(0);
 
-    this.add([this.glow, this.sprite, this.label, this.hint]);
+    const children = [this.glow];
+    if (this.degradee) children.push(this.degradee);
+    children.push(this.sprite, this.label, this.hint);
+    this.add(children);
     scene.add.existing(this);
     this.setDepth(5);
 
@@ -75,6 +84,19 @@ export class Plant extends Phaser.GameObjects.Container {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
+
+    // Degradée pulse (slower, larger scale sweep)
+    if (this.degradee) {
+      scene.tweens.add({
+        targets: this.degradee,
+        alpha:  { from: 0.35, to: 0.65 },
+        scale:  { from: 0.85, to: 1.1 },
+        duration: 2400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
   }
 
   showHint(show) {
