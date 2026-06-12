@@ -1502,9 +1502,33 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _toggleDebugPanel() {
-    // Delegate to the DOM DebugPanel (window.debugPanel), which covers all zones.
-    if (window.debugPanel) {
-      window.debugPanel.toggle();
+    if (!window.debugPanel) return;
+    window.debugPanel.toggle();
+    if (window.debugPanel._visible) {
+      this._enableDebugClicks();
+    } else {
+      this._disableDebugClicks();
+    }
+  }
+
+  _enableDebugClicks() {
+    this._debugClickHandler = (pointer) => {
+      const x = pointer.worldX, y = pointer.worldY;
+      for (const plant of (this.plants || [])) {
+        if (!plant?.active || plant.isCollected) continue;
+        if (Phaser.Math.Distance.Between(x, y, plant.x, plant.y) < 70) {
+          window.debugPanel?._selectPlant(plant);
+          return;
+        }
+      }
+    };
+    this.input.on('pointerdown', this._debugClickHandler);
+  }
+
+  _disableDebugClicks() {
+    if (this._debugClickHandler) {
+      this.input?.off('pointerdown', this._debugClickHandler);
+      this._debugClickHandler = null;
     }
   }
 

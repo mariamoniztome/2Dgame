@@ -259,6 +259,15 @@ export class DebugPanel {
         <div id="dp-stats-body">—</div>
       </div>
 
+      <div style="${this._css.sec}">COR DE FUNDO</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="color" id="dp-bg-color" value="#AFD6A8"
+          style="width:44px;height:26px;cursor:pointer;border:1px solid #3a7a3a;
+                 border-radius:4px;padding:1px 2px;background:#0a1a0a">
+        <span id="dp-bg-color-lbl" style="color:#c0e8c0;font-size:11px;font-family:monospace">#AFD6A8</span>
+        <button id="dp-bg-reset" style="${this._css.btn}">reset</button>
+      </div>
+
       <div style="${this._css.sec}">CÂMERA / JOGADOR</div>
       ${this._sliderRow('zoom',          'Camera Zoom',     0.5, 4,    0.05, 2.0)}
       ${this._sliderRow('playerSize',    'Player Size px',  32,  500,  4,    260)}
@@ -370,15 +379,32 @@ export class DebugPanel {
   // ── Tab: Plantas ──────────────────────────────────────────────────────────
   _buildTabPlantas() { return `
     <div id="dp-tab-plantas" style="display:none">
-      <div style="${this._css.sec}">PLANTAS NO MAPA</div>
+      <div style="${this._css.sec}">PLANTAS — clica na lista ou no jogo para selecionar</div>
       <div id="dp-plants-list" style="background:#0a1a0a;border:1px solid #1f3a1f;
-           border-radius:5px;padding:6px 8px;font-size:10px;line-height:2;
-           color:#8ac88a;margin-bottom:8px">—</div>
+           border-radius:5px;padding:4px 6px;font-size:10px;line-height:1;
+           color:#8ac88a;margin-bottom:6px;cursor:pointer">—</div>
 
-      <div style="${this._css.sec}">TAMANHO DAS PLANTAS</div>
-      ${this._sliderRow('plantScale','Plant Scale ×', 0.2, 4, 0.05, 1.0)}
+      <div id="dp-plant-sel-panel" style="display:none;background:#0a1f0a;
+           border:1px solid #2a6a2a;border-radius:5px;padding:8px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span id="dp-sel-id" style="color:#7bc67e;font-size:12px;font-weight:bold">—</span>
+          <span id="dp-sel-pos" style="color:#5a8c5a;font-size:10px;font-family:monospace">x:— y:—</span>
+        </div>
+        <div style="margin-bottom:4px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:1px">
+            <span style="color:#c0e8c0;font-size:11px">Tamanho px</span>
+            <span id="dp-sel-size-lbl" style="color:#fff;font-size:11px">—</span>
+          </div>
+          <input type="range" id="dp-sel-size" min="20" max="500" step="4" value="80"
+            style="${this._css.sld}">
+        </div>
+        <button id="dp-sel-goto" style="${this._css.btn};width:100%;margin-top:2px">
+          📍 Ir para esta planta
+        </button>
+      </div>
 
       <div style="${this._css.sec}">AÇÕES</div>
+      <button id="dp-log-pos" style="${this._css.btnW}">📋 console.log posições (envia-me)</button>
       <button id="dp-collect-all-2" style="${this._css.btnW}">✓ Apanhar todas as plantas</button>
       <button id="dp-spawn-farfalha" style="${this._css.btnW}">⊕ Respawn Farfalha (Limiar)</button>
     </div>`; }
@@ -461,6 +487,28 @@ export class DebugPanel {
     });
   }
 
+  // ── select a plant (called from in-world click or list click) ─────────────
+  _selectPlant(plant) {
+    this._selectedPlant = plant;
+    const panel = document.getElementById('dp-plant-sel-panel');
+    if (!panel) return;
+    panel.style.display = 'block';
+    document.getElementById('dp-sel-id').textContent   = plant.plantData?.id ?? '?';
+    document.getElementById('dp-sel-pos').textContent  =
+      `x:${Math.round(plant.x)}  y:${Math.round(plant.y)}`;
+    const sz = plant.displayWidth ?? 80;
+    document.getElementById('dp-sel-size').value        = sz;
+    document.getElementById('dp-sel-size-lbl').textContent = `${Math.round(sz)}px`;
+
+    // Switch to plantas tab
+    this._switchTab('plantas');
+    this._buildPlantsList();
+
+    // Pan camera to plant
+    const z1 = this._z1();
+    z1?.cameras?.main?.pan(plant.x, plant.y, 300, 'Sine.easeInOut');
+  }
+
   // ── limiar info panel ─────────────────────────────────────────────────────
   _refreshLimiarInfo() {
     const z1 = this._z1();
@@ -482,15 +530,20 @@ export class DebugPanel {
     const el = document.getElementById('dp-plants-list');
     if (!el) return;
     if (!z1?.plants?.length) { el.textContent = '—'; return; }
-    el.innerHTML = z1.plants.map(p => {
-      const col  = p.isCollected ? '#7bc67e' : '#8ac88a';
-      const mark = p.isCollected ? '✓' : '○';
-      const TH = z1._transH ?? 400, PH = z1._paredeH ?? 700, ZW = z1._zoneW ?? 1920;
-      const area = p.y < -(TH + PH) ? 'limiar' : p.y < -TH ? 'parede' : p.y < 0 ? 'trans' : p.x > ZW ? 'jardim' : 'campo';
-      return `<span style="color:${col}">${mark}</span> <b>${p.plantData?.id ?? '?'}</b>` +
-             ` <span style="color:#5a8c5a">${Math.round(p.x)},${Math.round(p.y)}</span>` +
-             ` <span style="color:#4a7a4a;font-size:9px">[${area}]</span>`;
-    }).join('<br>');
+    const TH = z1._transH ?? 525, PH = z1._paredeH ?? 700, ZW = z1._zoneW ?? 1920;
+    el.innerHTML = z1.plants.map((p, i) => {
+      const col   = p.isCollected ? '#5a8c5a' : '#8ac88a';
+      const mark  = p.isCollected ? '✓' : '○';
+      const area  = p.y < -(TH+PH) ? 'limiar' : p.y < -TH ? 'parede' : p.y < 0 ? 'trans' : p.x > ZW ? 'jardim' : 'campo';
+      const isSel = this._selectedPlant === p;
+      const bg    = isSel ? 'background:#1a4a1a;' : '';
+      return `<div data-plant-idx="${i}" style="${bg}display:flex;justify-content:space-between;` +
+             `align-items:center;padding:3px 4px;border-radius:3px;margin-bottom:1px;` +
+             `cursor:pointer" onmouseover="this.style.background='#142a14'" onmouseout="this.style.background='${isSel?'#1a4a1a':'transparent'}'">` +
+             `<span style="color:${col}">${mark} <b style="color:#b8e8a8">${p.plantData?.id ?? '?'}</b></span>` +
+             `<span style="color:#5a8c5a;font-size:9px;font-family:monospace">${Math.round(p.x)},${Math.round(p.y)} [${area}]</span>` +
+             `</div>`;
+    }).join('');
   }
 
   // ── teleport ──────────────────────────────────────────────────────────────
@@ -631,6 +684,78 @@ export class DebugPanel {
     };
     document.getElementById('dp-collect-all').addEventListener('click', collectAll);
     document.getElementById('dp-collect-all-2').addEventListener('click', collectAll);
+
+    // Background color picker
+    const bgInput = document.getElementById('dp-bg-color');
+    const bgLbl   = document.getElementById('dp-bg-color-lbl');
+    bgInput?.addEventListener('input', () => {
+      const color = bgInput.value;
+      if (bgLbl) bgLbl.textContent = color.toUpperCase();
+      const game = this._game;
+      if (!game) return;
+      // Update Phaser renderer background
+      const r = parseInt(color.slice(1,3), 16);
+      const g = parseInt(color.slice(3,5), 16);
+      const b = parseInt(color.slice(5,7), 16);
+      if (game.renderer?.backgroundColor) {
+        game.renderer.backgroundColor.r = r;
+        game.renderer.backgroundColor.g = g;
+        game.renderer.backgroundColor.b = b;
+      }
+      if (game.canvas) game.canvas.style.backgroundColor = color;
+    });
+    document.getElementById('dp-bg-reset')?.addEventListener('click', () => {
+      if (bgInput) { bgInput.value = '#AFD6A8'; bgInput.dispatchEvent(new Event('input')); }
+    });
+
+    // Plant list click (event delegation — survives list rebuilds)
+    document.getElementById('dp-plants-list')?.addEventListener('click', e => {
+      const row = e.target.closest('[data-plant-idx]');
+      if (!row) return;
+      const z1 = this._z1();
+      const plant = z1?.plants?.[parseInt(row.dataset.plantIdx)];
+      if (plant) this._selectPlant(plant);
+    });
+
+    // Selected plant size slider
+    document.getElementById('dp-sel-size')?.addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      document.getElementById('dp-sel-size-lbl').textContent = `${v}px`;
+      if (this._selectedPlant?.active) {
+        this._selectedPlant.setDisplaySize(v, v);
+        document.getElementById('dp-sel-pos').textContent =
+          `x:${Math.round(this._selectedPlant.x)}  y:${Math.round(this._selectedPlant.y)}`;
+      }
+    });
+
+    // Go to selected plant
+    document.getElementById('dp-sel-goto')?.addEventListener('click', () => {
+      if (!this._selectedPlant?.active) return;
+      this._teleport(this._selectedPlant.x, this._selectedPlant.y);
+    });
+
+    // Log all plant positions
+    document.getElementById('dp-log-pos')?.addEventListener('click', () => {
+      const z1 = this._z1();
+      if (!z1) { this._msg('Zona 1 não está ativa'); return; }
+      const positions = (z1.plants || []).map(p => ({
+        id:          p.plantData?.id ?? '?',
+        x:           Math.round(p.x),
+        y:           Math.round(p.y),
+        displaySize: Math.round(p.displayWidth ?? 80),
+        area:        p.y < -(z1._transH+z1._paredeH) ? 'limiar'
+                   : p.y < -z1._transH               ? 'parede'
+                   : p.y < 0                          ? 'transicao'
+                   : p.x > z1._zoneW                  ? 'jardim' : 'campo',
+        collected:   p.isCollected,
+      }));
+      console.log('=== PLANT POSITIONS ===');
+      console.table(positions);
+      console.log(JSON.stringify(positions, null, 2));
+      navigator.clipboard?.writeText(JSON.stringify(positions, null, 2))
+        .then(() => this._msg('Posições → console + clipboard ✓'))
+        .catch(() => this._msg('Posições no console ✓'));
+    });
 
     // Spawn farfalha button
     document.getElementById('dp-spawn-farfalha').addEventListener('click', () => {
