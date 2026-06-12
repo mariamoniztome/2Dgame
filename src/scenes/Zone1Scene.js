@@ -32,7 +32,7 @@ const VINE_X = 640;  // kept for AI guidance target
 
 const PLANT_SPAWNS = [
   { id: 'ventoinha',  x: 92,   y: 1007 },   // campo
-  { id: 'ventoinha',  x: 1718, y: 413  },   // campo
+  { id: 'ventoinha',  x: 1267, y: 920  },   // campo
   { id: 'gotateia',   x: 2220, y: 320  },   // jardim
   { id: 'gotateia',   x: 2790, y: 520  },   // jardim
 ];
@@ -69,8 +69,8 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._jardimDecoMult  === undefined) this._jardimDecoMult  = 1.0;
     if (this._limiarDecoMult  === undefined) this._limiarDecoMult  = 1.0;
     if (this._placaSize       === undefined) this._placaSize       = 70;
-    if (this._placaCampoX     === undefined) this._placaCampoX     = 520;
-    if (this._placaCampoY     === undefined) this._placaCampoY     = 400;
+    if (this._placaCampoX     === undefined) this._placaCampoX     = 734;
+    if (this._placaCampoY     === undefined) this._placaCampoY     = 450;
     if (this._placaLimiarX    === undefined) this._placaLimiarX    = 280;
     if (this._placaLimiarYOff === undefined) this._placaLimiarYOff = 120;
     if (this._globalSizeMult  === undefined) this._globalSizeMult  = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
@@ -261,9 +261,9 @@ export class Zone1Scene extends Phaser.Scene {
 
     // caminho.svg — position/size tuned in debug panel.
     if (this.textures.exists('z1_caminho')) {
-      this._tz.caminho = this.add.image(987, -257, 'z1_caminho')
+      this._tz.caminho = this.add.image(982, -291, 'z1_caminho')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(2136, 584)
+        .setDisplaySize(2352, 643)
         .setDepth(3)
         .setAlpha(1.0);
     }
@@ -293,7 +293,7 @@ export class Zone1Scene extends Phaser.Scene {
     // and keep height ≈ PH instead of one oversized image.
     this._pz.paredes = [];
     if (this.textures.exists('z1_parede')) {
-      [[320, -498, 648, 586], [968, -499, 640, 578], [1605, -496, 640, 578]].forEach(([tx, ty, tw, th]) => {
+      [[325, -501, 648, 586], [968, -499, 640, 578], [1605, -496, 640, 578]].forEach(([tx, ty, tw, th]) => {
         const p = this.add.image(tx, ty, 'z1_parede')
           .setOrigin(0.5, 1).setDisplaySize(tw, th)
           .setDepth(3).setAlpha(1.0);
@@ -305,27 +305,27 @@ export class Zone1Scene extends Phaser.Scene {
     // ── 3. Individual decorative elements (grounded at baseY) ─────────────
     const placements = [
       // [key-suffix, x, y, w, h, depth, alpha]
-      ['16',  471,  -300, 198, 198, 4, 0.88],
-      ['17', 1795,   -18, 198, 198, 4, 0.86],
-      ['02', 1583,   135, 480, 480, 4, 0.90],
-      ['03',   88,  -365, 126, 126, 4, 0.88],
-      ['01',  571,   156, 338, 338, 5, 0.92],
-      ['10', 1185,   -67, 440, 440, 4, 0.85],
-      ['06',  723,   -60, 400, 400, 5, 0.90],
-      ['13',  466,  -119,  56,  56, 4, 0.87],
-      ['18', 1558,  -123, 480, 480, 4, 0.88],
-      ['08', 1239,  -355,  56,  56, 5, 0.91],
-      ['09', 1163,  -148, 126, 126, 4, 0.86],
-      ['12',  650,  -131,  56,  56, 5, 0.90],
-      ['03', 1116,  -303,  56,  56, 4, 0.88],
-      ['01',  272,   -51, 268, 268, 4, 0.90],
-      ['07',  611,   -11, 268, 268, 3, 0.65],
-      ['19', 1026,    -5, 198, 198, 3, 0.63],
-      ['04',  168,    -4, 250, 250, 6, 0.95],
-      ['15', 1357,    75, 250, 250, 6, 0.93],
-      ['05', 1874,  -303, 100, 100, 6, 0.88],
-      ['11', 1861,  -214,  88,  88, 6, 0.85],
-      ['14', 1141,   -19,  78,  78, 6, 0.90],
+      ['16',  394,  -234, 270, 270, 4, 0.88],
+      ['17', 1834,   -10, 254, 254, 4, 0.86],
+      ['02', 1634,   910, 144, 144, 4, 0.90],
+      ['03', 1460,   -55,  86,  86, 4, 0.88],
+      ['01', 1642,  -116,  82,  82, 5, 0.92],
+      ['10', 1639,   -32,  96,  96, 4, 0.85],
+      ['06',  544,  -227,  80,  80, 5, 0.90],
+      ['13',  536,  -109,  72,  72, 4, 0.87],
+      ['18', 1580,  -315,  56,  56, 4, 0.88],
+      ['08', 1710,   -46, 104, 104, 5, 0.91],
+      ['09', 1330,  -154,  38,  38, 4, 0.86],
+      ['12', 1247,   -14,  96,  96, 5, 0.90],
+      ['03',  803,  -163,  56,  56, 4, 0.88],
+      ['01',  159,   -41,  92,  92, 4, 0.90],
+      ['07',  109,  -178, 316, 316, 3, 0.65],
+      ['19', 1204,  -161, 254, 254, 3, 0.63],
+      ['04', 1896,  -460,  58,  58, 6, 0.95],
+      ['15', 1288,  -286,  58,  58, 6, 0.93],
+      ['05', 1542,  -440,  36,  36, 6, 0.88],
+      ['11', 1789,  -421,  88,  88, 6, 0.85],
+      ['14', 1220,  -459,  54,  54, 6, 0.90],
     ];
 
     placements.forEach(([n, x, y, w, h, depth, alpha]) => {
@@ -401,9 +401,9 @@ export class Zone1Scene extends Phaser.Scene {
 
     const CAMPO_POS = [
       [76,   111,  190],
-      [1715, 540,  235],
+      [1730, 652,  235],
       [484,  98,   175],
-      [1638, 887,  140],
+      [1811, 979,  324],
       [829,  100,  175],
       [1762, 106,  190],
       [632,  293,  180],
@@ -430,7 +430,7 @@ export class Zone1Scene extends Phaser.Scene {
       [439,  657,  235],
       [681,  639,  260],
       [1190, 774,  140],
-      [1729, 291,  195],
+      [1766, 370,  195],
     ];
     this._campoPos = CAMPO_POS;
 
@@ -452,12 +452,12 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (tk.length > 0) {
       const TRANS_POS = [
-        [  73, -105,  80], [ 407, -105,  55], [ 707, -105, 100],
-        [1161,  -83,  45], [1359, -105, 126], [1550, -268, 198],
-        [  73, -262,  75], [ 407, -262,  50], [ 707, -262,  95],
-        [ 998, -232,  40], [1359, -262,  85], [1462,  -46,  65],
-        [ 923, -419,  56], [ 687, -337,  35], [ 707, -457,  70],
-        [ 259, -401, 543], [1359, -457,  88], [1740, -375, 198],
+        [ 556, -415, 168], [ 350, -102, 151], [ 707, -105, 100],
+        [ 235, -491,  45], [1876, -353,  54], [1429, -375, 286],
+        [1424,  988,  83], [ 279, -262,  50], [ 723, -251, 119],
+        [ 672,  -48, 112], [1853, -406,  85], [ 721, -440, 105],
+        [ 832,  -72,  58], [1571, -224,  83], [ 707, -457,  70],
+        [ 901, -367, 551], [1043,  -57, 128], [1692, -326, 318],
       ];
       TRANS_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, tk[(i + 1) % tk.length])
