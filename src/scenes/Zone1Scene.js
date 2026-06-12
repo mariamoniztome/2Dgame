@@ -211,10 +211,9 @@ export class Zone1Scene extends Phaser.Scene {
   //
   //  Layers (bottom → top):
   //    1. Fundo_ParedãodePlantas  (deep background glow)      depth 1
-  //    2. Fundo_Transição         (ground/floor band)          depth 2
-  //    3. Caminho_Transição       (path through the wall)      depth 2
-  //    4. ParedãodePlantas        (main plant wall)            depth 3
-  //    5. Individual campo_limiar elements (decoration)        depth 4–6
+  //    2. Caminho_Transição       (path through the wall)      depth 2
+  //    3. ParedãodePlantas        (main plant wall)            depth 3
+  //    4. Individual campo_limiar elements (decoration)        depth 4–6
   // ─────────────────────────────────────────────────────────────────────────
   _buildTransitionWall(ZW, ZH) {
     const cx = ZW / 2;
@@ -224,18 +223,10 @@ export class Zone1Scene extends Phaser.Scene {
       const h = ZW * (1550 / 2077);
       this.add.image(cx, 0, 'z1_fundo_parede')
         .setOrigin(0.5, 1).setDisplaySize(ZW * (2077 / 1920), h)
-        .setDepth(1).setAlpha(0.80);
+        .setDepth(1).setAlpha(0.50);
     }
 
-    // ── 2. Ground/floor band (Fundo_Transição) — viewBox 1920×525 ─────────
-    if (this.textures.exists('z1_bg_trans')) {
-      const h = ZW * (525 / 1920);
-      this.add.image(cx, 0, 'z1_bg_trans')
-        .setOrigin(0.5, 0.5).setDisplaySize(ZW, h)
-        .setDepth(2).setAlpha(0.95);
-    }
-
-    // ── 3. Path overlay (Caminho_Transição) — viewBox 1920×525 ───────────
+    // ── 2. Path overlay (Caminho_Transição) — viewBox 1920×525 ───────────
     if (this.textures.exists('z1_caminho')) {
       const h = ZW * (525 / 1920);
       this.add.image(cx, 0, 'z1_caminho')
@@ -243,7 +234,7 @@ export class Zone1Scene extends Phaser.Scene {
         .setDepth(2).setAlpha(0.90);
     }
 
-    // ── 4. Main plant wall (ParedãodePlantas) — viewBox 1920×1735 ─────────
+    // ── 3. Main plant wall (ParedãodePlantas) — viewBox 1920×1735 ─────────
     // Origin (0.5, 1) → base at y=0, wall grows upward into Limiar
     if (this.textures.exists('z1_parede')) {
       const h = ZW * (1735 / 1920);
@@ -252,7 +243,7 @@ export class Zone1Scene extends Phaser.Scene {
         .setDepth(3).setAlpha(1.0);
     }
 
-    // ── 5. Individual decorative elements ─────────────────────────────────
+    // ── 4. Individual decorative elements ─────────────────────────────────
     const nums = ['01','02','03','04','05','06','07','08','09','10',
                   '11','12','13','14','15','16','17','18','19'];
     const placements = [
