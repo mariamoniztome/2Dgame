@@ -261,9 +261,10 @@ export class Zone1Scene extends Phaser.Scene {
 
     // caminho.svg — position/size tuned in debug panel.
     if (this.textures.exists('z1_caminho')) {
-      this._tz.caminho = this.add.image(982, -291, 'z1_caminho')
+      this._tz.caminho = this.add.image(982, -315, 'z1_caminho')
         .setOrigin(0.5, 0.5)
         .setDisplaySize(2352, 643)
+        .setAngle(-179)
         .setDepth(3)
         .setAlpha(1.0);
     }
