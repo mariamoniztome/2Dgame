@@ -1573,10 +1573,11 @@ export class Zone1Scene extends Phaser.Scene {
     this.input.on('drag',      this._dbDragFn);
 
     // Scroll wheel → resize selected object proportionally
-    this._dbWheelFn = (ptr, dX, dY) => {
+    // Phaser wheel event: (pointer, gameObjects[], deltaX, deltaY, deltaZ)
+    this._dbWheelFn = (ptr, _gameObjs, _deltaX, deltaY) => {
       const img = this._dbSelected;
       if (!img?.active) return;
-      const delta = dY > 0 ? -8 : 8;
+      const delta = deltaY > 0 ? -8 : 8;
       const newW  = Math.max(10, (img.displayWidth  || 80) + delta);
       const ratio = (img.displayHeight || 80) / Math.max(1, img.displayWidth || 80);
       img.setDisplaySize(newW, newW * ratio);
