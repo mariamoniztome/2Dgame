@@ -1,11 +1,13 @@
 // Debug overlay — toggle with ` (backtick) or F2
+// Tabs: Mapa | Transição | Limiar | Plantas | Placas
 
 export class DebugPanel {
   constructor(game) {
-    this._game    = game;
-    this._panel   = null;
-    this._visible = false;
+    this._game      = game;
+    this._panel     = null;
+    this._visible   = false;
     this._statsTimer = null;
+    this._activeTab  = 'mapa';
     this._build();
 
     window.addEventListener('keydown', e => {
@@ -19,51 +21,98 @@ export class DebugPanel {
     if (this._visible) {
       this._syncFromScene();
       this._startStatsLoop();
+      this._switchTab(this._activeTab);
     } else {
       clearInterval(this._statsTimer);
     }
   }
 
-  // ── helpers ──────────────────────────────────────────────────────────────
+  // ── scene accessor ────────────────────────────────────────────────────────
   _z1() {
     const s = this._game.scene.getScene('Zone1');
     return s && s.sys.isActive() ? s : null;
   }
 
-  _setSlider(id, val) {
+  // ── helpers ──────────────────────────────────────────────────────────────
+  _fmt(v) { return Number.isInteger(v) ? v : parseFloat(v.toFixed(2)); }
+
+  _slider(id, val) {
     const el  = document.getElementById(`dp-${id}`);
     const lbl = document.getElementById(`dp-${id}-lbl`);
     if (el)  el.value = val;
     if (lbl) lbl.textContent = this._fmt(val);
   }
 
-  _fmt(v) { return Number.isInteger(v) ? v : parseFloat(v.toFixed(2)); }
+  _msg(text) {
+    const el = document.getElementById('dp-msg');
+    if (!el) return;
+    el.textContent = text;
+    clearTimeout(this._msgTimer);
+    this._msgTimer = setTimeout(() => { el.textContent = ''; }, 3000);
+  }
+
+  // ── styles ────────────────────────────────────────────────────────────────
+  _css = {
+    btn:  'background:#0d2a10;color:#9ed89e;border:1px solid #3a7a3a;border-radius:5px;' +
+          'padding:5px 6px;cursor:pointer;font-size:11px;font-family:monospace;',
+    btnW: 'background:#0d2a10;color:#9ed89e;border:1px solid #3a7a3a;border-radius:5px;' +
+          'padding:5px 6px;cursor:pointer;font-size:11px;font-family:monospace;width:100%;margin-bottom:4px;',
+    btnY: 'background:#2a1a00;color:#ffcc66;border:1px solid #7a5a1a;border-radius:5px;' +
+          'padding:5px 6px;cursor:pointer;font-size:11px;font-family:monospace;width:100%;margin-bottom:4px;',
+    sec:  'color:#5a8c5a;font-size:10px;letter-spacing:1px;margin:10px 0 5px',
+    inp:  'background:#0a1a0a;color:#9ed89e;border:1px solid #2a5a2a;border-radius:4px;' +
+          'padding:4px;font-family:monospace;font-size:11px;width:70px',
+    sld:  'width:100%;accent-color:#7bc67e;height:16px;cursor:pointer',
+  };
+
+  _sliderRow(id, label, min, max, step, def) {
+    return `
+      <div style="margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:1px">
+          <span style="color:#c0e8c0;font-size:11px">${label}</span>
+          <span id="dp-${id}-lbl" style="color:#fff;min-width:42px;text-align:right;font-size:11px">${def}</span>
+        </div>
+        <input type="range" id="dp-${id}" min="${min}" max="${max}" step="${step}" value="${def}" style="${this._css.sld}">
+      </div>`;
+  }
 
   _syncFromScene() {
     const z1 = this._z1();
     if (!z1) return;
-    this._setSlider('zoom',          z1.cameras.main.zoom);
-    this._setSlider('playerSize',    z1.player?.displayWidth ?? 260);
-    this._setSlider('vagScale',      z1._vagScale    ?? 1.0);
-    this._setSlider('vagQty',        z1._vagQty      ?? 12);
-    this._setSlider('vagFreq',       z1._vagFreq     ?? 700);
-    this._setSlider('decoMult',      z1._decoMult    ?? 1.0);
-    this._setSlider('placaSize',     z1._placaSize   ?? 70);
-    this._setSlider('placaX',        z1._placaCampoX ?? 520);
-    this._setSlider('placaY',        z1._placaCampoY ?? 400);
-    this._setSlider('zoneW',         z1._zoneW       ?? 1920);
-    this._setSlider('zoneH',         z1._zoneH       ?? 1080);
-    this._setSlider('globalSizeMult',z1._globalSizeMult ?? 1.0);
+    this._slider('zoom',           z1.cameras.main.zoom);
+    this._slider('playerSize',     z1.player?.displayWidth ?? 260);
+    this._slider('vagScale',       z1._vagScale    ?? 1.0);
+    this._slider('vagQty',         z1._vagQty      ?? 12);
+    this._slider('vagFreq',        z1._vagFreq     ?? 700);
+    this._slider('zoneW',          z1._zoneW       ?? 1920);
+    this._slider('zoneH',          z1._zoneH       ?? 1080);
+    this._slider('globalSizeMult', z1._globalSizeMult ?? 1.0);
+    // Transição tab
+    this._slider('transH',         z1._transH      ?? 400);
+    this._slider('tw-fundoAlpha',  z1._tw?.fundoParede?.alpha ?? 0.50);
+    this._slider('tw-caminhoAlpha',z1._tw?.caminho?.alpha     ?? 0.90);
+    this._slider('tw-caminhoY',    z1._tw?.caminho?.y         ?? 0);
+    this._slider('tw-paredeAlpha', z1._tw?.parede?.alpha      ?? 1.0);
+    // Limiar tab
+    this._slider('limiarDecoMult', z1._limiarDecoMult ?? 1.0);
+    this._slider('campoDecoMult',  z1._campoDecoMult  ?? 1.0);
+    this._slider('jardimDecoMult', z1._jardimDecoMult ?? 1.0);
+    // Placas tab
+    this._slider('placaSize',      z1._placaSize      ?? 70);
+    this._slider('placaX',         z1._placaCampoX    ?? 520);
+    this._slider('placaY',         z1._placaCampoY    ?? 400);
+    this._slider('placaLimiarX',   z1._placaLimiarX   ?? 280);
+    this._slider('placaLimiarYOff',z1._placaLimiarYOff ?? 120);
   }
 
   _startStatsLoop() {
     clearInterval(this._statsTimer);
     this._statsTimer = setInterval(() => {
       this._updateStats();
-      this._buildPlantsList();
+      if (this._activeTab === 'plantas') this._buildPlantsList();
+      if (this._activeTab === 'transicao') this._refreshDecoTable();
     }, 500);
     this._updateStats();
-    this._buildPlantsList();
   }
 
   _updateStats() {
@@ -74,245 +123,468 @@ export class DebugPanel {
     const area = z1?._currentArea || '—';
     const zw   = z1?._zoneW ?? '—';
     const zh   = z1?._zoneH ?? '—';
-
-    const el = document.getElementById('dp-stats-body');
+    const th   = z1?._transH ?? '—';
+    const el   = document.getElementById('dp-stats-body');
     if (el) el.innerHTML =
       `<span style="color:#7bc67e">FPS</span> <b>${fps}</b>` +
       `&nbsp;&nbsp;<span style="color:#7bc67e">X</span> <b>${px}</b>` +
       `&nbsp;<span style="color:#7bc67e">Y</span> <b>${py}</b>` +
-      `&nbsp;&nbsp;<span style="color:#7bc67e">Zona</span> <b>${zw}×${zh}</b>` +
+      `<br><span style="color:#7bc67e">Zona</span> <b>${zw}×${zh}</b>` +
+      `&nbsp;<span style="color:#7bc67e">TH</span> <b>${th}</b>` +
       `<br><span style="color:#7bc67e">Área</span> <b>${area}</b>`;
+  }
+
+  // ── tab switching ─────────────────────────────────────────────────────────
+  _switchTab(name) {
+    this._activeTab = name;
+    ['mapa','transicao','limiar','plantas','placas'].forEach(t => {
+      const pane = document.getElementById(`dp-tab-${t}`);
+      const btn  = document.getElementById(`dp-tabbt-${t}`);
+      if (pane) pane.style.display = t === name ? 'block' : 'none';
+      if (btn) {
+        btn.style.background = t === name ? '#1a5a1a' : '#0a1a0a';
+        btn.style.color      = t === name ? '#c8ffc8' : '#5a9c5a';
+      }
+    });
+    if (name === 'plantas')   this._buildPlantsList();
+    if (name === 'transicao') this._refreshDecoTable();
+    if (name === 'limiar')    this._refreshLimiarInfo();
   }
 
   // ── build DOM ─────────────────────────────────────────────────────────────
   _build() {
-    const CONTROLS = [
-      { id: 'zoom',          label: 'Camera Zoom',       min: 0.5,  max: 4,    step: 0.05, def: 2.0  },
-      { id: 'playerSize',    label: 'Player Size px',    min: 32,   max: 500,  step: 4,    def: 260  },
-      { id: 'vagScale',      label: 'Vagalume Scale',    min: 0.05, max: 1.5,  step: 0.01, def: 0.75 },
-      { id: 'vagQty',        label: 'Vagalume Qty',      min: 1,    max: 40,   step: 1,    def: 12   },
-      { id: 'vagFreq',       label: 'Vagalume Freq ms',  min: 20,   max: 2000, step: 20,   def: 700  },
-      { id: 'decoMult',      label: 'Deco Size ×',       min: 0.1,  max: 4,    step: 0.05, def: 1.9  },
-      { id: 'placaSize',     label: 'Placa Tamanho px',  min: 20,   max: 400,  step: 4,    def: 130  },
-      { id: 'placaX',        label: 'Placa Campo X',     min: 0,    max: 2000, step: 5,    def: 520  },
-      { id: 'placaY',        label: 'Placa Campo Y',     min: 0,    max: 2000, step: 5,    def: 400  },
-      { id: 'zoneW',         label: '── Zona Width px',  min: 1280, max: 3840, step: 128,  def: 1920 },
-      { id: 'zoneH',         label: 'Zona Height px',    min: 720,  max: 2160, step: 72,   def: 1080 },
-      { id: 'globalSizeMult',label: '── Global ×',       min: 0.1,  max: 5,    step: 0.05, def: 1.0  },
-    ];
-
-    const TELEPORTS = [
-      { label: 'Campo Centro',  x: 640,   y: 600  },
-      { label: 'Trepadeira',    x: 640,   y: 100  },
-      { label: 'Limiar Centro', x: 640,   y: -500 },
-      { label: 'Jardim Centro', x: 2200,  y: 400  },
-    ];
-
     const panel = document.createElement('div');
     panel.id = 'debug-panel';
     Object.assign(panel.style, {
-      position:    'fixed',
-      top:         '10px',
-      right:       '10px',
-      background:  'rgba(0,14,3,0.95)',
-      border:      '1px solid #3a7a3a',
-      color:       '#9ed89e',
-      borderRadius:'10px',
-      fontFamily:  'monospace',
-      fontSize:    '12px',
-      width:       '290px',
-      maxHeight:   'calc(100vh - 20px)',
-      zIndex:      '99999',
-      display:     'none',
-      userSelect:  'none',
-      lineHeight:  '1.5',
+      position:     'fixed',
+      top:          '10px',
+      right:        '10px',
+      background:   'rgba(0,14,3,0.96)',
+      border:       '1px solid #3a7a3a',
+      color:        '#9ed89e',
+      borderRadius: '10px',
+      fontFamily:   'monospace',
+      fontSize:     '12px',
+      width:        '340px',
+      maxHeight:    'calc(100vh - 20px)',
+      zIndex:       '99999',
+      display:      'none',
+      userSelect:   'none',
+      lineHeight:   '1.5',
       flexDirection:'column',
     });
 
-    const scrollBox = document.createElement('div');
-    Object.assign(scrollBox.style, {
-      overflowY: 'auto',
-      padding:   '12px 14px',
-      flex:      '1',
+    // ── header ──────────────────────────────────────────────────────────────
+    const header = document.createElement('div');
+    Object.assign(header.style, {
+      padding:      '7px 14px 5px',
+      borderBottom: '1px solid #2a5a2a',
+      display:      'flex',
+      justifyContent: 'space-between',
+      alignItems:   'center',
+      flexShrink:   '0',
+    });
+    header.innerHTML = `<b style="color:#7bc67e;font-size:13px">⚙ Debug Panel</b>
+      <small style="color:#5a8c5a">[ \` ] fecha</small>`;
+
+    // ── tab bar ──────────────────────────────────────────────────────────────
+    const tabBar = document.createElement('div');
+    Object.assign(tabBar.style, {
+      display:      'flex',
+      borderBottom: '1px solid #1a3a1a',
+      flexShrink:   '0',
+    });
+    ['mapa','transicao','limiar','plantas','placas'].forEach(t => {
+      const labels = { mapa:'Mapa', transicao:'Transição', limiar:'Limiar', plantas:'Plantas', placas:'Placas' };
+      const btn = document.createElement('button');
+      btn.id = `dp-tabbt-${t}`;
+      btn.textContent = labels[t];
+      Object.assign(btn.style, {
+        flex:       '1',
+        padding:    '5px 2px',
+        background: '#0a1a0a',
+        color:      '#5a9c5a',
+        border:     'none',
+        borderRight:'1px solid #1a3a1a',
+        cursor:     'pointer',
+        fontSize:   '11px',
+        fontFamily: 'monospace',
+      });
+      btn.addEventListener('click', () => this._switchTab(t));
+      tabBar.appendChild(btn);
     });
 
-    scrollBox.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;
-                  margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #2a5a2a">
-        <b style="color:#7bc67e;font-size:13px">⚙ Debug Panel</b>
-        <small style="color:#5a8c5a">[ \` ] fecha</small>
-      </div>
+    // ── scrollable content ───────────────────────────────────────────────────
+    const scroll = document.createElement('div');
+    Object.assign(scroll.style, { overflowY: 'auto', padding: '10px 14px', flex: '1' });
+    scroll.innerHTML = this._buildTabMapa()
+                     + this._buildTabTransicao()
+                     + this._buildTabLimiar()
+                     + this._buildTabPlantas()
+                     + this._buildTabPlacas();
 
-      <!-- Live stats -->
-      <div style="background:#0a1f0a;border:1px solid #1f4a1f;border-radius:6px;
-                  padding:7px 10px;margin-bottom:10px;line-height:1.8;font-size:11px">
-        <div style="color:#5a8c5a;font-size:10px;letter-spacing:1px;margin-bottom:3px">ESTADO LIVE</div>
-        <div id="dp-stats-body">—</div>
-      </div>
+    // ── message bar ──────────────────────────────────────────────────────────
+    const msgBar = document.createElement('div');
+    Object.assign(msgBar.style, {
+      padding:    '3px 14px',
+      fontSize:   '11px',
+      color:      '#7bc67e',
+      minHeight:  '20px',
+      borderTop:  '1px solid #1a3a1a',
+      flexShrink: '0',
+    });
+    msgBar.id = 'dp-msg';
 
-      <!-- Sliders -->
-      <div style="color:#5a8c5a;font-size:10px;letter-spacing:1px;margin-bottom:6px">CONTROLOS</div>
-      ${CONTROLS.map(c => `
-        <div style="margin-bottom:7px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:1px">
-            <span style="color:#c0e8c0;font-size:11px">${c.label}</span>
-            <span id="dp-${c.id}-lbl" style="color:#fff;min-width:40px;text-align:right;font-size:11px">${c.def}</span>
-          </div>
-          <input type="range" id="dp-${c.id}"
-            min="${c.min}" max="${c.max}" step="${c.step}" value="${c.def}"
-            style="width:100%;accent-color:#7bc67e;height:16px;cursor:pointer">
-        </div>
-      `).join('')}
-
-      <!-- Teleport -->
-      <div style="color:#5a8c5a;font-size:10px;letter-spacing:1px;margin:10px 0 6px">TELETRANSPORTE</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px">
-        ${TELEPORTS.map(t => `
-          <button data-tp-x="${t.x}" data-tp-y="${t.y}"
-            style="background:#0d2a10;color:#9ed89e;border:1px solid #3a7a3a;
-                   border-radius:5px;padding:5px 4px;cursor:pointer;font-size:11px;
-                   font-family:monospace">
-            ${t.label}
-          </button>
-        `).join('')}
-        <button id="dp-tp-custom-btn"
-          style="background:#0d2010;color:#c8f2bf;border:1px solid #2a6a2a;
-                 border-radius:5px;padding:5px 4px;cursor:pointer;font-size:11px;
-                 font-family:monospace;grid-column:span 2">
-          ✏ Ir para X/Y custom
-        </button>
-      </div>
-      <div id="dp-tp-custom" style="display:none;gap:5px;margin-bottom:8px">
-        <input id="dp-tp-x" placeholder="X" type="number" value="640"
-          style="flex:1;background:#0a1a0a;color:#9ed89e;border:1px solid #2a5a2a;
-                 border-radius:4px;padding:4px;font-family:monospace;font-size:11px;width:80px">
-        <input id="dp-tp-y" placeholder="Y" type="number" value="400"
-          style="flex:1;background:#0a1a0a;color:#9ed89e;border:1px solid #2a5a2a;
-                 border-radius:4px;padding:4px;font-family:monospace;font-size:11px;width:80px">
-        <button id="dp-tp-go"
-          style="background:#1a4a1a;color:#9ed89e;border:1px solid #3a7a3a;
-                 border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px">
-          Ir
-        </button>
-      </div>
-
-      <!-- Plant spawns -->
-      <div style="color:#5a8c5a;font-size:10px;letter-spacing:1px;margin-bottom:6px">PLANTAS NO MAPA</div>
-      <div id="dp-plants-list" style="background:#0a1a0a;border:1px solid #1f3a1f;
-           border-radius:5px;padding:6px 8px;font-size:10px;line-height:1.8;
-           color:#8ac88a;margin-bottom:10px">—</div>
-
-      <!-- Action buttons -->
-      <div style="color:#5a8c5a;font-size:10px;letter-spacing:1px;margin-bottom:6px">AÇÕES</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        <button id="dp-rebuild-ff"
-          style="flex:1;background:#1a4a1a;color:#9ed89e;border:1px solid #3a7a3a;
-                 border-radius:4px;padding:5px;cursor:pointer;font-size:11px">
-          ↺ Vagalumes
-        </button>
-        <button id="dp-copy"
-          style="flex:1;background:#1a4a1a;color:#9ed89e;border:1px solid #3a7a3a;
-                 border-radius:4px;padding:5px;cursor:pointer;font-size:11px">
-          📋 Copiar Config
-        </button>
-        <button id="dp-collect-all"
-          style="flex:1;background:#1a2a10;color:#c8e8a0;border:1px solid #4a7a1a;
-                 border-radius:4px;padding:5px;cursor:pointer;font-size:11px">
-          ✓ Apanhar tudo
-        </button>
-        <button id="dp-restart-zone"
-          style="flex:1 1 100%;background:#2a1a00;color:#ffcc66;border:1px solid #7a5a1a;
-                 border-radius:4px;padding:5px;cursor:pointer;font-size:11px">
-          ↺ Reiniciar Zona (aplica tamanho)
-        </button>
-      </div>
-      <div id="dp-msg" style="color:#7bc67e;font-size:11px;margin-top:7px;min-height:14px"></div>
-    `;
-
-    panel.appendChild(scrollBox);
+    panel.appendChild(header);
+    panel.appendChild(tabBar);
+    panel.appendChild(scroll);
+    panel.appendChild(msgBar);
     document.body.appendChild(panel);
     this._panel = panel;
 
-    // ── wire sliders ────────────────────────────────────────────────────────
-    CONTROLS.forEach(({ id }) => {
+    this._wireEvents();
+    this._switchTab('mapa');
+  }
+
+  // ── Tab: Mapa ─────────────────────────────────────────────────────────────
+  _buildTabMapa() { return `
+    <div id="dp-tab-mapa">
+      <div style="background:#0a1f0a;border:1px solid #1f4a1f;border-radius:6px;
+                  padding:7px 10px;margin-bottom:8px;line-height:1.8;font-size:11px">
+        <div style="color:#5a8c5a;font-size:10px;letter-spacing:1px;margin-bottom:2px">ESTADO LIVE</div>
+        <div id="dp-stats-body">—</div>
+      </div>
+
+      <div style="${this._css.sec}">CÂMERA / JOGADOR</div>
+      ${this._sliderRow('zoom',          'Camera Zoom',     0.5, 4,    0.05, 2.0)}
+      ${this._sliderRow('playerSize',    'Player Size px',  32,  500,  4,    260)}
+      ${this._sliderRow('globalSizeMult','Global Size ×',   0.1, 5,    0.05, 1.0)}
+
+      <div style="${this._css.sec}">VAGALUMES</div>
+      ${this._sliderRow('vagScale','Vagalume Scale', 0.05, 1.5,  0.01, 0.75)}
+      ${this._sliderRow('vagQty',  'Vagalume Qty',   1,    40,   1,    12)}
+      ${this._sliderRow('vagFreq', 'Vagalume Freq ms',20,  2000, 20,   700)}
+      <button id="dp-rebuild-ff" style="${this._css.btnW}">↺ Reconstruir Vagalumes</button>
+
+      <div style="${this._css.sec}">DIMENSÕES DA ZONA</div>
+      ${this._sliderRow('zoneW','Zona Width px',  1280, 3840, 128, 1920)}
+      ${this._sliderRow('zoneH','Zona Height px', 720,  2160, 72,  1080)}
+      <button id="dp-restart-zone" style="${this._css.btnY}">↺ Reiniciar Zona (aplica tamanho)</button>
+
+      <div style="${this._css.sec}">TELETRANSPORTE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">
+        <button class="dp-tp-preset" data-tp="campo"     style="${this._css.btn}">Campo</button>
+        <button class="dp-tp-preset" data-tp="transicao" style="${this._css.btn}">Transição</button>
+        <button class="dp-tp-preset" data-tp="limiar"    style="${this._css.btn}">Limiar</button>
+        <button class="dp-tp-preset" data-tp="jardim"    style="${this._css.btn}">Jardim</button>
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:8px">
+        <input id="dp-tp-x" type="number" value="640" placeholder="X" style="${this._css.inp}">
+        <input id="dp-tp-y" type="number" value="600" placeholder="Y" style="${this._css.inp}">
+        <button id="dp-tp-go" style="${this._css.btn}">Ir →</button>
+      </div>
+
+      <div style="${this._css.sec}">AÇÕES</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button id="dp-collect-all" style="${this._css.btn};flex:1">✓ Apanhar tudo</button>
+        <button id="dp-copy"        style="${this._css.btn};flex:1">📋 Copiar Config</button>
+      </div>
+    </div>`; }
+
+  // ── Tab: Transição ────────────────────────────────────────────────────────
+  _buildTabTransicao() { return `
+    <div id="dp-tab-transicao" style="display:none">
+      <div style="${this._css.sec}">ALTURA DA ZONA DE TRANSIÇÃO</div>
+      ${this._sliderRow('transH','Transição Height px', 100, 900, 25, 400)}
+      <button id="dp-restart-trans" style="${this._css.btnY}">↺ Reiniciar Zona (aplica altura)</button>
+
+      <div style="${this._css.sec}">CAMADAS PRINCIPAIS</div>
+      ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',   0, 1, 0.01, 0.50)}
+      ${this._sliderRow('tw-caminhoAlpha','Caminho α',        0, 1, 0.01, 0.90)}
+      ${this._sliderRow('tw-caminhoY',    'Caminho Y offset', -500, 200, 5, 0)}
+      ${this._sliderRow('tw-paredeAlpha', 'Parede Principal α', 0, 1, 0.01, 1.0)}
+      <button id="dp-rebuild-trans" style="${this._css.btnW}">↺ Reconstruir Parede (sem reiniciar)</button>
+
+      <div style="${this._css.sec}">DECORAÇÕES z1_cl_XX</div>
+      <div style="background:#0a1a0a;border:1px solid #1f3a1f;border-radius:5px;
+                  padding:4px 6px;margin-bottom:6px">
+        <div style="display:grid;grid-template-columns:22px 1fr 1fr 1fr;
+                    gap:2px;color:#5a8c5a;font-size:9px;letter-spacing:0.5px;
+                    border-bottom:1px solid #1a3a1a;padding-bottom:3px;margin-bottom:2px">
+          <span>ID</span><span>X%</span><span>H</span><span>α</span>
+        </div>
+        <div id="dp-deco-rows"></div>
+      </div>
+    </div>`; }
+
+  // ── Tab: Limiar ───────────────────────────────────────────────────────────
+  _buildTabLimiar() { return `
+    <div id="dp-tab-limiar" style="display:none">
+      <div id="dp-limiar-info" style="background:#0a1f0a;border:1px solid #1f4a1f;
+           border-radius:6px;padding:7px 10px;margin-bottom:8px;font-size:11px;
+           line-height:1.8">—</div>
+
+      <div style="${this._css.sec}">FARFALHA SPAWNS (y = -(TH + yOff))</div>
+      <div style="background:#0a1a0a;border:1px solid #1f3a1f;border-radius:5px;
+                  padding:8px;margin-bottom:8px">
+        <div style="margin-bottom:8px">
+          <div style="color:#c0e8c0;font-size:11px;margin-bottom:4px">Farfalha 1</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="color:#5a8c5a;font-size:10px;width:30px">xFrac</span>
+            <input id="dp-lp0-xfrac" type="number" min="0" max="1" step="0.01" value="0.22" style="${this._css.inp}">
+            <span style="color:#5a8c5a;font-size:10px;width:30px">yOff</span>
+            <input id="dp-lp0-yoff"  type="number" min="0" max="2000" step="10" value="380"  style="${this._css.inp}">
+          </div>
+        </div>
+        <div>
+          <div style="color:#c0e8c0;font-size:11px;margin-bottom:4px">Farfalha 2</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="color:#5a8c5a;font-size:10px;width:30px">xFrac</span>
+            <input id="dp-lp1-xfrac" type="number" min="0" max="1" step="0.01" value="0.50" style="${this._css.inp}">
+            <span style="color:#5a8c5a;font-size:10px;width:30px">yOff</span>
+            <input id="dp-lp1-yoff"  type="number" min="0" max="2000" step="10" value="500"  style="${this._css.inp}">
+          </div>
+        </div>
+      </div>
+
+      <div style="${this._css.sec}">DECORAÇÕES POR ZONA</div>
+      ${this._sliderRow('campoDecoMult',  'Campo Deco ×',  0.1, 4, 0.05, 1.0)}
+      ${this._sliderRow('limiarDecoMult', 'Limiar Deco ×', 0.1, 4, 0.05, 1.0)}
+      ${this._sliderRow('jardimDecoMult', 'Jardim Deco ×', 0.1, 4, 0.05, 1.0)}
+
+      <div style="${this._css.sec}">TELEPORTE RÁPIDO</div>
+      <div style="display:flex;gap:4px">
+        <button class="dp-tp-preset" data-tp="transicao" style="${this._css.btn};flex:1">→ Transição</button>
+        <button class="dp-tp-preset" data-tp="limiar"    style="${this._css.btn};flex:1">→ Limiar</button>
+      </div>
+    </div>`; }
+
+  // ── Tab: Plantas ──────────────────────────────────────────────────────────
+  _buildTabPlantas() { return `
+    <div id="dp-tab-plantas" style="display:none">
+      <div style="${this._css.sec}">PLANTAS NO MAPA</div>
+      <div id="dp-plants-list" style="background:#0a1a0a;border:1px solid #1f3a1f;
+           border-radius:5px;padding:6px 8px;font-size:10px;line-height:2;
+           color:#8ac88a;margin-bottom:8px">—</div>
+
+      <div style="${this._css.sec}">TAMANHO DAS PLANTAS</div>
+      ${this._sliderRow('plantScale','Plant Scale ×', 0.2, 4, 0.05, 1.0)}
+
+      <div style="${this._css.sec}">AÇÕES</div>
+      <button id="dp-collect-all-2" style="${this._css.btnW}">✓ Apanhar todas as plantas</button>
+      <button id="dp-spawn-farfalha" style="${this._css.btnW}">⊕ Respawn Farfalha (Limiar)</button>
+    </div>`; }
+
+  // ── Tab: Placas ───────────────────────────────────────────────────────────
+  _buildTabPlacas() { return `
+    <div id="dp-tab-placas" style="display:none">
+      <div style="${this._css.sec}">PLACA TAMANHO (ambas)</div>
+      ${this._sliderRow('placaSize','Tamanho px', 20, 400, 4, 70)}
+
+      <div style="${this._css.sec}">PLACA — CAMPO DOS VAGALUMES</div>
+      ${this._sliderRow('placaX','Campo X', 0, 2000, 5, 520)}
+      ${this._sliderRow('placaY','Campo Y', 0, 2000, 5, 400)}
+
+      <div style="${this._css.sec}">PLACA — LIMIAR SECRETO</div>
+      ${this._sliderRow('placaLimiarX',   'Limiar X',       0,    2000, 5,  280)}
+      ${this._sliderRow('placaLimiarYOff','Limiar Y (↓ top)',0,    1000, 5,  120)}
+    </div>`; }
+
+  // ── deco table (Transição tab) ────────────────────────────────────────────
+  _refreshDecoTable() {
+    const z1  = this._z1();
+    const el  = document.getElementById('dp-deco-rows');
+    if (!el) return;
+    const decos = z1?._tw?.decos;
+    if (!decos || decos.length === 0) { el.innerHTML = '<span style="color:#5a8c5a;font-size:10px">— nenhum deco carregado —</span>'; return; }
+
+    // Build rows only once per rebuild
+    if (el.dataset.built === String(decos.length)) return;
+    el.dataset.built = String(decos.length);
+    el.innerHTML = '';
+
+    decos.forEach((d, i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:grid;grid-template-columns:22px 1fr 1fr 1fr;gap:3px;align-items:center;padding:2px 0;border-bottom:1px solid #0f2a0f';
+      row.innerHTML = `
+        <span style="color:#7bc67e;font-size:10px">${d.n}</span>
+        <div style="display:flex;align-items:center;gap:2px">
+          <input type="range" id="dp-dc${i}-x" min="0" max="1" step="0.01"
+            value="${d.xFrac.toFixed(2)}" style="flex:1;accent-color:#7bc67e;height:13px">
+          <span id="dp-dc${i}-x-v" style="color:#9ed89e;font-size:9px;min-width:26px;text-align:right">${d.xFrac.toFixed(2)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <input type="range" id="dp-dc${i}-h" min="30" max="900" step="10"
+            value="${d.h}" style="flex:1;accent-color:#7bc67e;height:13px">
+          <span id="dp-dc${i}-h-v" style="color:#9ed89e;font-size:9px;min-width:26px;text-align:right">${d.h}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:2px">
+          <input type="range" id="dp-dc${i}-a" min="0" max="1" step="0.01"
+            value="${d.alpha.toFixed(2)}" style="flex:1;accent-color:#7bc67e;height:13px">
+          <span id="dp-dc${i}-a-v" style="color:#9ed89e;font-size:9px;min-width:22px;text-align:right">${d.alpha.toFixed(2)}</span>
+        </div>`;
+
+      // Wire sliders
+      row.querySelector(`#dp-dc${i}-x`).addEventListener('input', ev => {
+        const v = parseFloat(ev.target.value);
+        document.getElementById(`dp-dc${i}-x-v`).textContent = v.toFixed(2);
+        const deco = z1?._tw?.decos?.[i];
+        if (deco?.img) { deco.xFrac = v; deco.img.setX(Math.round(v * (z1._zoneW ?? 1920))); }
+      });
+      row.querySelector(`#dp-dc${i}-h`).addEventListener('input', ev => {
+        const v = parseFloat(ev.target.value);
+        document.getElementById(`dp-dc${i}-h-v`).textContent = v;
+        const deco = z1?._tw?.decos?.[i];
+        if (deco?.img) {
+          const src  = z1.textures.get(`z1_cl_${deco.n}`).getSourceImage();
+          const natW = src.width || 512, natH = src.height || 512;
+          deco.img.setDisplaySize(natW * (v / natH), v);
+          deco.h = v;
+        }
+      });
+      row.querySelector(`#dp-dc${i}-a`).addEventListener('input', ev => {
+        const v = parseFloat(ev.target.value);
+        document.getElementById(`dp-dc${i}-a-v`).textContent = v.toFixed(2);
+        const deco = z1?._tw?.decos?.[i];
+        if (deco?.img) { deco.alpha = v; deco.img.setAlpha(v); }
+      });
+
+      el.appendChild(row);
+    });
+  }
+
+  // ── limiar info panel ─────────────────────────────────────────────────────
+  _refreshLimiarInfo() {
+    const z1 = this._z1();
+    const el = document.getElementById('dp-limiar-info');
+    if (!el || !z1) return;
+    const ZH = z1._zoneH ?? 1080, TH = z1._transH ?? 400;
+    el.innerHTML =
+      `<span style="color:#5a8c5a">Y range</span> <b>-(${TH+ZH}) a -${TH}</b><br>` +
+      `<span style="color:#5a8c5a">Altura</span> <b>${ZH}px</b>&nbsp;&nbsp;` +
+      `<span style="color:#5a8c5a">TH</span> <b>${TH}px</b><br>` +
+      `<span style="color:#5a8c5a">Farfalha 1</span> y=<b>-(${TH}+380)=-${TH+380}</b><br>` +
+      `<span style="color:#5a8c5a">Farfalha 2</span> y=<b>-(${TH}+500)=-${TH+500}</b>`;
+  }
+
+  // ── plant list ────────────────────────────────────────────────────────────
+  _buildPlantsList() {
+    const z1 = this._z1();
+    const el = document.getElementById('dp-plants-list');
+    if (!el) return;
+    if (!z1?.plants?.length) { el.textContent = '—'; return; }
+    el.innerHTML = z1.plants.map(p => {
+      const col  = p.isCollected ? '#7bc67e' : '#8ac88a';
+      const mark = p.isCollected ? '✓' : '○';
+      const area = p.y < -(z1._transH ?? 400) ? 'limiar' : p.y < 0 ? 'trans' : p.x > (z1._zoneW ?? 1920) ? 'jardim' : 'campo';
+      return `<span style="color:${col}">${mark}</span> <b>${p.plantData?.id ?? '?'}</b>` +
+             ` <span style="color:#5a8c5a">${Math.round(p.x)},${Math.round(p.y)}</span>` +
+             ` <span style="color:#4a7a4a;font-size:9px">[${area}]</span>`;
+    }).join('<br>');
+  }
+
+  // ── teleport ──────────────────────────────────────────────────────────────
+  _teleport(x, y) {
+    const z1 = this._z1();
+    if (!z1?.player) { this._msg('Zona 1 não está ativa'); return; }
+    z1.player.setPosition(x, y);
+    if (z1.player.body) z1.player.body.reset(x, y);
+    this._msg(`→ ${Math.round(x)}, ${Math.round(y)} ✓`);
+  }
+
+  _tpPreset(name) {
+    const z1 = this._z1();
+    const ZW = z1?._zoneW ?? 1920, ZH = z1?._zoneH ?? 1080, TH = z1?._transH ?? 400;
+    const presets = {
+      campo:     [ZW * 0.33, ZH * 0.55],
+      transicao: [ZW * 0.33, -(TH * 0.5)],
+      limiar:    [ZW * 0.33, -(TH + ZH * 0.5)],
+      jardim:    [ZW + ZW * 0.4, ZH * 0.5],
+    };
+    const [x, y] = presets[name] || [640, 600];
+    this._teleport(x, y);
+  }
+
+  // ── wire events ───────────────────────────────────────────────────────────
+  _wireEvents() {
+    // Slider live-apply
+    const sliders = [
+      'zoom','playerSize','vagScale','vagQty','vagFreq','globalSizeMult',
+      'zoneW','zoneH','transH',
+      'tw-fundoAlpha','tw-caminhoAlpha','tw-caminhoY','tw-paredeAlpha',
+      'limiarDecoMult','campoDecoMult','jardimDecoMult',
+      'placaSize','placaX','placaY','placaLimiarX','placaLimiarYOff',
+      'plantScale',
+    ];
+    sliders.forEach(id => {
       const el  = document.getElementById(`dp-${id}`);
       const lbl = document.getElementById(`dp-${id}-lbl`);
+      if (!el) return;
       el.addEventListener('input', () => {
         const v = parseFloat(el.value);
-        lbl.textContent = this._fmt(v);
+        if (lbl) lbl.textContent = this._fmt(v);
         this._apply(id, v);
       });
     });
 
-    // ── teleport preset buttons ─────────────────────────────────────────────
-    scrollBox.querySelectorAll('[data-tp-x]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tx = parseFloat(btn.dataset.tpX);
-        const ty = parseFloat(btn.dataset.tpY);
-        this._teleport(tx, ty);
-      });
+    // Teleport presets
+    document.querySelectorAll('.dp-tp-preset').forEach(btn => {
+      btn.addEventListener('click', () => this._tpPreset(btn.dataset.tp));
     });
 
-    // ── custom teleport toggle ──────────────────────────────────────────────
-    document.getElementById('dp-tp-custom-btn').addEventListener('click', () => {
-      const box = document.getElementById('dp-tp-custom');
-      const showing = box.style.display === 'flex';
-      box.style.display = showing ? 'none' : 'flex';
-    });
+    // Custom teleport
     document.getElementById('dp-tp-go').addEventListener('click', () => {
-      const tx = parseFloat(document.getElementById('dp-tp-x').value);
-      const ty = parseFloat(document.getElementById('dp-tp-y').value);
-      if (!isNaN(tx) && !isNaN(ty)) this._teleport(tx, ty);
+      const x = parseFloat(document.getElementById('dp-tp-x').value);
+      const y = parseFloat(document.getElementById('dp-tp-y').value);
+      if (!isNaN(x) && !isNaN(y)) this._teleport(x, y);
     });
 
-    // ── restart zone ────────────────────────────────────────────────────────
+    // Restart zone
     document.getElementById('dp-restart-zone').addEventListener('click', () => {
       const z1 = this._z1();
       if (!z1) { this._msg('Zona 1 não está ativa'); return; }
       const wv = parseFloat(document.getElementById('dp-zoneW').value);
       const hv = parseFloat(document.getElementById('dp-zoneH').value);
+      const th = parseFloat(document.getElementById('dp-transH').value);
       this._game.registry.set('debugZoneW', wv);
       this._game.registry.set('debugZoneH', hv);
+      this._game.registry.set('debugTransH', th);
       z1.scene.restart();
-      this._msg(`Reiniciada ${wv}×${hv} ✓`);
+      this._msg(`Reiniciada ${wv}×${hv} TH=${th} ✓`);
+    });
+    document.getElementById('dp-restart-trans').addEventListener('click', () => {
+      const z1 = this._z1();
+      if (!z1) { this._msg('Zona 1 não está ativa'); return; }
+      const th = parseFloat(document.getElementById('dp-transH').value);
+      this._game.registry.set('debugZoneW', z1._zoneW);
+      this._game.registry.set('debugZoneH', z1._zoneH);
+      this._game.registry.set('debugTransH', th);
+      z1.scene.restart();
+      this._msg(`Reiniciada TH=${th} ✓`);
     });
 
-    // ── rebuild fireflies ───────────────────────────────────────────────────
+    // Rebuild fireflies
     document.getElementById('dp-rebuild-ff').addEventListener('click', () => {
       const z1 = this._z1();
-      if (z1?._rebuildFireflies) {
-        z1._rebuildFireflies();
-        this._msg('Vagalumes reconstruídos ✓');
+      if (z1?._rebuildFireflies) { z1._rebuildFireflies(); this._msg('Vagalumes ✓'); }
+      else this._msg('Zona 1 não está ativa');
+    });
+
+    // Rebuild transition wall
+    document.getElementById('dp-rebuild-trans').addEventListener('click', () => {
+      const z1 = this._z1();
+      if (z1?._rebuildTransition) {
+        z1._rebuildTransition();
+        document.getElementById('dp-deco-rows').dataset.built = '';
+        this._refreshDecoTable();
+        this._msg('Parede reconstruída ✓');
       } else {
         this._msg('Zona 1 não está ativa');
       }
     });
 
-    // ── copy config ─────────────────────────────────────────────────────────
-    document.getElementById('dp-copy').addEventListener('click', () => {
-      const z1 = this._z1();
-      if (!z1) { this._msg('Zona 1 não está ativa'); return; }
-      const cfg = {
-        zoom:          z1.cameras.main.zoom,
-        playerSize:    z1.player?.displayWidth ?? 260,
-        vagScale:      z1._vagScale     ?? 1.0,
-        vagQty:        z1._vagQty       ?? 12,
-        vagFreq:       z1._vagFreq      ?? 700,
-        decoMult:      z1._decoMult     ?? 1.0,
-        globalSizeMult:z1._globalSizeMult ?? 1.0,
-        zoneW:         z1._zoneW        ?? 1920,
-        zoneH:         z1._zoneH        ?? 1080,
-        placaSize:     z1._placaSize    ?? 70,
-        placaCampoX:   z1._placaCampoX  ?? 520,
-        placaCampoY:   z1._placaCampoY  ?? 400,
-      };
-      navigator.clipboard.writeText(JSON.stringify(cfg, null, 2))
-        .then(() => this._msg('Copiado ✓'))
-        .catch(() => this._msg(JSON.stringify(cfg)));
-    });
-
-    // ── collect all plants ──────────────────────────────────────────────────
-    document.getElementById('dp-collect-all').addEventListener('click', () => {
+    // Collect all (both buttons)
+    const collectAll = () => {
       const z1 = this._z1();
       if (!z1) { this._msg('Zona 1 não está ativa'); return; }
       if (z1.plants) {
@@ -324,128 +596,164 @@ export class DebugPanel {
         });
       }
       this._msg('Todas as plantas apanhadas ✓');
+    };
+    document.getElementById('dp-collect-all').addEventListener('click', collectAll);
+    document.getElementById('dp-collect-all-2').addEventListener('click', collectAll);
+
+    // Spawn farfalha button
+    document.getElementById('dp-spawn-farfalha').addEventListener('click', () => {
+      const z1 = this._z1();
+      if (!z1) { this._msg('Zona 1 não está ativa'); return; }
+      const xf0 = parseFloat(document.getElementById('dp-lp0-xfrac').value);
+      const yo0 = parseFloat(document.getElementById('dp-lp0-yoff').value);
+      const xf1 = parseFloat(document.getElementById('dp-lp1-xfrac').value);
+      const yo1 = parseFloat(document.getElementById('dp-lp1-yoff').value);
+      // Update live scene values — affects next restart
+      z1._limiarPlantXfrac = [xf0, xf1];
+      z1._limiarPlantYOff  = [yo0, yo1];
+      this._refreshLimiarInfo();
+      this._msg(`Farfalha posições atualizadas (reinicia p/ efeito)`);
+    });
+
+    // Copy config
+    document.getElementById('dp-copy').addEventListener('click', () => {
+      const z1 = this._z1();
+      if (!z1) { this._msg('Zona 1 não está ativa'); return; }
+      const cfg = {
+        zoom:           z1.cameras.main.zoom,
+        playerSize:     z1.player?.displayWidth ?? 260,
+        vagScale:       z1._vagScale    ?? 1.0,
+        vagQty:         z1._vagQty      ?? 12,
+        vagFreq:        z1._vagFreq     ?? 700,
+        zoneW:          z1._zoneW       ?? 1920,
+        zoneH:          z1._zoneH       ?? 1080,
+        transH:         z1._transH      ?? 400,
+        globalSizeMult: z1._globalSizeMult ?? 1.0,
+        campoDecoMult:  z1._campoDecoMult  ?? 1.0,
+        jardimDecoMult: z1._jardimDecoMult ?? 1.0,
+        limiarDecoMult: z1._limiarDecoMult ?? 1.0,
+        placaSize:      z1._placaSize   ?? 70,
+        placaCampoX:    z1._placaCampoX ?? 520,
+        placaCampoY:    z1._placaCampoY ?? 400,
+        placaLimiarX:   z1._placaLimiarX   ?? 280,
+        placaLimiarYOff:z1._placaLimiarYOff ?? 120,
+        tw: {
+          fundoAlpha:   z1._tw?.fundoParede?.alpha ?? 0.5,
+          caminhoAlpha: z1._tw?.caminho?.alpha     ?? 0.9,
+          caminhoY:     z1._tw?.caminho?.y         ?? 0,
+          paredeAlpha:  z1._tw?.parede?.alpha      ?? 1.0,
+          decos: (z1._tw?.decos || []).map(d => ({
+            n: d.n, xFrac: +d.xFrac.toFixed(3), h: d.h, alpha: +d.alpha.toFixed(2)
+          })),
+        },
+      };
+      navigator.clipboard.writeText(JSON.stringify(cfg, null, 2))
+        .then(() => this._msg('Copiado ✓'))
+        .catch(() => this._msg(JSON.stringify(cfg).slice(0, 120) + '…'));
     });
   }
 
-  _teleport(x, y) {
-    const z1 = this._z1();
-    if (!z1?.player) { this._msg('Zona 1 não está ativa'); return; }
-    z1.player.setPosition(x, y);
-    if (z1.player.body) z1.player.body.reset(x, y);
-    this._msg(`Teletransportado → ${x}, ${y} ✓`);
-  }
-
-  _msg(text) {
-    const el = document.getElementById('dp-msg');
-    if (!el) return;
-    el.textContent = text;
-    clearTimeout(this._msgTimer);
-    this._msgTimer = setTimeout(() => { el.textContent = ''; }, 3000);
-  }
-
-  _buildPlantsList() {
-    const z1 = this._z1();
-    const el = document.getElementById('dp-plants-list');
-    if (!el) return;
-
-    const { PLANT_SPAWNS } = this._getPlantSpawns(z1);
-    if (!PLANT_SPAWNS || PLANT_SPAWNS.length === 0) {
-      el.textContent = '—'; return;
-    }
-    el.innerHTML = PLANT_SPAWNS.map(s => {
-      const collected = z1 ? (z1.plants?.find(p => p.plantData?.id === s.id && p.isCollected) ? '✓' : '○') : '?';
-      const col = collected === '✓' ? '#7bc67e' : '#8ac88a';
-      return `<span style="color:${col}">${collected}</span> <b>${s.id}</b> <span style="color:#5a8c5a">${s.x},${s.y}</span>`;
-    }).join('<br>');
-  }
-
-  _getPlantSpawns(z1) {
-    if (!z1) return { PLANT_SPAWNS: [] };
-    // Read from Zone1Scene's plant list
-    const spawns = (z1.plants || []).map(p => ({
-      id: p.plantData?.id ?? '?',
-      x:  Math.round(p.x),
-      y:  Math.round(p.y),
-    }));
-    return { PLANT_SPAWNS: spawns };
-  }
-
-  // ── apply change to live scene ────────────────────────────────────────────
+  // ── apply slider change to live scene ────────────────────────────────────
   _apply(id, v) {
     const z1 = this._z1();
     if (!z1) return;
 
     switch (id) {
       case 'zoom':
-        z1.cameras.main.setZoom(v);
-        break;
+        z1.cameras.main.setZoom(v); break;
 
       case 'playerSize':
-        if (z1.player) z1.player.setDisplaySize(v, v);
-        break;
+        z1.player?.setDisplaySize(v, v); break;
 
       case 'vagScale':
         z1._vagScale = v;
-        if (z1._rebuildFireflies) z1._rebuildFireflies();
-        break;
+        z1._rebuildFireflies?.(); break;
 
       case 'vagQty':
         z1._vagQty = v;
-        if (z1.campoEmitter)  z1.campoEmitter.quantity  = v;
-        if (z1.sparseEmitter) z1.sparseEmitter.quantity = Math.max(1, Math.round(v / 2));
-        break;
+        if (z1.campoEmitter) z1.campoEmitter.quantity = v; break;
 
       case 'vagFreq':
         z1._vagFreq = v;
-        if (z1.campoEmitter)  z1.campoEmitter.frequency  = v;
-        if (z1.sparseEmitter) z1.sparseEmitter.frequency = v * 3;
-        break;
-
-      case 'decoMult':
-        z1._decoMult = v;
-        if (z1.decoImages) {
-          const gm = z1._globalSizeMult ?? 1.0;
-          z1.decoImages.forEach(({ img, baseSize }) =>
-            img.setDisplaySize(baseSize * v * gm, baseSize * v * gm)
-          );
-        }
-        break;
-
-      case 'placaSize':
-        z1._placaSize = v;
-        { const gm = z1._globalSizeMult ?? 1.0;
-          if (z1.placaCampo)  z1.placaCampo.setDisplaySize(v * gm, v * gm);
-          if (z1.placaLimiar) z1.placaLimiar.setDisplaySize(v * gm, v * gm); }
-        break;
-
-      case 'placaX':
-        z1._placaCampoX = v;
-        if (z1.placaCampo) z1.placaCampo.setX(v);
-        break;
-
-      case 'placaY':
-        z1._placaCampoY = v;
-        if (z1.placaCampo) z1.placaCampo.setY(v);
-        break;
-
-      case 'zoneW':
-      case 'zoneH':
-        this._msg(`${id}=${v} → clica "↺ Reiniciar Zona"`);
-        break;
+        if (z1.campoEmitter) z1.campoEmitter.frequency = v; break;
 
       case 'globalSizeMult':
         z1._globalSizeMult = v;
         this._game.registry.set('debugGlobalSizeMult', v);
-        if (z1.decoImages) {
-          const dm = z1._decoMult ?? 1.0;
-          z1.decoImages.forEach(({ img, baseSize }) =>
-            img.setDisplaySize(baseSize * dm * v, baseSize * dm * v)
-          );
-        }
+        z1.decoImages?.forEach(({ img, baseSize }) => img.setDisplaySize(baseSize * v, baseSize * v));
         { const ps = z1._placaSize ?? 70;
-          if (z1.placaCampo)  z1.placaCampo.setDisplaySize(ps * v, ps * v);
-          if (z1.placaLimiar) z1.placaLimiar.setDisplaySize(ps * v, ps * v); }
+          z1.placaCampo?.setDisplaySize(ps * v, ps * v);
+          z1.placaLimiar?.setDisplaySize(ps * v, ps * v); }
         break;
+
+      case 'zoneW':
+      case 'zoneH':
+        this._msg(`${id}=${v} → clica ↺ Reiniciar`); break;
+
+      case 'transH':
+        this._msg(`transH=${v} → clica ↺ Reiniciar`); break;
+
+      // ── Transition wall live adjustments ─────────────────────────────────
+      case 'tw-fundoAlpha':
+        z1._tw?.fundoParede?.setAlpha(v); break;
+
+      case 'tw-caminhoAlpha':
+        z1._tw?.caminho?.setAlpha(v); break;
+
+      case 'tw-caminhoY':
+        z1._tw?.caminho?.setY(v); break;
+
+      case 'tw-paredeAlpha':
+        z1._tw?.parede?.setAlpha(v); break;
+
+      // ── Per-zone deco mults ───────────────────────────────────────────────
+      case 'campoDecoMult':
+        z1._campoDecoMult = v;
+        { const gm = z1._globalSizeMult ?? 1.0;
+          z1.campoDecos?.forEach(({ img, baseSize }) => img.setDisplaySize(baseSize * v * gm, baseSize * v * gm)); }
+        break;
+
+      case 'jardimDecoMult':
+        z1._jardimDecoMult = v;
+        { const gm = z1._globalSizeMult ?? 1.0;
+          z1.jardimDecos?.forEach(({ img, baseSize }) => img.setDisplaySize(baseSize * v * gm, baseSize * v * gm)); }
+        break;
+
+      case 'limiarDecoMult':
+        z1._limiarDecoMult = v;
+        { const gm = z1._globalSizeMult ?? 1.0;
+          z1.limiarDecos?.forEach(({ img, baseSize }) => img.setDisplaySize(baseSize * v * gm, baseSize * v * gm)); }
+        break;
+
+      // ── Placas ────────────────────────────────────────────────────────────
+      case 'placaSize':
+        z1._placaSize = v;
+        { const gm = z1._globalSizeMult ?? 1.0;
+          z1.placaCampo?.setDisplaySize(v * gm, v * gm);
+          z1.placaLimiar?.setDisplaySize(v * gm, v * gm); }
+        break;
+
+      case 'placaX':
+        z1._placaCampoX = v;
+        z1.placaCampo?.setX(v); break;
+
+      case 'placaY':
+        z1._placaCampoY = v;
+        z1.placaCampo?.setY(v); break;
+
+      case 'placaLimiarX':
+        z1._placaLimiarX = v;
+        z1.placaLimiar?.setX(v); break;
+
+      case 'placaLimiarYOff':
+        z1._placaLimiarYOff = v;
+        z1.placaLimiar?.setY(-(z1._transH + z1._zoneH - v)); break;
+
+      // ── Plant scale ───────────────────────────────────────────────────────
+      case 'plantScale':
+        z1.plants?.forEach(p => {
+          if (!p.isCollected) p.sprite?.setDisplaySize(80 * v, 80 * v);
+        }); break;
     }
   }
 }

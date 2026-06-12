@@ -305,8 +305,9 @@ export class HUDScene extends Phaser.Scene {
   _worldToMinimap(zone, x, y) {
     const mmX  = this._mmX, mmY = this._mmY;
     const MMW  = this._mmW, MMH = this._mmH;
-    const ZW   = this.game.registry.get('debugZoneW') ?? 1920;
-    const ZH   = this.game.registry.get('debugZoneH') ?? 1080;
+    const ZW   = this.game.registry.get('debugZoneW')  ?? 1920;
+    const ZH   = this.game.registry.get('debugZoneH')  ?? 1080;
+    const TH   = this.game.registry.get('debugTransH') ?? 400;
 
     let rx0, ry0, rx1, ry1;
 
@@ -315,9 +316,14 @@ export class HUDScene extends Phaser.Scene {
       if (x >= ZW) {
         subArea = MAP_ZONE_REGIONS.Zone1.jardim;
         lx = x - ZW; ly = y;
-      } else if (y < 0) {
+      } else if (y < -TH) {
+        // Limiar Secreto — remap y from -(ZH+TH)..−TH → 0..ZH
         subArea = MAP_ZONE_REGIONS.Zone1.limiar;
-        lx = x; ly = y + ZH;
+        lx = x; ly = -(y + TH);
+      } else if (y < 0) {
+        // Transição Parede — show in limiar region of minimap (lower part)
+        subArea = MAP_ZONE_REGIONS.Zone1.limiar;
+        lx = x; ly = TH - (-y);  // 0 at bottom of trans, TH at top
       } else {
         subArea = MAP_ZONE_REGIONS.Zone1.campo;
         lx = x; ly = y;

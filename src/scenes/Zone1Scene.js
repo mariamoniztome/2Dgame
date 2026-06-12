@@ -8,33 +8,39 @@ import { Plant } from '../objects/Plant.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
 
-// Zone 1 — L-shaped world:
-//   Campo dos Vagalumes  x:0–1280    y:0–720    (start area)
-//   Limiar Secreto       x:0–1280    y:-720–0   (above campo, reached by climbing vine)
-//   Jardim Invertido     x:1280–2560 y:0–720    (right of campo)
-//   Dead zone            x:1280–2560 y:-720–0   (blocked by physics walls)
+// Zone 1 — L-shaped world (ZW = debugZoneW, ZH = debugZoneH, TH = debugTransH):
+//   Campo dos Vagalumes     x:0–ZW      y:0–ZH          (#afd6a8)
+//   Transição Parede        x:0–ZW      y:-TH–0         (#2a4030, plant wall zone)
+//   Limiar Secreto          x:0–ZW      y:-(ZH+TH)– -TH (#355138)
+//   Jardim Invertido        x:ZW–ZW*2   y:0–ZH          (#6d8469)
+//   Dead zone               x:ZW–ZW*2   y:-(ZH+TH)–0    (blocked)
 const ZONE_W = 1280;
 const ZONE_H = 720;
 
 const AREAS = {
-  campoVagalumes:  { label: 'Campo dos Vagalumes' },
-  jardimInvertido: { label: 'Jardim Invertido'    },
-  limiarSecreto:   { label: 'Limiar Secreto'      },
+  campoVagalumes:  { label: 'Campo dos Vagalumes'          },
+  transicaoParede: { label: 'Transição — Parede de Plantas' },
+  limiarSecreto:   { label: 'Limiar Secreto'                },
+  jardimInvertido: { label: 'Jardim Invertido'              },
 };
 
-// Vine/Trepadeira sits near the top of Campo, giving access to Limiar (above)
+// Vine/Trepadeira hangs at top of Campo — gateway to the Transição zone
 const VINE_X = 640;
 const VINE_Y = 90;
-const VINE_CLIMB_Y = -100;   // y-position just inside Limiar after climbing
+// After climbing the vine the player lands mid-transition: y = -(transH * 0.5)
+// (computed dynamically in _climbVine so it tracks debugTransH changes)
 
 const PLANT_SPAWNS = [
   { id: 'ventoinha',  x: 92,   y: 1007 },   // campo
   { id: 'ventoinha',  x: 1718, y: 413  },   // campo
   { id: 'gotateia',   x: 2220, y: 320  },   // jardim
   { id: 'gotateia',   x: 2790, y: 520  },   // jardim
-  { id: 'farfalha',   x: 420,  y: -380 },   // limiar
-  { id: 'farfalha',   x: 960,  y: -500 },   // limiar
   { id: 'trepadeira', x: 580,  y: 120  },   // campo near vine
+];
+// Limiar plants: positions relative to _transH so they always land in Limiar
+const LIMIAR_PLANT_SPAWNS = [
+  { id: 'farfalha', xFrac: 0.22, yOff: 380 },
+  { id: 'farfalha', xFrac: 0.50, yOff: 500 },
 ];
 
 export class Zone1Scene extends Phaser.Scene {
@@ -48,17 +54,23 @@ export class Zone1Scene extends Phaser.Scene {
     this._zoneH = this.game.registry.get('debugZoneH') ?? 1080;
 
     // Debug-adjustable defaults (keep existing values on scene.restart)
+    if (this._transH         === undefined) this._transH         = this.game.registry.get('debugTransH')        ?? 400;
     if (this._vagScale       === undefined) this._vagScale       = 1.0;
     if (this._vagQty         === undefined) this._vagQty         = 12;
     if (this._vagFreq        === undefined) this._vagFreq        = 700;
     if (this._decoMult       === undefined) this._decoMult       = 1.0;
+    if (this._campoDecoMult  === undefined) this._campoDecoMult  = 1.0;
+    if (this._jardimDecoMult === undefined) this._jardimDecoMult = 1.0;
+    if (this._limiarDecoMult === undefined) this._limiarDecoMult = 1.0;
     if (this._placaSize      === undefined) this._placaSize      = 70;
     if (this._placaCampoX    === undefined) this._placaCampoX    = 520;
     if (this._placaCampoY    === undefined) this._placaCampoY    = 400;
+    if (this._placaLimiarX   === undefined) this._placaLimiarX   = 280;
+    if (this._placaLimiarYOff=== undefined) this._placaLimiarYOff= 120; // from top of Limiar
     if (this._globalSizeMult === undefined) this._globalSizeMult = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
 
-    // L-shaped world physics bounds
-    this.physics.world.setBounds(0, -this._zoneH, this._zoneW * 2, this._zoneH * 2);
+    // L-shaped world physics bounds (includes transition zone above campo)
+    this.physics.world.setBounds(0, -(this._zoneH + this._transH), this._zoneW * 2, this._zoneH * 2 + this._transH);
 
     this._buildBackground();
     this._buildDecorations();
@@ -70,7 +82,7 @@ export class Zone1Scene extends Phaser.Scene {
     let startX = 640, startY = Math.round(this._zoneH * 0.62);
     if (startArea === 'limiarSecreto') {
       startX = Math.round(this._zoneW * 0.35);
-      startY = Math.round(-this._zoneH * 0.5);
+      startY = Math.round(-(this._transH + this._zoneH * 0.5));
     } else if (startArea === 'jardimInvertido') {
       startX = Math.round(this._zoneW + this._zoneW * 0.4);
       startY = Math.round(this._zoneH * 0.5);
@@ -160,13 +172,14 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Background — L-shaped, sized by _zoneW × _zoneH
-  //    Campo   x:0–_zoneW    y:0–_zoneH    (#afd6a8)
-  //    Limiar  x:0–_zoneW    y:-_zoneH–0   (#355138)
-  //    Jardim  x:_zoneW–*2   y:0–_zoneH    (#6d8469)
+  //  Background — L-shaped world with separate transition zone
+  //    Campo       y:0–ZH           (#afd6a8)
+  //    Transição   y:-TH–0          (#2a4030, plant wall belt)
+  //    Limiar      y:-(ZH+TH)– -TH  (#355138)
+  //    Jardim      x:ZW–ZW*2, y:0–ZH (#6d8469)
   // ─────────────────────────────────────────────────────────────────────────
   _buildBackground() {
-    const ZW = this._zoneW, ZH = this._zoneH;
+    const ZW = this._zoneW, ZH = this._zoneH, TH = this._transH;
     const g = this.add.graphics().setDepth(0);
 
     // ── Campo dos Vagalumes ───────────────────────────────────────────
@@ -180,72 +193,81 @@ export class Zone1Scene extends Phaser.Scene {
         .setOrigin(0.5).setDisplaySize(ZW, ZH).setDepth(2).setAlpha(0.7);
     }
 
-    // ── Limiar Secreto (above campo) ─────────────────────────────────
-    g.fillStyle(0x355138, 1); g.fillRect(0, -ZH, ZW, ZH);
+    // ── Transição — Parede de Plantas (y:-TH–0) ──────────────────────
+    g.fillStyle(0x2a4030, 1); g.fillRect(0, -TH, ZW, TH);
+
+    // ── Limiar Secreto (above transition, y:-(ZH+TH)– -TH) ──────────
+    g.fillStyle(0x355138, 1); g.fillRect(0, -(ZH + TH), ZW, ZH);
 
     // ── Jardim Invertido (right of campo) ────────────────────────────
     g.fillStyle(0x6d8469, 1); g.fillRect(ZW, 0, ZW, ZH);
 
-    // ── Dead-zone fill (top-right) ───────────────────────────────────
-    g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -ZH, ZW, ZH);
+    // ── Dead-zone fill (top-right, full transition+limiar height) ────
+    g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -(ZH + TH), ZW, ZH + TH);
 
-    // ── Campo ↔ Limiar plant wall (y=0) ─────────────────────────────
+    // ── Transition wall art (y:-TH–0) ───────────────────────────────
     this._buildTransitionWall(ZW, ZH);
 
     // ── Campo ↔ Jardim gradient (x=ZW) ──────────────────────────────
     this._buildJardimTransition(ZW, ZH);
 
     // Location signs
+    const gm = this._globalSizeMult ?? 1.0;
+    const ps = this._placaSize * gm;
     if (this.textures.exists('z1_placa_campo')) {
       this.placaCampo = this.add.image(this._placaCampoX, this._placaCampoY, 'z1_placa_campo')
-        .setDisplaySize(this._placaSize, this._placaSize).setDepth(4);
+        .setDisplaySize(ps, ps).setDepth(4);
     }
     if (this.textures.exists('z1_placa_limiar')) {
-      this.placaLimiar = this.add.image(280, -ZH + 120, 'z1_placa_limiar')
-        .setDisplaySize(this._placaSize, this._placaSize).setDepth(4);
+      const lx = this._placaLimiarX;
+      const ly = -(TH + ZH - this._placaLimiarYOff);
+      this.placaLimiar = this.add.image(lx, ly, 'z1_placa_limiar')
+        .setDisplaySize(ps, ps).setDepth(4);
     }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Transition wall — Campo dos Vagalumes ↔ Limiar Secreto border (y=0)
+  //  Transition wall — fills Transição zone (y:-TH–0)
+  //  All objects stored in this._tw for live debug adjustment.
   //
   //  Layers (bottom → top):
-  //    1. Fundo_ParedãodePlantas  (deep background glow)      depth 1
-  //    2. Caminho_Transição       (path through the wall)      depth 2
-  //    3. ParedãodePlantas        (main plant wall)            depth 3
-  //    4. Individual campo_limiar elements (decoration)        depth 4–6
+  //    1. Fundo_ParedãodePlantas  (deep background glow)       depth 1
+  //    2. Caminho_Transição       (path through the wall)       depth 2
+  //    3. ParedãodePlantas        (main plant wall)             depth 3
+  //    4. Individual z1_cl_ elements (decoration)              depth 3–6
   // ─────────────────────────────────────────────────────────────────────────
   _buildTransitionWall(ZW, ZH) {
+    const TH = this._transH;
     const cx = ZW / 2;
+    this._tw = { decos: [] };
 
     // ── 1. Background glow (Fundo_ParedãodePlantas) — viewBox 2077×1550 ──
     if (this.textures.exists('z1_fundo_parede')) {
-      const h = ZW * (1550 / 2077);
-      this.add.image(cx, 0, 'z1_fundo_parede')
+      const h = Math.max(TH * 1.5, ZW * (1550 / 2077));
+      this._tw.fundoParede = this.add.image(cx, 0, 'z1_fundo_parede')
         .setOrigin(0.5, 1).setDisplaySize(ZW * (2077 / 1920), h)
         .setDepth(1).setAlpha(0.50);
     }
 
     // ── 2. Path overlay (Caminho_Transição) — viewBox 1920×525 ───────────
     if (this.textures.exists('z1_caminho')) {
-      const h = ZW * (525 / 1920);
-      this.add.image(cx, 0, 'z1_caminho')
+      const h = Math.min(TH * 0.65, ZW * (525 / 1920));
+      const cy = -(TH * 0.15);
+      this._tw.caminho = this.add.image(cx, cy, 'z1_caminho')
         .setOrigin(0.5, 0.5).setDisplaySize(ZW, h)
         .setDepth(2).setAlpha(0.90);
     }
 
     // ── 3. Main plant wall (ParedãodePlantas) — viewBox 1920×1735 ─────────
-    // Origin (0.5, 1) → base at y=0, wall grows upward into Limiar
+    // Origin (0.5, 1) → base at y=0, wall grows upward into transition zone
     if (this.textures.exists('z1_parede')) {
       const h = ZW * (1735 / 1920);
-      this.add.image(cx, 0, 'z1_parede')
+      this._tw.parede = this.add.image(cx, 0, 'z1_parede')
         .setOrigin(0.5, 1).setDisplaySize(ZW, h)
         .setDepth(3).setAlpha(1.0);
     }
 
     // ── 4. Individual decorative elements ─────────────────────────────────
-    const nums = ['01','02','03','04','05','06','07','08','09','10',
-                  '11','12','13','14','15','16','17','18','19'];
     const placements = [
       // [key-suffix, x-fraction-of-ZW, render-height, depth, alpha]
       ['16', 0.04,  480, 4, 0.88],
@@ -262,10 +284,8 @@ export class Zone1Scene extends Phaser.Scene {
       ['12', 0.78,  420, 5, 0.90],
       ['03', 0.87,  480, 4, 0.88],
       ['01', 0.97,  420, 4, 0.90],
-      // Tall background panels
       ['07', 0.18,  680, 3, 0.65],
       ['19', 0.72,  680, 3, 0.63],
-      // Small detail elements near ground
       ['04', 0.06,  250, 6, 0.95],
       ['15', 0.42,  250, 6, 0.93],
       ['05', 0.58,  100, 6, 0.88],
@@ -280,10 +300,23 @@ export class Zone1Scene extends Phaser.Scene {
       const natW = src.width  || 512;
       const natH = src.height || 512;
       const w    = natW * (h / natH);
-      this.add.image(Math.round(xf * ZW), 0, key)
+      const img  = this.add.image(Math.round(xf * ZW), 0, key)
         .setOrigin(0.5, 1).setDisplaySize(w, h)
         .setDepth(depth).setAlpha(alpha);
+      this._tw.decos.push({ img, n, xFrac: xf, h, baseH: h, alpha, depth });
     });
+  }
+
+  // Destroy and rebuild all transition wall objects (called from debug panel)
+  _rebuildTransition() {
+    if (this._tw) {
+      this._tw.fundoParede?.destroy();
+      this._tw.caminho?.destroy();
+      this._tw.parede?.destroy();
+      (this._tw.decos || []).forEach(d => d.img?.destroy());
+      this._tw = null;
+    }
+    this._buildTransitionWall(this._zoneW, this._zoneH);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -307,13 +340,18 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Decorations — dense grid across all three vertical sub-areas
+  //  Decorations — dense grid across all sub-areas; per-zone deco arrays
+  //  stored for live debug adjustment.
   // ─────────────────────────────────────────────────────────────────────────
   _buildDecorations() {
-    this.decoImages = [];
-    const m = this._decoMult ?? 1;
+    this.decoImages  = [];   // combined (backward compat)
+    this.campoDecos  = [];
+    this.jardimDecos = [];
+    this.limiarDecos = [];
+    const gm = this._globalSizeMult ?? 1.0;
 
-    // ── Campo (x:0–1280, y:0–720) ────────────────────────────────────────
+    // ── Campo (x:0–ZW, y:0–ZH) ───────────────────────────────────────────
+    const cm = this._campoDecoMult ?? 1.0;
     const campoNums = ['02','03','04','05','06','07','08','09','10','11',
                        '13','14','17','18','19','20','21','22','23','24','25'];
     const ck = campoNums.filter(n => this.textures.exists(`z1_campo_${n}`))
@@ -357,12 +395,14 @@ export class Zone1Scene extends Phaser.Scene {
     if (ck.length > 0) {
       CAMPO_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, ck[i % ck.length])
-          .setDisplaySize(s * m, s * m).setDepth(3);
+          .setDisplaySize(s * cm * gm, s * cm * gm).setDepth(3);
+        this.campoDecos.push({ img, baseSize: s });
         this.decoImages.push({ img, baseSize: s });
       });
     }
 
-    // ── Jardim Invertido  x:_zoneW–_zoneW*2, y:0–_zoneH ─────────────────
+    // ── Jardim Invertido  x:ZW–ZW*2, y:0–ZH ─────────────────────────────
+    const jm = this._jardimDecoMult ?? 1.0;
     const transNums = ['01','02','03','04','05','06','07','08','09','10',
                        '11','12','13','14','15','16','17','18','19'];
     const tk = transNums.filter(n => this.textures.exists(`z1_trans_${n}`))
@@ -378,13 +418,16 @@ export class Zone1Scene extends Phaser.Scene {
           const x = Math.round(ZW + rx*ZW + jx), y = Math.round(ry*ZH + jy);
           const s = szJ[ji++ % szJ.length];
           const img = this.add.image(x, y, tk[ji % tk.length])
-            .setDisplaySize(s * m, s * m).setDepth(3).setAlpha(0.88);
+            .setDisplaySize(s * jm * gm, s * jm * gm).setDepth(3).setAlpha(0.88);
+          this.jardimDecos.push({ img, baseSize: s });
           this.decoImages.push({ img, baseSize: s });
         });
       });
     }
 
-    // ── Limiar Secreto  x:0–_zoneW, y:-_zoneH–0 ──────────────────────────
+    // ── Limiar Secreto  x:0–ZW, y:-(ZH+TH)– -TH ─────────────────────────
+    const lm  = this._limiarDecoMult ?? 1.0;
+    const TH  = this._transH;
     const limiarNums = ['03','04','05','06','07','08','09','11','12','13','14','15',
                         '16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'];
     const lk = limiarNums.filter(n => this.textures.exists(`z1_limiar_${n}`))
@@ -397,10 +440,12 @@ export class Zone1Scene extends Phaser.Scene {
       [0.93,0.75,0.57,0.38,0.18].forEach((ry, row) => {
         [0.05,0.22,0.39,0.56,0.73,0.90].forEach((rx, col) => {
           const jx = (col%2===0?-1:1)*0.012*ZW, jy = (row%2===0?-1:1)*0.015*ZH;
-          const x = Math.round(rx*ZW + jx), y = Math.round(-ry*ZH + jy);
+          const x = Math.round(rx*ZW + jx);
+          const y = Math.round(-(TH + ry*ZH) + jy);  // offset by TH above transition
           const s = szL[li++ % szL.length];
           const img = this.add.image(x, y, lk[li % lk.length])
-            .setDisplaySize(s * m, s * m).setDepth(3).setAlpha(0.85);
+            .setDisplaySize(s * lm * gm, s * lm * gm).setDepth(3).setAlpha(0.85);
+          this.limiarDecos.push({ img, baseSize: s });
           this.decoImages.push({ img, baseSize: s });
         });
       });
@@ -433,6 +478,7 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _buildPlants() {
+    const TH = this._transH, ZW = this._zoneW;
     this.plants = [];
     PLANT_SPAWNS.forEach(({ id, x, y }) => {
       if (GameState.collected.has(id)) return;
@@ -440,12 +486,18 @@ export class Zone1Scene extends Phaser.Scene {
       if (!plantData) return;
       this.plants.push(new Plant(this, x, y, plantData));
     });
+    LIMIAR_PLANT_SPAWNS.forEach(({ id, xFrac, yOff }) => {
+      if (GameState.collected.has(id)) return;
+      const plantData = PLANTS[id];
+      if (!plantData) return;
+      this.plants.push(new Plant(this, Math.round(xFrac * ZW), -(TH + yOff), plantData));
+    });
   }
 
   _buildPortal() {
     const locked = !this._vineClimbed;
     // Portal sits deep in Limiar Secreto (x center, high up)
-    this.portal = new Portal(this, ZONE_W / 2, -ZONE_H + 100, {
+    this.portal = new Portal(this, this._zoneW / 2, -(this._transH + this._zoneH - 100), {
       portalId: 'zone1_limiar',
       destination: 'Zone2',
       locked,
@@ -541,7 +593,8 @@ export class Zone1Scene extends Phaser.Scene {
     const px = this.player.x, py = this.player.y;
     let area = 'campoVagalumes';
     if (px >= this._zoneW && py >= 0) area = 'jardimInvertido';
-    else if (py < 0)                  area = 'limiarSecreto';
+    else if (py < -this._transH)      area = 'limiarSecreto';
+    else if (py < 0)                  area = 'transicaoParede';
 
     if (area !== this._currentArea) {
       const prev = this._currentArea;
@@ -584,8 +637,8 @@ export class Zone1Scene extends Phaser.Scene {
       // Right column only — no dead zone above, no campo to the left
       this.cameras.main.setBounds(ZW, 0, ZW, ZH);
     } else {
-      // Left column: campo + limiar — no jardim, no dead zone
-      this.cameras.main.setBounds(0, -ZH, ZW, ZH * 2);
+      // Left column: campo + transição + limiar
+      this.cameras.main.setBounds(0, -(ZH + this._transH), ZW, ZH * 2 + this._transH);
     }
   }
 
@@ -723,7 +776,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.tweens.add({
       targets: this.player,
       x: VINE_X,
-      y: VINE_CLIMB_Y,
+      y: -(this._transH * 0.5),  // lands in middle of transition zone
       duration: 1200,
       ease: 'Sine.easeInOut',
       onComplete: () => {
