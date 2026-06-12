@@ -218,6 +218,46 @@ export class DebugPanel {
       tabBar.appendChild(btn);
     });
 
+    // ── inspector bar (selected object) ─────────────────────────────────────
+    const inspector = document.createElement('div');
+    inspector.id = 'dp-inspector';
+    Object.assign(inspector.style, {
+      display:      'none',
+      background:   '#0a2510',
+      borderBottom: '1px solid #2a6a2a',
+      padding:      '5px 14px',
+      flexShrink:   '0',
+      fontSize:     '10px',
+    });
+    inspector.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span id="dp-ins-label" style="color:#7bc67e;font-weight:bold;font-size:11px">—</span>
+        <button id="dp-ins-desel" style="background:none;border:1px solid #3a5a3a;color:#5a9c5a;
+          border-radius:3px;padding:1px 6px;cursor:pointer;font-size:10px">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        <div>
+          <div style="color:#5a8c5a;margin-bottom:1px">X <span id="dp-ins-x" style="color:#fff">—</span></div>
+          <input type="number" id="dp-ins-xi" step="1" style="width:100%;background:#050f05;color:#9ed89e;
+            border:1px solid #2a5a2a;border-radius:3px;padding:2px 4px;font-size:10px;font-family:monospace">
+        </div>
+        <div>
+          <div style="color:#5a8c5a;margin-bottom:1px">Y <span id="dp-ins-y" style="color:#fff">—</span></div>
+          <input type="number" id="dp-ins-yi" step="1" style="width:100%;background:#050f05;color:#9ed89e;
+            border:1px solid #2a5a2a;border-radius:3px;padding:2px 4px;font-size:10px;font-family:monospace">
+        </div>
+        <div>
+          <div style="color:#5a8c5a;margin-bottom:1px">W <span id="dp-ins-w" style="color:#fff">—</span></div>
+          <input type="range" id="dp-ins-wi" min="10" max="4000" step="2"
+            style="width:100%;accent-color:#7bc67e;height:14px">
+        </div>
+        <div>
+          <div style="color:#5a8c5a;margin-bottom:1px">H <span id="dp-ins-h" style="color:#fff">—</span></div>
+          <input type="range" id="dp-ins-hi" min="10" max="4000" step="2"
+            style="width:100%;accent-color:#7bc67e;height:14px">
+        </div>
+      </div>`;
+
     // ── scrollable content ───────────────────────────────────────────────────
     const scroll = document.createElement('div');
     Object.assign(scroll.style, { overflowY: 'auto', padding: '10px 14px', flex: '1' });
@@ -241,6 +281,7 @@ export class DebugPanel {
 
     panel.appendChild(header);
     panel.appendChild(tabBar);
+    panel.appendChild(inspector);
     panel.appendChild(scroll);
     panel.appendChild(msgBar);
     document.body.appendChild(panel);
@@ -404,7 +445,7 @@ export class DebugPanel {
       </div>
 
       <div style="${this._css.sec}">AÇÕES</div>
-      <button id="dp-log-pos" style="${this._css.btnW}">📋 console.log posições (envia-me)</button>
+      <button id="dp-log-pos" style="${this._css.btnW}">📋 Log TUDO — posições + tamanhos (envia-me)</button>
       <button id="dp-collect-all-2" style="${this._css.btnW}">✓ Apanhar todas as plantas</button>
       <button id="dp-spawn-farfalha" style="${this._css.btnW}">⊕ Respawn Farfalha (Limiar)</button>
     </div>`; }
@@ -486,6 +527,43 @@ export class DebugPanel {
       el.appendChild(row);
     });
   }
+
+  // ── generic object selection (plants, bg images, decos, placas) ─────────
+  _selectObject(obj) {
+    this._selectedObj = obj;
+    this._showInspector(obj);
+    // Also handle plants specially
+    if (obj?.plantData) this._selectPlant(obj);
+  }
+
+  _showInspector(obj) {
+    const el = document.getElementById('dp-inspector');
+    if (!el) return;
+    if (!obj?.active) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    document.getElementById('dp-ins-label').textContent = obj._dbLabel ?? '?';
+    this._updateInspectorValues(obj);
+  }
+
+  _updateInspectorValues(obj) {
+    if (!obj?.active) return;
+    const x = Math.round(obj.x), y = Math.round(obj.y);
+    const w = Math.round(obj.displayWidth ?? 80), h = Math.round(obj.displayHeight ?? 80);
+    document.getElementById('dp-ins-x').textContent = x;
+    document.getElementById('dp-ins-y').textContent = y;
+    document.getElementById('dp-ins-w').textContent = w;
+    document.getElementById('dp-ins-h').textContent = h;
+    const xi = document.getElementById('dp-ins-xi');
+    const yi = document.getElementById('dp-ins-yi');
+    const wi = document.getElementById('dp-ins-wi');
+    const hi = document.getElementById('dp-ins-hi');
+    if (xi) xi.value = x;
+    if (yi) yi.value = y;
+    if (wi) { wi.max = Math.max(4000, w * 2); wi.value = w; }
+    if (hi) { hi.max = Math.max(4000, h * 2); hi.value = h; }
+  }
+
+  _onObjectMoved(obj)   { if (obj === this._selectedObj) this._updateInspectorValues(obj); }
 
   // ── select a plant (called from in-world click or list click) ─────────────
   _selectPlant(plant) {
@@ -734,27 +812,51 @@ export class DebugPanel {
       this._teleport(this._selectedPlant.x, this._selectedPlant.y);
     });
 
-    // Log all plant positions
+    // Log TUDO — all objects positions + sizes
     document.getElementById('dp-log-pos')?.addEventListener('click', () => {
       const z1 = this._z1();
       if (!z1) { this._msg('Zona 1 não está ativa'); return; }
-      const positions = (z1.plants || []).map(p => ({
-        id:          p.plantData?.id ?? '?',
-        x:           Math.round(p.x),
-        y:           Math.round(p.y),
-        displaySize: Math.round(p.displayWidth ?? 80),
-        area:        p.y < -(z1._transH+z1._paredeH) ? 'limiar'
-                   : p.y < -z1._transH               ? 'parede'
-                   : p.y < 0                          ? 'transicao'
-                   : p.x > z1._zoneW                  ? 'jardim' : 'campo',
-        collected:   p.isCollected,
-      }));
-      console.log('=== PLANT POSITIONS ===');
-      console.table(positions);
-      console.log(JSON.stringify(positions, null, 2));
-      navigator.clipboard?.writeText(JSON.stringify(positions, null, 2))
-        .then(() => this._msg('Posições → console + clipboard ✓'))
-        .catch(() => this._msg('Posições no console ✓'));
+      const TH = z1._transH ?? 525, PH = z1._paredeH ?? 700, ZW = z1._zoneW ?? 1920;
+      const snap = (img, label) => img?.active ? {
+        label,
+        x: Math.round(img.x), y: Math.round(img.y),
+        w: Math.round(img.displayWidth ?? 0), h: Math.round(img.displayHeight ?? 0),
+      } : null;
+      const out = {
+        zone: { ZW, ZH: z1._zoneH ?? 1080, TH, PH },
+        tz: {
+          fundo:   snap(z1._tz?.fundo,   'tz.fundo'),
+          caminho: snap(z1._tz?.caminho, 'tz.caminho'),
+        },
+        pz: {
+          fundoParede: snap(z1._pz?.fundoParede, 'pz.fundoParede'),
+          paredes: (z1._pz?.paredes || []).map((p, i) => snap(p, `pz.parede[${i}]`)).filter(Boolean),
+          decos: (z1._pz?.decos || []).map(d => ({
+            n: d.n, x: Math.round(d.img?.x ?? 0), y: Math.round(d.img?.y ?? 0),
+            w: Math.round(d.img?.displayWidth ?? 0), h: Math.round(d.img?.displayHeight ?? 0),
+            alpha: d.img?.alpha ?? 0,
+          })),
+        },
+        plants: (z1.plants || []).map(p => ({
+          id: p.plantData?.id ?? '?',
+          x: Math.round(p.x), y: Math.round(p.y),
+          w: Math.round(p.displayWidth ?? 80), h: Math.round(p.displayHeight ?? 80),
+          area: p.y < -(TH + PH) ? 'limiar' : p.y < -TH ? 'parede' : p.y < 0 ? 'transicao'
+              : p.x > ZW ? 'jardim' : 'campo',
+          collected: p.isCollected,
+        })),
+        campoDecos:     (z1.campoDecos    || []).map(({ img }, i) => snap(img, `campo_${i}`)).filter(Boolean),
+        transicaoDecos: (z1.transicaoDecos|| []).map(({ img }, i) => snap(img, `trans_${i}`)).filter(Boolean),
+        jardimDecos:    (z1.jardimDecos   || []).map(({ img }, i) => snap(img, `jardim_${i}`)).filter(Boolean),
+        limiarDecos:    (z1.limiarDecos   || []).map(({ img }, i) => snap(img, `limiar_${i}`)).filter(Boolean),
+        placaCampo:  snap(z1.placaCampo,  'placa.campo'),
+        placaLimiar: snap(z1.placaLimiar, 'placa.limiar'),
+      };
+      console.log('%c=== LOG TUDO ===', 'color:#7bc67e;font-weight:bold;font-size:14px');
+      console.log(JSON.stringify(out, null, 2));
+      navigator.clipboard?.writeText(JSON.stringify(out, null, 2))
+        .then(() => this._msg('Log TUDO → console + clipboard ✓'))
+        .catch(() => this._msg('Log TUDO → console ✓'));
     });
 
     // Spawn farfalha button
@@ -770,6 +872,46 @@ export class DebugPanel {
       z1._limiarPlantYOff  = [yo0, yo1];
       this._refreshLimiarInfo();
       this._msg(`Farfalha posições atualizadas (reinicia p/ efeito)`);
+    });
+
+    // ── Inspector wiring ────────────────────────────────────────────────────
+    document.getElementById('dp-ins-xi')?.addEventListener('change', e => {
+      const v = parseFloat(e.target.value);
+      if (isNaN(v) || !this._selectedObj?.active) return;
+      this._selectedObj.setX(v);
+      this._updateInspectorValues(this._selectedObj);
+    });
+    document.getElementById('dp-ins-yi')?.addEventListener('change', e => {
+      const v = parseFloat(e.target.value);
+      if (isNaN(v) || !this._selectedObj?.active) return;
+      this._selectedObj.setY(v);
+      this._updateInspectorValues(this._selectedObj);
+    });
+    document.getElementById('dp-ins-wi')?.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      const obj = this._selectedObj;
+      if (!obj?.active) return;
+      const ratio = (obj.displayHeight || 80) / Math.max(1, obj.displayWidth || 80);
+      obj.setDisplaySize(v, v * ratio);
+      document.getElementById('dp-ins-w').textContent = Math.round(v);
+      document.getElementById('dp-ins-h').textContent = Math.round(v * ratio);
+    });
+    document.getElementById('dp-ins-hi')?.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      const obj = this._selectedObj;
+      if (!obj?.active) return;
+      const ratio = Math.max(1, obj.displayWidth || 80) / (obj.displayHeight || 80);
+      obj.setDisplaySize(v * ratio, v);
+      document.getElementById('dp-ins-w').textContent = Math.round(v * ratio);
+      document.getElementById('dp-ins-h').textContent = Math.round(v);
+    });
+    document.getElementById('dp-ins-desel')?.addEventListener('click', () => {
+      this._selectedObj   = null;
+      this._selectedPlant = null;
+      const z1 = this._z1();
+      if (z1) z1._dbSelected = null;
+      document.getElementById('dp-inspector').style.display = 'none';
+      document.getElementById('dp-plant-sel-panel').style.display = 'none';
     });
 
     // Copy config

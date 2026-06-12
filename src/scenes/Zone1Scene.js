@@ -204,8 +204,8 @@ export class Zone1Scene extends Phaser.Scene {
         .setOrigin(0.5).setDisplaySize(ZW, ZH).setDepth(2).setAlpha(0.7);
     }
 
-    // ── Transição (y:-TH–0, fundo.svg + caminho.svg) ─────────────────
-    g.fillStyle(0x7aaa78, 1); g.fillRect(0, -TH, ZW, TH);
+    // ── Transição (y:-TH–0): use campo color as fallback so seam is invisible
+    g.fillStyle(0xafd6a8, 1); g.fillRect(0, -TH, ZW, TH);
 
     // ── Parede de Plantas (y:-(TH+PH)–-TH, parede.svg) ───────────────
     g.fillStyle(0x2a4030, 1); g.fillRect(0, -(TH + PH), ZW, PH);
@@ -249,12 +249,13 @@ export class Zone1Scene extends Phaser.Scene {
     const cx = ZW / 2;
     this._tz = {};
 
-    // fundo.svg (1920×525) — stretched to fill the full transição zone (ZW×TH).
-    // No rotation: the SVG gradient runs top→bottom, so we display it directly.
+    // fundo.svg (1920×525) — stretched to ZW × (TH+30) and shifted 15px DOWN so
+    // the image bleeds 30px into campo below y=0, hiding any colour seam.
     if (this.textures.exists('z1_bg_trans')) {
-      this._tz.fundo = this.add.image(cx, -TH / 2, 'z1_bg_trans')
+      const bleed = 30;
+      this._tz.fundo = this.add.image(cx, -(TH / 2) + bleed / 2, 'z1_bg_trans')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(ZW, TH)
+        .setDisplaySize(ZW, TH + bleed)
         .setDepth(2)
         .setAlpha(1.0);
     }
@@ -1505,31 +1506,106 @@ export class Zone1Scene extends Phaser.Scene {
     if (!window.debugPanel) return;
     window.debugPanel.toggle();
     if (window.debugPanel._visible) {
-      this._enableDebugClicks();
+      this._enableDebugMode();
     } else {
-      this._disableDebugClicks();
+      this._disableDebugMode();
     }
   }
 
-  _enableDebugClicks() {
-    this._debugClickHandler = (pointer) => {
-      const x = pointer.worldX, y = pointer.worldY;
-      for (const plant of (this.plants || [])) {
-        if (!plant?.active || plant.isCollected) continue;
-        if (Phaser.Math.Distance.Between(x, y, plant.x, plant.y) < 70) {
-          window.debugPanel?._selectPlant(plant);
-          return;
-        }
-      }
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Debug mode — make every visual object draggable + selectable
+  // ─────────────────────────────────────────────────────────────────────────
+  _enableDebugMode() {
+    this._dbObjs = [];
+    this._dbSelected = null;
+    this._dbSelGfx = this.add.graphics().setDepth(300).setScrollFactor(0);
+
+    const reg = (img, label) => {
+      if (!img?.active) return;
+      img._dbLabel = label;
+      img.setInteractive({ draggable: true, useHandCursor: true, pixelPerfect: false });
+      this.input.setDraggable(img);
+      img.on('pointerdown', () => {
+        this._dbSelected = img;
+        window.debugPanel?._selectObject(img);
+      });
+      img.on('drag', (ptr, dx, dy) => {
+        img.setPosition(dx, dy);
+        window.debugPanel?._onObjectMoved(img);
+      });
+      this._dbObjs.push(img);
     };
-    this.input.on('pointerdown', this._debugClickHandler);
+
+    // Plants
+    (this.plants || []).forEach(p => {
+      if (!p?.active || p.isCollected) return;
+      reg(p, `plant:${p.plantData?.id}`);
+    });
+    // Transição bg images
+    reg(this._tz?.fundo,   'tz.fundo');
+    reg(this._tz?.caminho, 'tz.caminho');
+    // Parede images
+    (this._pz?.paredes || []).forEach((p, i) => reg(p, `pz.parede[${i}]`));
+    reg(this._pz?.fundoParede, 'pz.fundoParede');
+    // Parede decos
+    (this._pz?.decos || []).forEach(({ img, n }) => reg(img, `cl_${n}`));
+    // Zone decos
+    (this.campoDecos    || []).forEach(({ img }, i) => reg(img, `campo_${i}`));
+    (this.transicaoDecos|| []).forEach(({ img }, i) => reg(img, `trans_${i}`));
+    (this.limiarDecos   || []).forEach(({ img }, i) => reg(img, `limiar_${i}`));
+    (this.jardimDecos   || []).forEach(({ img }, i) => reg(img, `jardim_${i}`));
+    // Placas
+    reg(this.placaCampo,  'placa.campo');
+    reg(this.placaLimiar, 'placa.limiar');
+
+    // Scroll wheel → resize selected object
+    this._dbWheelFn = (ptr, dX, dY) => {
+      const img = this._dbSelected;
+      if (!img?.active) return;
+      const delta = dY > 0 ? -8 : 8;
+      const newW  = Math.max(10, (img.displayWidth || 80) + delta);
+      const ratio = (img.displayHeight || 80) / (img.displayWidth || 80);
+      img.setDisplaySize(newW, newW * ratio);
+      window.debugPanel?._onObjectMoved(img);
+    };
+    this.input.on('wheel', this._dbWheelFn);
+
+    // Selection outline (camera-space, updated each frame)
+    this._dbUpdateEvt = () => this._drawDebugSelection();
+    this.events.on('postupdate', this._dbUpdateEvt);
   }
 
-  _disableDebugClicks() {
-    if (this._debugClickHandler) {
-      this.input?.off('pointerdown', this._debugClickHandler);
-      this._debugClickHandler = null;
-    }
+  _drawDebugSelection() {
+    const g = this._dbSelGfx;
+    if (!g?.active) return;
+    g.clear();
+    const img = this._dbSelected;
+    if (!img?.active) return;
+    const cam  = this.cameras.main;
+    const zoom = cam.zoom;
+    const sx   = (img.x - cam.scrollX) * zoom;
+    const sy   = (img.y - cam.scrollY) * zoom;
+    const sw   = (img.displayWidth  || 40) * zoom;
+    const sh   = (img.displayHeight || 40) * zoom;
+    g.lineStyle(2, 0x00ff88, 1);
+    g.strokeRect(sx - sw / 2, sy - sh / 2, sw, sh);
+    g.lineStyle(1, 0x00ff88, 0.4);
+    g.strokeCircle(sx, sy, 6 * zoom);
+  }
+
+  _disableDebugMode() {
+    this.events.off('postupdate', this._dbUpdateEvt);
+    this._dbSelGfx?.destroy();
+    this._dbSelGfx = null;
+    this._dbSelected = null;
+    if (this._dbWheelFn) { this.input?.off('wheel', this._dbWheelFn); this._dbWheelFn = null; }
+    (this._dbObjs || []).forEach(obj => {
+      if (!obj?.active) return;
+      obj.off('pointerdown');
+      obj.off('drag');
+      obj.disableInteractive();
+    });
+    this._dbObjs = [];
   }
 
   // ─────────────────────────────────────────────────────────────────────────
