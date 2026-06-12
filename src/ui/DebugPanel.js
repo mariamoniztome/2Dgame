@@ -326,11 +326,11 @@ export class DebugPanel {
 
       <div style="${this._css.sec}">CÂMERA / JOGADOR</div>
       ${this._sliderRow('zoom',          'Camera Zoom',     0.5, 4,    0.05, 2.0)}
-      ${this._sliderRow('playerSize',    'Player Size px',  32,  500,  4,    260)}
+      ${this._sliderRow('playerSize',    'Player Size px',  32,  500,  4,    100)}
       ${this._sliderRow('globalSizeMult','Global Size ×',   0.1, 5,    0.05, 1.0)}
 
       <div style="${this._css.sec}">VAGALUMES</div>
-      ${this._sliderRow('vagScale','Vagalume Scale', 0.05, 1.5,  0.01, 0.75)}
+      ${this._sliderRow('vagScale','Vagalume Scale', 0.05, 1.5,  0.01, 1.0)}
       ${this._sliderRow('vagQty',  'Vagalume Qty',   1,    40,   1,    12)}
       ${this._sliderRow('vagFreq', 'Vagalume Freq ms',20,  2000, 20,   700)}
       <button id="dp-rebuild-ff" style="${this._css.btnW}">↺ Reconstruir Vagalumes</button>
@@ -374,7 +374,7 @@ export class DebugPanel {
       ${this._sliderRow('tw-caminhoAngle','Caminho Ângulo °', -180, 180,  1,    0  )}
 
       <div style="${this._css.sec}">PAREDE DE PLANTAS — CAMADAS</div>
-      ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',    0, 1, 0.01, 0.50)}
+      ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',    0, 1, 0.01, 0.55)}
       ${this._sliderRow('tw-paredeAlpha', 'Parede Principal α',0, 1, 0.01, 1.0)}
       <button id="dp-rebuild-trans" style="${this._css.btnW}">↺ Reconstruir Parede (sem reiniciar)</button>
 
