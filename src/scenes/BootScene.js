@@ -64,7 +64,7 @@ export class BootScene extends Phaser.Scene {
     // Degradê variants for firefly and Ventoinha
     this.load.svg('z1_vagalume_degradee',  '/assets/zone1/campo/vagalume_degradee.svg',  { width: 512, height: 512 });
     this.load.svg('z1_ventoinha_degradee', '/assets/zone1/campo/ventoinha_degradee.svg', { width: 512, height: 512 });
-    ['03','04','05','06','07','08','09','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
+    ['02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
       this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );
     // Transition wall elements: Campo dos Vagalumes ↔ Limiar Secreto (y=0 border)

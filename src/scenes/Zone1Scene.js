@@ -261,7 +261,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // caminho.svg — position/size tuned in debug panel.
     if (this.textures.exists('z1_caminho')) {
-      this._tz.caminho = this.add.image(1003, -245, 'z1_caminho')
+      this._tz.caminho = this.add.image(1005, -260, 'z1_caminho')
         .setOrigin(0.5, 0.5)
         .setDisplaySize(2256, 617)
         .setAngle(-179)
@@ -294,7 +294,7 @@ export class Zone1Scene extends Phaser.Scene {
     // and keep height ≈ PH instead of one oversized image.
     this._pz.paredes = [];
     if (this.textures.exists('z1_parede')) {
-      [[325, -501, 648, 586], [968, -499, 640, 578], [1605, -496, 640, 578]].forEach(([tx, ty, tw, th]) => {
+      [[325, -501, 864, 781], [968, -499, 864, 780], [1605, -496, 856, 773]].forEach(([tx, ty, tw, th]) => {
         const p = this.add.image(tx, ty, 'z1_parede')
           .setOrigin(0.5, 1).setDisplaySize(tw, th)
           .setDepth(3).setAlpha(1.0);
@@ -458,7 +458,7 @@ export class Zone1Scene extends Phaser.Scene {
         [1424,  988,  83], [ 279, -262,  50], [ 999, -216,  47],
         [ 672,  -48, 112], [1853, -406,  85], [ 865, -505,  57],
         [ 973, -404,  58], [1571, -224,  83], [1133, -409, 526],
-        [ 781, -361, 551], [1043,  -57, 128], [1673, -387, 318],
+        [ 804, -361, 551], [1043,  -57, 128], [1673, -387, 318],
       ];
       TRANS_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, tk[(i + 1) % tk.length])
@@ -491,7 +491,7 @@ export class Zone1Scene extends Phaser.Scene {
     const lm  = this._limiarDecoMult ?? 1.0;
     const TH  = this._transH;
     const PH  = this._paredeH;
-    const limiarNums = ['03','04','05','06','07','08','09','11','12','13','14','15',
+    const limiarNums = ['02','03','04','05','06','07','08','09','10','11','12','13','14','15',
                         '16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'];
     const lk = limiarNums.filter(n => this.textures.exists(`z1_limiar_${n}`))
                          .map(n => `z1_limiar_${n}`);
@@ -500,9 +500,9 @@ export class Zone1Scene extends Phaser.Scene {
       const LIMIAR_POS = [
         [  73, -2246, 110], [ 445, -2246,  38], [ 726, -2246, 135], [1098, -2246,  50], [1379, -2246, 120], [1751, -2246,  40],
         [  73, -2019,  42], [ 445, -2019, 140], [ 726, -2019,  52], [1098, -2019, 118], [1379, -2019,  38], [1751, -2019, 142],
-        [  73, -1857, 148], [ 445, -1857,  48], [ 726, -1857,  98], [1098, -1857, 150], [1379, -1857,  42], [1751, -1857, 130],
-        [  73, -1619,  48], [ 445, -1619, 132], [ 726, -1619,  38], [1098, -1619, 122], [1379, -1619,  58], [1751, -1619, 138],
-        [  73, -1436, 128], [ 445, -1436,  45], [ 726, -1436, 145], [1098, -1436,  48], [1379, -1436, 112], [1751, -1436,  38],
+        [ 141, -1569, 428], [ 445, -1857,  48], [ 726, -1857,  98], [1098, -1857, 150], [1379, -1857,  42], [1751, -1857, 130],
+        [  73, -1619,  48], [ 445, -1619, 132], [ 726, -1619,  38], [1098, -1619, 322], [1379, -1619,  58], [1751, -1619, 138],
+        [ 276, -1324, 440], [ 578, -1405, 333], [ 726, -1436, 145], [1098, -1436,  48], [1379, -1436, 112], [1751, -1436,  38],
       ];
       LIMIAR_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, lk[(i + 1) % lk.length])
