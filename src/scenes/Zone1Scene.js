@@ -57,21 +57,22 @@ export class Zone1Scene extends Phaser.Scene {
     this._zoneH = this.game.registry.get('debugZoneH') ?? 1080;
 
     // Debug-adjustable defaults (keep existing values on scene.restart)
-    if (this._transH         === undefined) this._transH         = this.game.registry.get('debugTransH')  ?? 400;
-    if (this._paredeH        === undefined) this._paredeH        = this.game.registry.get('debugParedeH') ?? 700;
-    if (this._vagScale       === undefined) this._vagScale       = 1.0;
-    if (this._vagQty         === undefined) this._vagQty         = 12;
-    if (this._vagFreq        === undefined) this._vagFreq        = 700;
-    if (this._decoMult       === undefined) this._decoMult       = 1.0;
-    if (this._campoDecoMult  === undefined) this._campoDecoMult  = 1.0;
-    if (this._jardimDecoMult === undefined) this._jardimDecoMult = 1.0;
-    if (this._limiarDecoMult === undefined) this._limiarDecoMult = 1.0;
-    if (this._placaSize      === undefined) this._placaSize      = 70;
-    if (this._placaCampoX    === undefined) this._placaCampoX    = 520;
-    if (this._placaCampoY    === undefined) this._placaCampoY    = 400;
-    if (this._placaLimiarX   === undefined) this._placaLimiarX   = 280;
-    if (this._placaLimiarYOff=== undefined) this._placaLimiarYOff= 120; // from top of Limiar
-    if (this._globalSizeMult === undefined) this._globalSizeMult = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
+    if (this._transH          === undefined) this._transH          = this.game.registry.get('debugTransH')  ?? 525;
+    if (this._paredeH         === undefined) this._paredeH         = this.game.registry.get('debugParedeH') ?? 700;
+    if (this._vagScale        === undefined) this._vagScale        = 1.0;
+    if (this._vagQty          === undefined) this._vagQty          = 12;
+    if (this._vagFreq         === undefined) this._vagFreq         = 700;
+    if (this._decoMult        === undefined) this._decoMult        = 1.0;
+    if (this._campoDecoMult   === undefined) this._campoDecoMult   = 1.0;
+    if (this._transDecoMult   === undefined) this._transDecoMult   = 1.0;
+    if (this._jardimDecoMult  === undefined) this._jardimDecoMult  = 1.0;
+    if (this._limiarDecoMult  === undefined) this._limiarDecoMult  = 1.0;
+    if (this._placaSize       === undefined) this._placaSize       = 70;
+    if (this._placaCampoX     === undefined) this._placaCampoX     = 520;
+    if (this._placaCampoY     === undefined) this._placaCampoY     = 400;
+    if (this._placaLimiarX    === undefined) this._placaLimiarX    = 280;
+    if (this._placaLimiarYOff === undefined) this._placaLimiarYOff = 120;
+    if (this._globalSizeMult  === undefined) this._globalSizeMult  = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
 
     // L-shaped world physics bounds (campo + transição + parede + limiar)
     const _TH = this._transH, _PH = this._paredeH;
@@ -259,10 +260,11 @@ export class Zone1Scene extends Phaser.Scene {
         .setAlpha(0.90);
     }
 
-    // caminho.svg — cream path in the lower half of the transition zone
+    // caminho.svg (1920×525) — displayed at natural aspect ratio, vertically centered
+    // at ~30% depth from bottom: y ≈ -TH*0.3, matching the path emerging from campo.
     if (this.textures.exists('z1_caminho')) {
-      const h = Math.min(TH * 0.75, ZW * (525 / 1920));
-      this._tz.caminho = this.add.image(cx, -(TH * 0.3), 'z1_caminho')
+      const h = ZW * (525 / 1920);  // natural height at full ZW width
+      this._tz.caminho = this.add.image(cx, Math.round(-TH * 0.3), 'z1_caminho')
         .setOrigin(0.5, 0.5)
         .setDisplaySize(ZW, h)
         .setDepth(3)
@@ -386,10 +388,11 @@ export class Zone1Scene extends Phaser.Scene {
   //  stored for live debug adjustment.
   // ─────────────────────────────────────────────────────────────────────────
   _buildDecorations() {
-    this.decoImages  = [];   // combined (backward compat)
-    this.campoDecos  = [];
-    this.jardimDecos = [];
-    this.limiarDecos = [];
+    this.decoImages    = [];   // combined (backward compat)
+    this.campoDecos    = [];
+    this.transicaoDecos= [];
+    this.jardimDecos   = [];
+    this.limiarDecos   = [];
     const gm = this._globalSizeMult ?? 1.0;
 
     // ── Campo (x:0–ZW, y:0–ZH) ───────────────────────────────────────────
@@ -443,14 +446,36 @@ export class Zone1Scene extends Phaser.Scene {
       });
     }
 
-    // ── Jardim Invertido  x:ZW–ZW*2, y:0–ZH ─────────────────────────────
-    const jm = this._jardimDecoMult ?? 1.0;
+    // ── Transição  x:0–ZW, y:-TH–0 ─────────────────────────────────────
+    const tm = this._transDecoMult ?? 1.0;
     const transNums = ['01','02','03','04','05','06','07','08','09','10',
                        '11','12','13','14','15','16','17','18','19'];
     const tk = transNums.filter(n => this.textures.exists(`z1_trans_${n}`))
                         .map(n => `z1_trans_${n}`);
 
     if (tk.length > 0) {
+      const ZW = this._zoneW, TH = this._transH;
+      const szT = [80,55,100,45,90,60,75,50,95,40, 85,65,110,35,70,55,88,42,72,58];
+      let ti = 0;
+      [0.18, 0.52, 0.85].forEach((ry, row) => {
+        [0.05,0.20,0.38,0.55,0.72,0.90].forEach((rx, col) => {
+          const jx = (col%2===0?-1:1)*0.012*ZW;
+          const jy = (row%2===0?-1:1)*0.02*TH;
+          const x = Math.round(rx*ZW + jx);
+          const y = Math.round(-ry*TH + jy);
+          const s = szT[ti++ % szT.length];
+          const img = this.add.image(x, y, tk[ti % tk.length])
+            .setDisplaySize(s * tm * gm, s * tm * gm).setDepth(4).setAlpha(0.82);
+          this.transicaoDecos.push({ img, baseSize: s });
+          this.decoImages.push({ img, baseSize: s });
+        });
+      });
+    }
+
+    // ── Jardim Invertido  x:ZW–ZW*2, y:0–ZH ─────────────────────────────
+    const jm = this._jardimDecoMult ?? 1.0;
+
+    if (ck.length > 0) {
       const ZW = this._zoneW, ZH = this._zoneH;
       const szJ = [120,45,95,140,55,110, 45,130,38,115,60,135, 145,50,95,148,42,130, 48,132,38,122,58,140, 130,48,142,38,92,60];
       let ji = 0;
@@ -459,8 +484,8 @@ export class Zone1Scene extends Phaser.Scene {
           const jx = (col%2===0?-1:1)*0.015*ZW, jy = (row%2===0?-1:1)*0.018*ZH;
           const x = Math.round(ZW + rx*ZW + jx), y = Math.round(ry*ZH + jy);
           const s = szJ[ji++ % szJ.length];
-          const img = this.add.image(x, y, tk[ji % tk.length])
-            .setDisplaySize(s * jm * gm, s * jm * gm).setDepth(3).setAlpha(0.88);
+          const img = this.add.image(x, y, ck[ji % ck.length])
+            .setDisplaySize(s * jm * gm, s * jm * gm).setDepth(3).setAlpha(0.78);
           this.jardimDecos.push({ img, baseSize: s });
           this.decoImages.push({ img, baseSize: s });
         });

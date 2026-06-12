@@ -88,13 +88,14 @@ export class DebugPanel {
     this._slider('zoneH',          z1._zoneH       ?? 1080);
     this._slider('globalSizeMult', z1._globalSizeMult ?? 1.0);
     // Transição tab
-    this._slider('transH',         z1._transH      ?? 400);
+    this._slider('transH',         z1._transH      ?? 525);
     this._slider('paredeH',        z1._paredeH     ?? 700);
     this._slider('tw-fundoAlpha',  z1._pz?.fundoParede?.alpha ?? 0.50);
     this._slider('tw-caminhoAlpha',z1._tz?.caminho?.alpha     ?? 0.90);
-    this._slider('tw-caminhoY',    z1._tz?.caminho?.y         ?? 0);
+    this._slider('tw-caminhoY',    z1._tz?.caminho?.y         ?? Math.round(-(z1._transH ?? 525) * 0.3));
     this._slider('tw-paredeAlpha', z1._pz?.parede?.alpha      ?? 1.0);
     // Limiar tab
+    this._slider('transDecoMult',  z1._transDecoMult  ?? 1.0);
     this._slider('limiarDecoMult', z1._limiarDecoMult ?? 1.0);
     this._slider('campoDecoMult',  z1._campoDecoMult  ?? 1.0);
     this._slider('jardimDecoMult', z1._jardimDecoMult ?? 1.0);
@@ -298,13 +299,13 @@ export class DebugPanel {
   _buildTabTransicao() { return `
     <div id="dp-tab-transicao" style="display:none">
       <div style="${this._css.sec}">ALTURAS DAS ZONAS</div>
-      ${this._sliderRow('transH', 'Transição Height px', 100, 1200, 25, 400)}
+      ${this._sliderRow('transH', 'Transição Height px', 100, 1200, 25, 525)}
       ${this._sliderRow('paredeH','Parede Height px',    200, 2000, 50, 700)}
       <button id="dp-restart-trans" style="${this._css.btnY}">↺ Reiniciar Zona (aplica alturas)</button>
 
       <div style="${this._css.sec}">TRANSIÇÃO — CAMADAS</div>
-      ${this._sliderRow('tw-caminhoAlpha','Caminho α',         0, 1, 0.01, 0.90)}
-      ${this._sliderRow('tw-caminhoY',    'Caminho Y offset', -500, 200, 5, 0)}
+      ${this._sliderRow('tw-caminhoAlpha','Caminho α',        0,    1,    0.01, 0.90)}
+      ${this._sliderRow('tw-caminhoY',    'Caminho Y',       -800, 0,    5,   -158)}
 
       <div style="${this._css.sec}">PAREDE DE PLANTAS — CAMADAS</div>
       ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',    0, 1, 0.01, 0.50)}
@@ -354,9 +355,10 @@ export class DebugPanel {
       </div>
 
       <div style="${this._css.sec}">DECORAÇÕES POR ZONA</div>
-      ${this._sliderRow('campoDecoMult',  'Campo Deco ×',  0.1, 4, 0.05, 1.0)}
-      ${this._sliderRow('limiarDecoMult', 'Limiar Deco ×', 0.1, 4, 0.05, 1.0)}
-      ${this._sliderRow('jardimDecoMult', 'Jardim Deco ×', 0.1, 4, 0.05, 1.0)}
+      ${this._sliderRow('campoDecoMult',  'Campo Deco ×',     0.1, 4, 0.05, 1.0)}
+      ${this._sliderRow('transDecoMult',  'Transição Deco ×', 0.1, 4, 0.05, 1.0)}
+      ${this._sliderRow('limiarDecoMult', 'Limiar Deco ×',    0.1, 4, 0.05, 1.0)}
+      ${this._sliderRow('jardimDecoMult', 'Jardim Deco ×',    0.1, 4, 0.05, 1.0)}
 
       <div style="${this._css.sec}">TELEPORTE RÁPIDO</div>
       <div style="display:flex;gap:4px">
@@ -521,7 +523,7 @@ export class DebugPanel {
       'zoom','playerSize','vagScale','vagQty','vagFreq','globalSizeMult',
       'zoneW','zoneH','transH','paredeH',
       'tw-fundoAlpha','tw-caminhoAlpha','tw-caminhoY','tw-paredeAlpha',
-      'limiarDecoMult','campoDecoMult','jardimDecoMult',
+      'limiarDecoMult','campoDecoMult','transDecoMult','jardimDecoMult',
       'placaSize','placaX','placaY','placaLimiarX','placaLimiarYOff',
       'plantScale',
     ];
@@ -644,6 +646,7 @@ export class DebugPanel {
         paredeH:        z1._paredeH     ?? 700,
         globalSizeMult: z1._globalSizeMult ?? 1.0,
         campoDecoMult:  z1._campoDecoMult  ?? 1.0,
+        transDecoMult:  z1._transDecoMult  ?? 1.0,
         jardimDecoMult: z1._jardimDecoMult ?? 1.0,
         limiarDecoMult: z1._limiarDecoMult ?? 1.0,
         placaSize:      z1._placaSize   ?? 70,
@@ -728,6 +731,12 @@ export class DebugPanel {
         z1._campoDecoMult = v;
         { const gm = z1._globalSizeMult ?? 1.0;
           z1.campoDecos?.forEach(({ img, baseSize }) => img.setDisplaySize(baseSize * v * gm, baseSize * v * gm)); }
+        break;
+
+      case 'transDecoMult':
+        z1._transDecoMult = v;
+        { const gm = z1._globalSizeMult ?? 1.0;
+          z1.transicaoDecos?.forEach(({ img, baseSize }) => img.setDisplaySize(baseSize * v * gm, baseSize * v * gm)); }
         break;
 
       case 'jardimDecoMult':
