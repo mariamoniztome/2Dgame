@@ -21,7 +21,7 @@ const config = {
     pixelArt: false,
     roundPixels: false,
   },
-  backgroundColor: '#7ec87e',
+  backgroundColor: '#AFD6A8',
   physics: {
     default: 'arcade',
     arcade: { gravity: { y: 0 }, debug: false },

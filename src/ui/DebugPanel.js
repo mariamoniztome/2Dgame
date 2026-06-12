@@ -499,13 +499,30 @@ export class DebugPanel {
     if (!z1?.player) { this._msg('Zona 1 não está ativa'); return; }
     z1.player.setPosition(x, y);
     if (z1.player.body) z1.player.body.reset(x, y);
+    // Determine area from destination and apply camera bounds immediately
+    const ZW = z1._zoneW, ZH = z1._zoneH, TH = z1._transH, PH = z1._paredeH;
+    let area = 'campoVagalumes';
+    if (x >= ZW && y >= 0)   area = 'jardimInvertido';
+    else if (y < -(TH + PH)) area = 'limiarSecreto';
+    else if (y < -TH)        area = 'paredeZone';
+    else if (y < 0)          area = 'transicao';
+    z1._currentArea = area;
+    z1._applyCameraBounds?.(area);
+    // Snap camera to player position immediately (skip lerp delay)
+    const cam = z1.cameras?.main;
+    if (cam) {
+      const zoom = cam.zoom;
+      const vw   = z1.scale.width  / zoom;
+      const vh   = z1.scale.height / zoom;
+      cam.setScroll(x - vw / 2, y - vh / 2);
+    }
     this._msg(`→ ${Math.round(x)}, ${Math.round(y)} ✓`);
   }
 
   _tpPreset(name) {
     const z1 = this._z1();
     const ZW = z1?._zoneW ?? 1920, ZH = z1?._zoneH ?? 1080;
-    const TH = z1?._transH ?? 400, PH = z1?._paredeH ?? 700;
+    const TH = z1?._transH ?? 525, PH = z1?._paredeH ?? 700;
     const presets = {
       campo:     [ZW * 0.33, ZH * 0.55],
       transicao: [ZW * 0.33, -(TH * 0.5)],

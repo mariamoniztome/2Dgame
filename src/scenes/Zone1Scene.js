@@ -1502,23 +1502,9 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _toggleDebugPanel() {
-    if (!this._debugVisible) {
-      this._debugVisible = true;
-      this._buildDebugPanel();
-    } else {
-      this._debugVisible = false;
-      this.input.off('dragstart', this._onDebugDragStart, this);
-      this.input.off('drag',      this._onDebugDrag,      this);
-      this.input.off('dragend',   this._onDebugDragEnd,   this);
-      this.input.off('wheel',     this._onDebugWheel,     this);
-      (this._debugDragObjs || []).forEach(obj => {
-        if (obj.active) { obj.disableInteractive(); this.input.setDraggable(obj, false); }
-      });
-      this._debugDragObjs = [];
-      this._debugSelected = null;
-      (this._debugObjs || []).forEach(o => o.destroy());
-      this._debugObjs = null; this._debugPanelTxt = null; this._debugTip = null;
-      this._debugSelGfx = null;
+    // Delegate to the DOM DebugPanel (window.debugPanel), which covers all zones.
+    if (window.debugPanel) {
+      window.debugPanel.toggle();
     }
   }
 
