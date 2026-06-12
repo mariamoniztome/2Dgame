@@ -142,7 +142,6 @@ export class Zone1Scene extends Phaser.Scene {
     this.keyF     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
     this.keyQ     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
-    this.keyTab   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
@@ -602,6 +601,7 @@ export class Zone1Scene extends Phaser.Scene {
   //  Update
   // ─────────────────────────────────────────────────────────────────────────
   update(time, delta) {
+    if (this._dbFrozen) return;   // freeze everything while debug panel is open
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
 
     // ── Hard boundary: cannot enter Parede/Limiar until vine is collected ─
@@ -783,7 +783,6 @@ export class Zone1Scene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch('Map');
     }
-    if (Phaser.Input.Keyboard.JustDown(this.keyTab)) this._toggleDebugPanel();
   }
 
   _handleInteract(time) {
@@ -1516,61 +1515,89 @@ export class Zone1Scene extends Phaser.Scene {
   //  Debug mode — make every visual object draggable + selectable
   // ─────────────────────────────────────────────────────────────────────────
   _enableDebugMode() {
-    this._dbObjs = [];
+    const ZW = this._zoneW, ZH = this._zoneH;
+    const TH = this._transH, PH = this._paredeH;
+    this._dbObjs     = [];
     this._dbSelected = null;
-    this._dbSelGfx = this.add.graphics().setDepth(300).setScrollFactor(0);
+    this._dbFrozen   = true;
 
+    // Freeze player in place; camera stays on stationary player
+    if (this.player?.body) this.player.body.setVelocity(0, 0);
+
+    // Zone boundary lines (world-space, high depth)
+    this._dbBoundaryGfx = this.add.graphics().setDepth(998);
+    const bg = this._dbBoundaryGfx;
+    bg.lineStyle(2, 0xffff00, 0.65); bg.lineBetween(0, 0, ZW, 0);
+    bg.lineStyle(2, 0xff8800, 0.65); bg.lineBetween(0, -TH, ZW, -TH);
+    bg.lineStyle(2, 0xff00cc, 0.65); bg.lineBetween(0, -(TH + PH), ZW, -(TH + PH));
+
+    // Zone labels
+    const ls = { fontSize: '17px', fontFamily: 'monospace', stroke: '#000000', strokeThickness: 3 };
+    this._dbZoneLabels = [
+      this.add.text(ZW / 2, ZH * 0.5,       '— CAMPO —',    { ...ls, color: '#7bc67e' }).setOrigin(0.5).setDepth(999).setAlpha(0.75),
+      this.add.text(ZW / 2, -TH * 0.5,      '— TRANSIÇÃO —',{ ...ls, color: '#ffff00' }).setOrigin(0.5).setDepth(999).setAlpha(0.75),
+      this.add.text(ZW / 2, -(TH + PH * 0.5),'— PAREDE —',  { ...ls, color: '#ff8800' }).setOrigin(0.5).setDepth(999).setAlpha(0.75),
+      this.add.text(ZW / 2, -(TH + PH + ZH * 0.5),'— LIMIAR —',{ ...ls, color: '#ff00cc' }).setOrigin(0.5).setDepth(999).setAlpha(0.75),
+    ];
+
+    // Selection graphics (world-space — follows camera automatically)
+    this._dbSelGfx = this.add.graphics().setDepth(1000);
+
+    // Register a game object as draggable
     const reg = (img, label) => {
       if (!img?.active) return;
       img._dbLabel = label;
-      img.setInteractive({ draggable: true, useHandCursor: true, pixelPerfect: false });
+      img.setInteractive({ draggable: true, useHandCursor: true });
       this.input.setDraggable(img);
-      img.on('pointerdown', () => {
-        this._dbSelected = img;
-        window.debugPanel?._selectObject(img);
-      });
-      img.on('drag', (ptr, dx, dy) => {
-        img.setPosition(dx, dy);
-        window.debugPanel?._onObjectMoved(img);
-      });
       this._dbObjs.push(img);
     };
 
-    // Plants
+    // Plants get a generous circular hit area so they're easy to click
     (this.plants || []).forEach(p => {
-      if (!p?.active || p.isCollected) return;
-      reg(p, `plant:${p.plantData?.id}`);
+      if (!p?.active) return;
+      p._dbLabel = `plant:${p.plantData?.id}`;
+      p.setInteractive(new Phaser.Geom.Circle(0, 0, 80), Phaser.Geom.Circle.Contains, { draggable: true, useHandCursor: true });
+      this.input.setDraggable(p);
+      this._dbObjs.push(p);
     });
-    // Transição bg images
+
     reg(this._tz?.fundo,   'tz.fundo');
     reg(this._tz?.caminho, 'tz.caminho');
-    // Parede images
     (this._pz?.paredes || []).forEach((p, i) => reg(p, `pz.parede[${i}]`));
     reg(this._pz?.fundoParede, 'pz.fundoParede');
-    // Parede decos
-    (this._pz?.decos || []).forEach(({ img, n }) => reg(img, `cl_${n}`));
-    // Zone decos
-    (this.campoDecos    || []).forEach(({ img }, i) => reg(img, `campo_${i}`));
-    (this.transicaoDecos|| []).forEach(({ img }, i) => reg(img, `trans_${i}`));
-    (this.limiarDecos   || []).forEach(({ img }, i) => reg(img, `limiar_${i}`));
-    (this.jardimDecos   || []).forEach(({ img }, i) => reg(img, `jardim_${i}`));
-    // Placas
+    (this._pz?.decos     || []).forEach(({ img, n }) => reg(img, `cl_${n}`));
+    (this.campoDecos     || []).forEach(({ img }, i) => reg(img, `campo_${i}`));
+    (this.transicaoDecos || []).forEach(({ img }, i) => reg(img, `trans_${i}`));
+    (this.limiarDecos    || []).forEach(({ img }, i) => reg(img, `limiar_${i}`));
+    (this.jardimDecos    || []).forEach(({ img }, i) => reg(img, `jardim_${i}`));
     reg(this.placaCampo,  'placa.campo');
     reg(this.placaLimiar, 'placa.limiar');
 
-    // Scroll wheel → resize selected object
+    // Global drag handlers (more reliable than per-object events)
+    this._dbDragStartFn = (ptr, obj) => {
+      this._dbSelected = obj;
+      window.debugPanel?._selectObject(obj);
+    };
+    this._dbDragFn = (ptr, obj, dragX, dragY) => {
+      obj.setPosition(dragX, dragY);
+      window.debugPanel?._onObjectMoved(obj);
+    };
+    this.input.on('dragstart', this._dbDragStartFn);
+    this.input.on('drag',      this._dbDragFn);
+
+    // Scroll wheel → resize selected object proportionally
     this._dbWheelFn = (ptr, dX, dY) => {
       const img = this._dbSelected;
       if (!img?.active) return;
       const delta = dY > 0 ? -8 : 8;
-      const newW  = Math.max(10, (img.displayWidth || 80) + delta);
-      const ratio = (img.displayHeight || 80) / (img.displayWidth || 80);
+      const newW  = Math.max(10, (img.displayWidth  || 80) + delta);
+      const ratio = (img.displayHeight || 80) / Math.max(1, img.displayWidth || 80);
       img.setDisplaySize(newW, newW * ratio);
       window.debugPanel?._onObjectMoved(img);
     };
     this.input.on('wheel', this._dbWheelFn);
 
-    // Selection outline (camera-space, updated each frame)
+    // Selection outline updated every frame
     this._dbUpdateEvt = () => this._drawDebugSelection();
     this.events.on('postupdate', this._dbUpdateEvt);
   }
@@ -1581,28 +1608,33 @@ export class Zone1Scene extends Phaser.Scene {
     g.clear();
     const img = this._dbSelected;
     if (!img?.active) return;
-    const cam  = this.cameras.main;
-    const zoom = cam.zoom;
-    const sx   = (img.x - cam.scrollX) * zoom;
-    const sy   = (img.y - cam.scrollY) * zoom;
-    const sw   = (img.displayWidth  || 40) * zoom;
-    const sh   = (img.displayHeight || 40) * zoom;
-    g.lineStyle(2, 0x00ff88, 1);
-    g.strokeRect(sx - sw / 2, sy - sh / 2, sw, sh);
-    g.lineStyle(1, 0x00ff88, 0.4);
-    g.strokeCircle(sx, sy, 6 * zoom);
+    try {
+      const b = img.getBounds();
+      g.lineStyle(2, 0x00ff88, 1);
+      g.strokeRect(b.x, b.y, b.width, b.height);
+      g.lineStyle(1, 0x00ff88, 0.5);
+      g.strokeCircle(img.x, img.y, 8);
+    } catch (_) {}
   }
 
   _disableDebugMode() {
+    this._dbFrozen = false;
+    // Resume camera follow (lerp matches create() setup)
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+
     this.events.off('postupdate', this._dbUpdateEvt);
-    this._dbSelGfx?.destroy();
-    this._dbSelGfx = null;
+    this._dbSelGfx?.destroy();       this._dbSelGfx = null;
+    this._dbBoundaryGfx?.destroy();  this._dbBoundaryGfx = null;
+    (this._dbZoneLabels || []).forEach(l => l?.destroy());
+    this._dbZoneLabels = [];
     this._dbSelected = null;
-    if (this._dbWheelFn) { this.input?.off('wheel', this._dbWheelFn); this._dbWheelFn = null; }
+
+    if (this._dbDragStartFn) { this.input.off('dragstart', this._dbDragStartFn); this._dbDragStartFn = null; }
+    if (this._dbDragFn)      { this.input.off('drag',      this._dbDragFn);      this._dbDragFn      = null; }
+    if (this._dbWheelFn)     { this.input.off('wheel',     this._dbWheelFn);     this._dbWheelFn     = null; }
+
     (this._dbObjs || []).forEach(obj => {
       if (!obj?.active) return;
-      obj.off('pointerdown');
-      obj.off('drag');
       obj.disableInteractive();
     });
     this._dbObjs = [];

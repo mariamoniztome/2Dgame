@@ -11,7 +11,12 @@ export class DebugPanel {
     this._build();
 
     window.addEventListener('keydown', e => {
-      if (e.key === '`' || e.key === 'F2') this.toggle();
+      if (e.key === 'Tab') e.preventDefault();
+      if (e.key === '`' || e.key === 'F2' || e.key === 'Tab') {
+        const z1 = this._z1();
+        if (z1?._toggleDebugPanel) z1._toggleDebugPanel();
+        else this.toggle();
+      }
     });
   }
 
@@ -93,6 +98,7 @@ export class DebugPanel {
     this._slider('tw-fundoAlpha',  z1._pz?.fundoParede?.alpha ?? 0.50);
     this._slider('tw-caminhoAlpha',z1._tz?.caminho?.alpha     ?? 1.0);
     this._slider('tw-caminhoY',    z1._tz?.caminho?.y         ?? Math.round(-(z1._transH ?? 525) / 2));
+    this._slider('tw-caminhoAngle',z1._tz?.caminho?.angle     ?? 0);
     this._slider('tw-paredeAlpha', z1._pz?.parede?.alpha      ?? 1.0);
     // Limiar tab
     this._slider('transDecoMult',  z1._transDecoMult  ?? 1.0);
@@ -232,8 +238,12 @@ export class DebugPanel {
     inspector.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
         <span id="dp-ins-label" style="color:#7bc67e;font-weight:bold;font-size:11px">—</span>
-        <button id="dp-ins-desel" style="background:none;border:1px solid #3a5a3a;color:#5a9c5a;
-          border-radius:3px;padding:1px 6px;cursor:pointer;font-size:10px">✕</button>
+        <div style="display:flex;gap:4px">
+          <button id="dp-ins-goto" style="background:#0d2a10;border:1px solid #3a7a3a;color:#7bc67e;
+            border-radius:3px;padding:1px 6px;cursor:pointer;font-size:10px">→ ir</button>
+          <button id="dp-ins-desel" style="background:none;border:1px solid #3a5a3a;color:#5a9c5a;
+            border-radius:3px;padding:1px 6px;cursor:pointer;font-size:10px">✕</button>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
         <div>
@@ -254,6 +264,11 @@ export class DebugPanel {
         <div>
           <div style="color:#5a8c5a;margin-bottom:1px">H <span id="dp-ins-h" style="color:#fff">—</span></div>
           <input type="range" id="dp-ins-hi" min="10" max="4000" step="2"
+            style="width:100%;accent-color:#7bc67e;height:14px">
+        </div>
+        <div style="grid-column:1/-1">
+          <div style="color:#5a8c5a;margin-bottom:1px">° ângulo <span id="dp-ins-rot" style="color:#fff">0</span></div>
+          <input type="range" id="dp-ins-roti" min="-180" max="180" step="1" value="0"
             style="width:100%;accent-color:#7bc67e;height:14px">
         </div>
       </div>`;
@@ -354,15 +369,16 @@ export class DebugPanel {
       <button id="dp-restart-trans" style="${this._css.btnY}">↺ Reiniciar Zona (aplica alturas)</button>
 
       <div style="${this._css.sec}">TRANSIÇÃO — CAMADAS</div>
-      ${this._sliderRow('tw-caminhoAlpha','Caminho α',       0,    1,    0.01, 1.0)}
-      ${this._sliderRow('tw-caminhoY',    'Caminho Y',      -800, 0,    5,   -262)}
+      ${this._sliderRow('tw-caminhoAlpha','Caminho α',        0,    1,    0.01, 1.0)}
+      ${this._sliderRow('tw-caminhoY',    'Caminho Y',       -800, 0,    5,   -262)}
+      ${this._sliderRow('tw-caminhoAngle','Caminho Ângulo °', -180, 180,  1,    0  )}
 
       <div style="${this._css.sec}">PAREDE DE PLANTAS — CAMADAS</div>
       ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',    0, 1, 0.01, 0.50)}
       ${this._sliderRow('tw-paredeAlpha', 'Parede Principal α',0, 1, 0.01, 1.0)}
       <button id="dp-rebuild-trans" style="${this._css.btnW}">↺ Reconstruir Parede (sem reiniciar)</button>
 
-      <div style="${this._css.sec}">DECORAÇÕES z1_cl_XX</div>
+      <div style="${this._css.sec}">PAREDE — decos z1_cl_XX (ancorados em y=-TH)</div>
       <div style="background:#0a1a0a;border:1px solid #1f3a1f;border-radius:5px;
                   padding:4px 6px;margin-bottom:6px">
         <div style="display:grid;grid-template-columns:22px 1fr 1fr 1fr;
@@ -549,18 +565,22 @@ export class DebugPanel {
     if (!obj?.active) return;
     const x = Math.round(obj.x), y = Math.round(obj.y);
     const w = Math.round(obj.displayWidth ?? 80), h = Math.round(obj.displayHeight ?? 80);
+    const a = Math.round(obj.angle ?? 0);
     document.getElementById('dp-ins-x').textContent = x;
     document.getElementById('dp-ins-y').textContent = y;
     document.getElementById('dp-ins-w').textContent = w;
     document.getElementById('dp-ins-h').textContent = h;
+    document.getElementById('dp-ins-rot').textContent = a;
     const xi = document.getElementById('dp-ins-xi');
     const yi = document.getElementById('dp-ins-yi');
     const wi = document.getElementById('dp-ins-wi');
     const hi = document.getElementById('dp-ins-hi');
+    const ri = document.getElementById('dp-ins-roti');
     if (xi) xi.value = x;
     if (yi) yi.value = y;
     if (wi) { wi.max = Math.max(4000, w * 2); wi.value = w; }
     if (hi) { hi.max = Math.max(4000, h * 2); hi.value = h; }
+    if (ri) ri.value = a;
   }
 
   _onObjectMoved(obj)   { if (obj === this._selectedObj) this._updateInspectorValues(obj); }
@@ -670,7 +690,7 @@ export class DebugPanel {
     const sliders = [
       'zoom','playerSize','vagScale','vagQty','vagFreq','globalSizeMult',
       'zoneW','zoneH','transH','paredeH',
-      'tw-fundoAlpha','tw-caminhoAlpha','tw-caminhoY','tw-paredeAlpha',
+      'tw-fundoAlpha','tw-caminhoAlpha','tw-caminhoY','tw-caminhoAngle','tw-paredeAlpha',
       'limiarDecoMult','campoDecoMult','transDecoMult','jardimDecoMult',
       'placaSize','placaX','placaY','placaLimiarX','placaLimiarYOff',
       'plantScale',
@@ -914,6 +934,23 @@ export class DebugPanel {
       document.getElementById('dp-plant-sel-panel').style.display = 'none';
     });
 
+    // Inspector rotation slider
+    document.getElementById('dp-ins-roti')?.addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      const obj = this._selectedObj;
+      if (!obj?.active) return;
+      obj.setAngle(v);
+      document.getElementById('dp-ins-rot').textContent = Math.round(v);
+    });
+
+    // Inspector goto button — pan camera to selected object
+    document.getElementById('dp-ins-goto')?.addEventListener('click', () => {
+      const obj = this._selectedObj;
+      if (!obj?.active) return;
+      const z1 = this._z1();
+      z1?.cameras?.main?.pan(obj.x, obj.y, 350, 'Sine.easeInOut');
+    });
+
     // Copy config
     document.getElementById('dp-copy').addEventListener('click', () => {
       const z1 = this._z1();
@@ -1003,6 +1040,9 @@ export class DebugPanel {
 
       case 'tw-caminhoY':
         z1._tz?.caminho?.setY(v); break;
+
+      case 'tw-caminhoAngle':
+        z1._tz?.caminho?.setAngle(v); break;
 
       case 'tw-paredeAlpha':
         (z1._pz?.paredes || (z1._pz?.parede ? [z1._pz.parede] : [])).forEach(p => p.setAlpha(v)); break;
