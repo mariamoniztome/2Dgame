@@ -46,12 +46,12 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 256, height: 256 });
     // Firefly sprite — load at 512 so scale ~0.59 downscales cleanly (no upscale blur)
     this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 512, height: 512 });
-    // Area backgrounds (already large — keep as-is)
+    // Area backgrounds and transition zone assets — loaded at native SVG viewBox size
     this.load.svg('z1_bg_campo',    '/assets/zone1/campo/bg_campo.svg',         { width: 1920, height: 1080 });
-    this.load.svg('z1_bg_trans',    '/assets/zone1/transicao/fundo.svg',        { width: 1920, height: 1080 });
-    this.load.svg('z1_fundo_parede','/assets/zone1/transicao/fundo_parede.svg', { width: 1920, height: 1080 });
-    this.load.svg('z1_caminho',     '/assets/zone1/transicao/caminho.svg',      { width: 1920, height: 1080 });
-    this.load.svg('z1_parede',      '/assets/zone1/transicao/parede.svg',       { width: 1920, height: 1432 });
+    this.load.svg('z1_bg_trans',    '/assets/zone1/transicao/fundo.svg',        { width: 1920, height: 525  });
+    this.load.svg('z1_fundo_parede','/assets/zone1/transicao/fundo_parede.svg', { width: 2077, height: 1550 });
+    this.load.svg('z1_caminho',     '/assets/zone1/transicao/caminho.svg',      { width: 1920, height: 525  });
+    this.load.svg('z1_parede',      '/assets/zone1/transicao/parede.svg',       { width: 1920, height: 1735 });
     // Location signs — 512px raster for crisp display at large sizes (up to zoom 2)
     this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 512, height: 512 });
     this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 512, height: 512 });
@@ -68,8 +68,7 @@ export class BootScene extends Phaser.Scene {
       this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );
     // Transition wall elements: Campo dos Vagalumes ↔ Limiar Secreto (y=0 border)
-    // Wide panels loaded at larger size; tall narrow ones at 512px height
-    ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','18','19'].forEach(n =>
+    ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>
       this.load.svg(`z1_cl_${n}`, `/assets/zone1/campo_limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );
     ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>

@@ -28,10 +28,10 @@ const VINE_Y = 90;
 const VINE_CLIMB_Y = -100;   // y-position just inside Limiar after climbing
 
 const PLANT_SPAWNS = [
-  { id: 'ventoinha',  x: 255,  y: 605  },   // campo
-  { id: 'ventoinha',  x: 1245, y: 332  },   // campo
-  { id: 'gotateia',   x: 2220, y: 320  },   // jardim  (boundary + 300)
-  { id: 'gotateia',   x: 2790, y: 520  },   // jardim  (boundary + 870)
+  { id: 'ventoinha',  x: 92,   y: 1007 },   // campo
+  { id: 'ventoinha',  x: 1718, y: 413  },   // campo
+  { id: 'gotateia',   x: 2220, y: 320  },   // jardim
+  { id: 'gotateia',   x: 2790, y: 520  },   // jardim
   { id: 'farfalha',   x: 420,  y: -380 },   // limiar
   { id: 'farfalha',   x: 960,  y: -500 },   // limiar
   { id: 'trepadeira', x: 580,  y: 120  },   // campo near vine
@@ -189,11 +189,11 @@ export class Zone1Scene extends Phaser.Scene {
     // ── Dead-zone fill (top-right) ───────────────────────────────────
     g.fillStyle(0x1e2e20, 1); g.fillRect(ZW, -ZH, ZW, ZH);
 
-    // ── Vine-gate wall at y=0 (campo↔limiar) ────────────────────────
-    // Build the plant wall from the 17 campo_limiar transition SVGs.
-    // Elements are placed straddling y=0 (origin at bottom-centre of each
-    // element so they grow upward into Limiar and root into Campo).
-    this._buildTransitionWall(ZW);
+    // ── Campo ↔ Limiar plant wall (y=0) ─────────────────────────────
+    this._buildTransitionWall(ZW, ZH);
+
+    // ── Campo ↔ Jardim gradient (x=ZW) ──────────────────────────────
+    this._buildJardimTransition(ZW, ZH);
 
     // Location signs
     if (this.textures.exists('z1_placa_campo')) {
@@ -207,69 +207,112 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  //  Transition wall — plant elements straddling the Campo/Limiar border (y=0)
+  //  Transition wall — Campo dos Vagalumes ↔ Limiar Secreto border (y=0)
+  //
+  //  Layers (bottom → top):
+  //    1. Fundo_ParedãodePlantas  (deep background glow)      depth 1
+  //    2. Fundo_Transição         (ground/floor band)          depth 2
+  //    3. Caminho_Transição       (path through the wall)      depth 2
+  //    4. ParedãodePlantas        (main plant wall)            depth 3
+  //    5. Individual campo_limiar elements (decoration)        depth 4–6
   // ─────────────────────────────────────────────────────────────────────────
-  _buildTransitionWall(ZW) {
-    // All available keys, skipping any that failed to load
-    const nums = ['01','02','03','04','05','06','07','08','09','10',
-                  '11','12','13','14','15','18','19'];
-    const keys = nums.filter(n => this.textures.exists(`z1_cl_${n}`))
-                     .map(n => `z1_cl_${n}`);
-    if (keys.length === 0) return;
+  _buildTransitionWall(ZW, ZH) {
+    const cx = ZW / 2;
 
-    // Known natural sizes (viewBox W×H) for each element — used to pick a
-    // render size that keeps aspect ratio roughly right.
-    const naturalH = {
-      '01':638,'02':786,'03':899,'04':447,'05':122,'06':578,
-      '07':2724,'08':550,'09':488,'10':707,'11':109,'12':493,
-      '13':606,'14':99,'15':447,'18':869,'19':2148,
-    };
-    // Place elements densely across the full campo width.
-    // Each is anchored at origin (0.5, 1) → bottom-centre sits at y=0,
-    // element grows upward into Limiar territory.
+    // ── 1. Background glow (Fundo_ParedãodePlantas) — viewBox 2077×1550 ──
+    if (this.textures.exists('z1_fundo_parede')) {
+      const h = ZW * (1550 / 2077);
+      this.add.image(cx, 0, 'z1_fundo_parede')
+        .setOrigin(0.5, 1).setDisplaySize(ZW * (2077 / 1920), h)
+        .setDepth(1).setAlpha(0.80);
+    }
+
+    // ── 2. Ground/floor band (Fundo_Transição) — viewBox 1920×525 ─────────
+    if (this.textures.exists('z1_bg_trans')) {
+      const h = ZW * (525 / 1920);
+      this.add.image(cx, 0, 'z1_bg_trans')
+        .setOrigin(0.5, 0.5).setDisplaySize(ZW, h)
+        .setDepth(2).setAlpha(0.95);
+    }
+
+    // ── 3. Path overlay (Caminho_Transição) — viewBox 1920×525 ───────────
+    if (this.textures.exists('z1_caminho')) {
+      const h = ZW * (525 / 1920);
+      this.add.image(cx, 0, 'z1_caminho')
+        .setOrigin(0.5, 0.5).setDisplaySize(ZW, h)
+        .setDepth(2).setAlpha(0.90);
+    }
+
+    // ── 4. Main plant wall (ParedãodePlantas) — viewBox 1920×1735 ─────────
+    // Origin (0.5, 1) → base at y=0, wall grows upward into Limiar
+    if (this.textures.exists('z1_parede')) {
+      const h = ZW * (1735 / 1920);
+      this.add.image(cx, 0, 'z1_parede')
+        .setOrigin(0.5, 1).setDisplaySize(ZW, h)
+        .setDepth(3).setAlpha(1.0);
+    }
+
+    // ── 5. Individual decorative elements ─────────────────────────────────
+    const nums = ['01','02','03','04','05','06','07','08','09','10',
+                  '11','12','13','14','15','16','17','18','19'];
     const placements = [
       // [key-suffix, x-fraction-of-ZW, render-height, depth, alpha]
-      ['02', 0.00, 500, 4, 0.90],
-      ['03', 0.12, 540, 4, 0.88],
-      ['01', 0.22, 440, 5, 0.92],
-      ['10', 0.30, 460, 4, 0.85],
-      ['06', 0.38, 420, 5, 0.90],
-      ['13', 0.47, 450, 4, 0.87],
-      ['18', 0.55, 500, 4, 0.88],
-      ['08', 0.63, 400, 5, 0.91],
-      ['09', 0.70, 420, 4, 0.86],
-      ['12', 0.78, 440, 5, 0.90],
-      ['03', 0.86, 500, 4, 0.88],
-      ['01', 0.96, 440, 4, 0.90],
-      // Tall background panels for depth
-      ['07', 0.18, 700, 3, 0.70],
-      ['19', 0.72, 700, 3, 0.68],
-      // Small detail elements scattered near ground
-      ['04', 0.06, 260, 6, 0.95],
-      ['15', 0.42, 260, 6, 0.93],
-      ['05', 0.58, 100, 6, 0.88],
-      ['11', 0.65, 90,  6, 0.85],
-      ['14', 0.88, 80,  6, 0.90],
+      ['16', 0.04,  480, 4, 0.88],
+      ['17', 0.96,  500, 4, 0.86],
+      ['02', 0.01,  480, 4, 0.90],
+      ['03', 0.12,  520, 4, 0.88],
+      ['01', 0.22,  420, 5, 0.92],
+      ['10', 0.30,  440, 4, 0.85],
+      ['06', 0.38,  400, 5, 0.90],
+      ['13', 0.47,  430, 4, 0.87],
+      ['18', 0.55,  480, 4, 0.88],
+      ['08', 0.63,  380, 5, 0.91],
+      ['09', 0.70,  400, 4, 0.86],
+      ['12', 0.78,  420, 5, 0.90],
+      ['03', 0.87,  480, 4, 0.88],
+      ['01', 0.97,  420, 4, 0.90],
+      // Tall background panels
+      ['07', 0.18,  680, 3, 0.65],
+      ['19', 0.72,  680, 3, 0.63],
+      // Small detail elements near ground
+      ['04', 0.06,  250, 6, 0.95],
+      ['15', 0.42,  250, 6, 0.93],
+      ['05', 0.58,  100, 6, 0.88],
+      ['11', 0.65,   88, 6, 0.85],
+      ['14', 0.88,   78, 6, 0.90],
     ];
 
     placements.forEach(([n, xf, h, depth, alpha]) => {
       const key = `z1_cl_${n}`;
       if (!this.textures.exists(key)) return;
-      const natH = naturalH[n] ?? 500;
-      const natW = this.textures.get(key).getSourceImage().width || 512;
-      const natHsrc = this.textures.get(key).getSourceImage().height || 512;
-      const scale = h / natHsrc;
-      const w = natW * scale;
-      const x = Math.round(xf * ZW);
-      this.add.image(x, 0, key)
-        .setOrigin(0.5, 1)
-        .setDisplaySize(w, h)
-        .setDepth(depth)
-        .setAlpha(alpha);
+      const src  = this.textures.get(key).getSourceImage();
+      const natW = src.width  || 512;
+      const natH = src.height || 512;
+      const w    = natW * (h / natH);
+      this.add.image(Math.round(xf * ZW), 0, key)
+        .setOrigin(0.5, 1).setDisplaySize(w, h)
+        .setDepth(depth).setAlpha(alpha);
     });
+  }
 
-    // Vine-gap: leave a clear passage around VINE_X so the vine is visible
-    // (elements placed far from VINE_X=640 naturally leave that corridor open)
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Jardim vertical transition — Fundo_Transição rotated 90° at x=ZW
+  // ─────────────────────────────────────────────────────────────────────────
+  _buildJardimTransition(ZW, ZH) {
+    if (!this.textures.exists('z1_bg_trans')) return;
+    // The SVG is 1920×525 landscape. Rotated 90°, visible footprint becomes
+    // (525 * ZH/1920) wide × ZH tall — a vertical gradient at the zone border.
+    const depth  = ZH * (525 / 1920);   // rendered width after rotation
+    const height = ZH;                   // rendered height after rotation
+    // setDisplaySize(localW, localH) then rotate 90° CW:
+    //   visible width  = localH = depth
+    //   visible height = localW = height
+    this.add.image(ZW, ZH / 2, 'z1_bg_trans')
+      .setOrigin(0.5, 0.5)
+      .setDisplaySize(height, depth)
+      .setAngle(90)
+      .setDepth(2)
+      .setAlpha(0.85);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
