@@ -39,7 +39,7 @@ const PLANT_SPAWNS = [
 // Transição plants (yOff = depth from y=0, so y = -yOff).
 // Trepadeira is placed near the top of the transição zone, just below the parede.
 const TRANSICAO_PLANT_SPAWNS = [
-  { id: 'trepadeira', x: 1070, y: -1056 },
+  { id: 'trepadeira', x: 499, y: -497 },
 ];
 // Limiar plants (y = -(TH + PH + yOff))
 const LIMIAR_PLANT_SPAWNS = [
@@ -261,9 +261,9 @@ export class Zone1Scene extends Phaser.Scene {
 
     // caminho.svg — position/size tuned in debug panel.
     if (this.textures.exists('z1_caminho')) {
-      this._tz.caminho = this.add.image(982, -315, 'z1_caminho')
+      this._tz.caminho = this.add.image(1003, -245, 'z1_caminho')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(2352, 643)
+        .setDisplaySize(2256, 617)
         .setAngle(-179)
         .setDepth(3)
         .setAlpha(1.0);
@@ -307,7 +307,7 @@ export class Zone1Scene extends Phaser.Scene {
     const placements = [
       // [key-suffix, x, y, w, h, depth, alpha]
       ['16',  394,  -234, 270, 270, 4, 0.88],
-      ['17', 1834,   -10, 254, 254, 4, 0.86],
+      ['17', 1860,    19, 254, 254, 4, 0.86],
       ['02', 1634,   910, 144, 144, 4, 0.90],
       ['03', 1460,   -55,  86,  86, 4, 0.88],
       ['01', 1642,  -116,  82,  82, 5, 0.92],
@@ -318,7 +318,7 @@ export class Zone1Scene extends Phaser.Scene {
       ['08', 1710,   -46, 104, 104, 5, 0.91],
       ['09', 1330,  -154,  38,  38, 4, 0.86],
       ['12', 1247,   -14,  96,  96, 5, 0.90],
-      ['03',  803,  -163,  56,  56, 4, 0.88],
+      ['03',  683,  -211,  56,  56, 4, 0.88],
       ['01',  159,   -41,  92,  92, 4, 0.90],
       ['07',  109,  -178, 316, 316, 3, 0.65],
       ['19', 1204,  -161, 254, 254, 3, 0.63],
@@ -406,7 +406,7 @@ export class Zone1Scene extends Phaser.Scene {
       [484,  98,   175],
       [1811, 979,  324],
       [829,  100,  175],
-      [1762, 106,  190],
+      [1741, 151,  190],
       [632,  293,  180],
       [266,  125,  240],
       [567,  509,  80],
@@ -454,11 +454,11 @@ export class Zone1Scene extends Phaser.Scene {
     if (tk.length > 0) {
       const TRANS_POS = [
         [ 556, -415, 168], [ 350, -102, 151], [ 707, -105, 100],
-        [ 235, -491,  45], [1876, -353,  54], [1429, -375, 286],
-        [1424,  988,  83], [ 279, -262,  50], [ 723, -251, 119],
-        [ 672,  -48, 112], [1853, -406,  85], [ 721, -440, 105],
-        [ 832,  -72,  58], [1571, -224,  83], [ 707, -457,  70],
-        [ 901, -367, 551], [1043,  -57, 128], [1692, -326, 318],
+        [ 235, -491,  45], [1876, -353,  54], [1430, -377, 286],
+        [1424,  988,  83], [ 279, -262,  50], [ 999, -216,  47],
+        [ 672,  -48, 112], [1853, -406,  85], [ 865, -505,  57],
+        [ 973, -404,  58], [1571, -224,  83], [1133, -409, 526],
+        [ 781, -361, 551], [1043,  -57, 128], [1673, -387, 318],
       ];
       TRANS_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, tk[(i + 1) % tk.length])

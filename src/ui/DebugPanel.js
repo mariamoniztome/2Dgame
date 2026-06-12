@@ -370,7 +370,7 @@ export class DebugPanel {
 
       <div style="${this._css.sec}">TRANSIÇÃO — CAMADAS</div>
       ${this._sliderRow('tw-caminhoAlpha','Caminho α',        0,    1,    0.01, 1.0)}
-      ${this._sliderRow('tw-caminhoY',    'Caminho Y',       -800, 0,    5,   -315)}
+      ${this._sliderRow('tw-caminhoY',    'Caminho Y',       -800, 0,    5,   -245)}
       ${this._sliderRow('tw-caminhoAngle','Caminho Ângulo °', -180, 180,  1, -179  )}
 
       <div style="${this._css.sec}">PAREDE DE PLANTAS — CAMADAS</div>
