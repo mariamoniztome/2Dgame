@@ -41,10 +41,10 @@ const PLANT_SPAWNS = [
 const TRANSICAO_PLANT_SPAWNS = [
   { id: 'trepadeira', x: 499, y: -497 },
 ];
-// Limiar plants (y = -(TH + PH + yOff))
+// Limiar plants (absolute world coordinates)
 const LIMIAR_PLANT_SPAWNS = [
-  { id: 'farfalha', xFrac: 0.22, yOff: 380 },
-  { id: 'farfalha', xFrac: 0.50, yOff: 500 },
+  { id: 'farfalha', x: 1838, y: -2157 },
+  { id: 'farfalha', x:  358, y: -2207 },
 ];
 
 export class Zone1Scene extends Phaser.Scene {
@@ -71,8 +71,9 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._placaSize       === undefined) this._placaSize       = 70;
     if (this._placaCampoX     === undefined) this._placaCampoX     = 734;
     if (this._placaCampoY     === undefined) this._placaCampoY     = 450;
-    if (this._placaLimiarX    === undefined) this._placaLimiarX    = 280;
-    if (this._placaLimiarYOff === undefined) this._placaLimiarYOff = 120;
+    if (this._placaLimiarX    === undefined) this._placaLimiarX    = 936;
+    if (this._placaLimiarYOff === undefined) this._placaLimiarYOff = 981;
+    if (this._placaLimiarSize === undefined) this._placaLimiarSize = 174;
     if (this._globalSizeMult  === undefined) this._globalSizeMult  = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
 
     // L-shaped world physics bounds (campo + transição + parede + limiar)
@@ -99,6 +100,7 @@ export class Zone1Scene extends Phaser.Scene {
     GameState.plantSpawns = [
       ...PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y })),
       ...TRANSICAO_PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y })),
+      ...LIMIAR_PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y })),
     ];
     this._buildPortal();
     this._buildFireflies();
@@ -233,8 +235,9 @@ export class Zone1Scene extends Phaser.Scene {
     if (this.textures.exists('z1_placa_limiar')) {
       const lx = this._placaLimiarX;
       const ly = -(TH + PH + ZH - this._placaLimiarYOff);
+      const ls = this._placaLimiarSize * gm;
       this.placaLimiar = this.add.image(lx, ly, 'z1_placa_limiar')
-        .setDisplaySize(ps, ps).setDepth(4);
+        .setDisplaySize(ls, ls).setDepth(4);
     }
   }
 
@@ -284,7 +287,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // ── 1. Background glow (Fundo_ParedãodePlantas) — viewBox 2077×1550 ──
     if (this.textures.exists('z1_fundo_parede')) {
-      this._pz.fundoParede = this.add.image(881, baseY, 'z1_fundo_parede')
+      this._pz.fundoParede = this.add.image(888, 171, 'z1_fundo_parede')
         .setOrigin(0.5, 1).setDisplaySize(2077, 1433)
         .setDepth(1).setAlpha(0.55);
     }
@@ -294,7 +297,7 @@ export class Zone1Scene extends Phaser.Scene {
     // and keep height ≈ PH instead of one oversized image.
     this._pz.paredes = [];
     if (this.textures.exists('z1_parede')) {
-      [[325, -501, 864, 781], [968, -499, 864, 780], [1605, -496, 856, 773]].forEach(([tx, ty, tw, th]) => {
+      [[285, -483, 864, 781], [962, -492, 864, 780], [1516, -498, 856, 773]].forEach(([tx, ty, tw, th]) => {
         const p = this.add.image(tx, ty, 'z1_parede')
           .setOrigin(0.5, 1).setDisplaySize(tw, th)
           .setDepth(3).setAlpha(1.0);
@@ -498,11 +501,11 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (lk.length > 0) {
       const LIMIAR_POS = [
-        [  73, -2246, 110], [ 445, -2246,  38], [ 726, -2246, 135], [1098, -2246,  50], [1379, -2246, 120], [1751, -2246,  40],
-        [  73, -2019,  42], [ 445, -2019, 140], [ 726, -2019,  52], [1098, -2019, 118], [1379, -2019,  38], [1751, -2019, 142],
-        [ 141, -1569, 428], [ 445, -1857,  48], [ 726, -1857,  98], [1098, -1857, 150], [1379, -1857,  42], [1751, -1857, 130],
-        [  73, -1619,  48], [ 445, -1619, 132], [ 726, -1619,  38], [1098, -1619, 322], [1379, -1619,  58], [1751, -1619, 138],
-        [ 276, -1324, 440], [ 578, -1405, 333], [ 726, -1436, 145], [1098, -1436,  48], [1379, -1436, 112], [1751, -1436,  38],
+        [ 183, -2118, 278], [ 532, -2148, 310], [ 726, -2246, 135], [1133, -2156, 266], [1379, -2246, 120], [1751, -2246,  40],
+        [1328, -1500, 354], [ 612, -1705, 100], [1552, -2197, 452], [1320, -1764, 118], [1586, -1950, 126], [1748, -2078, 190],
+        [  80, -1635, 196], [ 255, -1784, 256], [ 844, -1938, 306], [1085, -1836, 214], [1338, -2012, 258], [1751, -1857, 130],
+        [ 101, -1320,  48], [ 445, -1619, 132], [ 858, -1588, 278], [1395, -1345, 210], [1825, -1667, 202], [1533, -1590, 290],
+        [ 339, -1468, 312], [ 533, -1900, 109], [ 603, -1340,  57], [1039, -1486,  96], [1229, -1575, 216], [1702, -1370, 246],
       ];
       LIMIAR_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, lk[(i + 1) % lk.length])
@@ -532,11 +535,11 @@ export class Zone1Scene extends Phaser.Scene {
       if (!plantData) return;
       this.plants.push(new Plant(this, x, y, plantData));
     });
-    LIMIAR_PLANT_SPAWNS.forEach(({ id, xFrac, yOff }) => {
+    LIMIAR_PLANT_SPAWNS.forEach(({ id, x, y }) => {
       if (GameState.collected.has(id)) return;
       const plantData = PLANTS[id];
       if (!plantData) return;
-      this.plants.push(new Plant(this, Math.round(xFrac * ZW), -(TH + PH + yOff), plantData));
+      this.plants.push(new Plant(this, x, y, plantData));
     });
   }
 
