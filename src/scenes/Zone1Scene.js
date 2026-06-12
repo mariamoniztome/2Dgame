@@ -39,7 +39,7 @@ const PLANT_SPAWNS = [
 // Transição plants (yOff = depth from y=0, so y = -yOff).
 // Trepadeira is placed near the top of the transição zone, just below the parede.
 const TRANSICAO_PLANT_SPAWNS = [
-  { id: 'trepadeira', xFrac: 0.50, yOff: 460 },
+  { id: 'trepadeira', x: 1070, y: -1056 },
 ];
 // Limiar plants (y = -(TH + PH + yOff))
 const LIMIAR_PLANT_SPAWNS = [
@@ -98,7 +98,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildPlants();
     GameState.plantSpawns = [
       ...PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y })),
-      ...TRANSICAO_PLANT_SPAWNS.map(s => ({ id: s.id, x: Math.round(s.xFrac * this._zoneW), y: -s.yOff })),
+      ...TRANSICAO_PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y })),
     ];
     this._buildPortal();
     this._buildFireflies();
@@ -259,12 +259,11 @@ export class Zone1Scene extends Phaser.Scene {
         .setAlpha(1.0);
     }
 
-    // caminho.svg (1920×525) — natural aspect ratio, centered vertically in the zone.
+    // caminho.svg — position/size tuned in debug panel.
     if (this.textures.exists('z1_caminho')) {
-      const h = ZW * (525 / 1920);
-      this._tz.caminho = this.add.image(cx, Math.round(-TH / 2), 'z1_caminho')
+      this._tz.caminho = this.add.image(987, -257, 'z1_caminho')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(ZW, h)
+        .setDisplaySize(2136, 584)
         .setDepth(3)
         .setAlpha(1.0);
     }
@@ -284,9 +283,8 @@ export class Zone1Scene extends Phaser.Scene {
 
     // ── 1. Background glow (Fundo_ParedãodePlantas) — viewBox 2077×1550 ──
     if (this.textures.exists('z1_fundo_parede')) {
-      const h = Math.max(PH * 1.4, ZW * (1550 / 2077));
-      this._pz.fundoParede = this.add.image(cx, baseY, 'z1_fundo_parede')
-        .setOrigin(0.5, 1).setDisplaySize(ZW * (2077 / 1920), h)
+      this._pz.fundoParede = this.add.image(881, baseY, 'z1_fundo_parede')
+        .setOrigin(0.5, 1).setDisplaySize(2077, 1433)
         .setDepth(1).setAlpha(0.55);
     }
 
@@ -295,54 +293,48 @@ export class Zone1Scene extends Phaser.Scene {
     // and keep height ≈ PH instead of one oversized image.
     this._pz.paredes = [];
     if (this.textures.exists('z1_parede')) {
-      const tileW = ZW / 3;
-      const tileH = tileW * (1735 / 1920);
-      [ZW / 6, ZW / 2, ZW * 5 / 6].forEach(tx => {
-        const p = this.add.image(Math.round(tx), baseY, 'z1_parede')
-          .setOrigin(0.5, 1).setDisplaySize(tileW, tileH)
+      [[320, -498, 648, 586], [968, -499, 640, 578], [1605, -496, 640, 578]].forEach(([tx, ty, tw, th]) => {
+        const p = this.add.image(tx, ty, 'z1_parede')
+          .setOrigin(0.5, 1).setDisplaySize(tw, th)
           .setDepth(3).setAlpha(1.0);
         this._pz.paredes.push(p);
       });
-      this._pz.parede = this._pz.paredes[0];  // compat alias for debug
+      this._pz.parede = this._pz.paredes[0];
     }
 
     // ── 3. Individual decorative elements (grounded at baseY) ─────────────
     const placements = [
-      // [key-suffix, x-fraction-of-ZW, render-height, depth, alpha]
-      ['16', 0.04,  480, 4, 0.88],
-      ['17', 0.96,  500, 4, 0.86],
-      ['02', 0.01,  480, 4, 0.90],
-      ['03', 0.12,  520, 4, 0.88],
-      ['01', 0.22,  420, 5, 0.92],
-      ['10', 0.30,  440, 4, 0.85],
-      ['06', 0.38,  400, 5, 0.90],
-      ['13', 0.47,  430, 4, 0.87],
-      ['18', 0.55,  480, 4, 0.88],
-      ['08', 0.63,  380, 5, 0.91],
-      ['09', 0.70,  400, 4, 0.86],
-      ['12', 0.78,  420, 5, 0.90],
-      ['03', 0.87,  480, 4, 0.88],
-      ['01', 0.97,  420, 4, 0.90],
-      ['07', 0.18,  680, 3, 0.65],
-      ['19', 0.72,  680, 3, 0.63],
-      ['04', 0.06,  250, 6, 0.95],
-      ['15', 0.42,  250, 6, 0.93],
-      ['05', 0.58,  100, 6, 0.88],
-      ['11', 0.65,   88, 6, 0.85],
-      ['14', 0.88,   78, 6, 0.90],
+      // [key-suffix, x, y, w, h, depth, alpha]
+      ['16',  471,  -300, 198, 198, 4, 0.88],
+      ['17', 1795,   -18, 198, 198, 4, 0.86],
+      ['02', 1583,   135, 480, 480, 4, 0.90],
+      ['03',   88,  -365, 126, 126, 4, 0.88],
+      ['01',  571,   156, 338, 338, 5, 0.92],
+      ['10', 1185,   -67, 440, 440, 4, 0.85],
+      ['06',  723,   -60, 400, 400, 5, 0.90],
+      ['13',  466,  -119,  56,  56, 4, 0.87],
+      ['18', 1558,  -123, 480, 480, 4, 0.88],
+      ['08', 1239,  -355,  56,  56, 5, 0.91],
+      ['09', 1163,  -148, 126, 126, 4, 0.86],
+      ['12',  650,  -131,  56,  56, 5, 0.90],
+      ['03', 1116,  -303,  56,  56, 4, 0.88],
+      ['01',  272,   -51, 268, 268, 4, 0.90],
+      ['07',  611,   -11, 268, 268, 3, 0.65],
+      ['19', 1026,    -5, 198, 198, 3, 0.63],
+      ['04',  168,    -4, 250, 250, 6, 0.95],
+      ['15', 1357,    75, 250, 250, 6, 0.93],
+      ['05', 1874,  -303, 100, 100, 6, 0.88],
+      ['11', 1861,  -214,  88,  88, 6, 0.85],
+      ['14', 1141,   -19,  78,  78, 6, 0.90],
     ];
 
-    placements.forEach(([n, xf, h, depth, alpha]) => {
+    placements.forEach(([n, x, y, w, h, depth, alpha]) => {
       const key = `z1_cl_${n}`;
       if (!this.textures.exists(key)) return;
-      const src  = this.textures.get(key).getSourceImage();
-      const natW = src.width  || 512;
-      const natH = src.height || 512;
-      const w    = natW * (h / natH);
-      const img  = this.add.image(Math.round(xf * ZW), baseY, key)
+      const img = this.add.image(x, y, key)
         .setOrigin(0.5, 1).setDisplaySize(w, h)
         .setDepth(depth).setAlpha(alpha);
-      this._pz.decos.push({ img, n, xFrac: xf, h, baseH: h, alpha, depth });
+      this._pz.decos.push({ img, n, x, y, w, h, baseH: h, alpha, depth });
     });
   }
 
@@ -459,21 +451,19 @@ export class Zone1Scene extends Phaser.Scene {
                         .map(n => `z1_trans_${n}`);
 
     if (tk.length > 0) {
-      const ZW = this._zoneW, TH = this._transH;
-      const szT = [80,55,100,45,90,60,75,50,95,40, 85,65,110,35,70,55,88,42,72,58];
-      let ti = 0;
-      [0.18, 0.52, 0.85].forEach((ry, row) => {
-        [0.05,0.20,0.38,0.55,0.72,0.90].forEach((rx, col) => {
-          const jx = (col%2===0?-1:1)*0.012*ZW;
-          const jy = (row%2===0?-1:1)*0.02*TH;
-          const x = Math.round(rx*ZW + jx);
-          const y = Math.round(-ry*TH + jy);
-          const s = szT[ti++ % szT.length];
-          const img = this.add.image(x, y, tk[ti % tk.length])
-            .setDisplaySize(s * tm * gm, s * tm * gm).setDepth(4).setAlpha(0.82);
-          this.transicaoDecos.push({ img, baseSize: s });
-          this.decoImages.push({ img, baseSize: s });
-        });
+      const TRANS_POS = [
+        [  73, -105,  80], [ 407, -105,  55], [ 707, -105, 100],
+        [1161,  -83,  45], [1359, -105, 126], [1550, -268, 198],
+        [  73, -262,  75], [ 407, -262,  50], [ 707, -262,  95],
+        [ 998, -232,  40], [1359, -262,  85], [1462,  -46,  65],
+        [ 923, -419,  56], [ 687, -337,  35], [ 707, -457,  70],
+        [ 259, -401, 543], [1359, -457,  88], [1740, -375, 198],
+      ];
+      TRANS_POS.forEach(([x, y, s], i) => {
+        const img = this.add.image(x, y, tk[(i + 1) % tk.length])
+          .setDisplaySize(s * tm * gm, s * tm * gm).setDepth(4).setAlpha(0.82);
+        this.transicaoDecos.push({ img, baseSize: s });
+        this.decoImages.push({ img, baseSize: s });
       });
     }
 
@@ -481,19 +471,18 @@ export class Zone1Scene extends Phaser.Scene {
     const jm = this._jardimDecoMult ?? 1.0;
 
     if (ck.length > 0) {
-      const ZW = this._zoneW, ZH = this._zoneH;
-      const szJ = [120,45,95,140,55,110, 45,130,38,115,60,135, 145,50,95,148,42,130, 48,132,38,122,58,140, 130,48,142,38,92,60];
-      let ji = 0;
-      [0.08,0.27,0.47,0.67,0.87].forEach((ry, row) => {
-        [0.09,0.26,0.43,0.60,0.76,0.92].forEach((rx, col) => {
-          const jx = (col%2===0?-1:1)*0.015*ZW, jy = (row%2===0?-1:1)*0.018*ZH;
-          const x = Math.round(ZW + rx*ZW + jx), y = Math.round(ry*ZH + jy);
-          const s = szJ[ji++ % szJ.length];
-          const img = this.add.image(x, y, ck[ji % ck.length])
-            .setDisplaySize(s * jm * gm, s * jm * gm).setDepth(3).setAlpha(0.78);
-          this.jardimDecos.push({ img, baseSize: s });
-          this.decoImages.push({ img, baseSize: s });
-        });
+      const JARDIM_POS = [
+        [2064,  67, 120], [2448,  67,  45], [2717,  67,  95], [3101,  67, 140], [3350,  67,  55], [3715,  67, 110],
+        [2064, 311,  45], [2448, 311, 130], [2717, 311,  38], [3101, 311, 115], [3350, 311,  60], [3715, 311, 135],
+        [2064, 488, 145], [2448, 488,  50], [2717, 488,  95], [3101, 488, 148], [3350, 488,  42], [3715, 488, 130],
+        [2064, 743,  48], [2448, 743, 132], [2717, 743,  38], [3101, 743, 122], [3350, 743,  58], [3715, 743, 140],
+        [2064, 920, 130], [2448, 920,  48], [2717, 920, 142], [3101, 920,  38], [3350, 920,  92], [3715, 920,  60],
+      ];
+      JARDIM_POS.forEach(([x, y, s], i) => {
+        const img = this.add.image(x, y, ck[(i + 1) % ck.length])
+          .setDisplaySize(s * jm * gm, s * jm * gm).setDepth(3).setAlpha(0.78);
+        this.jardimDecos.push({ img, baseSize: s });
+        this.decoImages.push({ img, baseSize: s });
       });
     }
 
@@ -507,20 +496,18 @@ export class Zone1Scene extends Phaser.Scene {
                          .map(n => `z1_limiar_${n}`);
 
     if (lk.length > 0) {
-      const ZW = this._zoneW, ZH = this._zoneH;
-      const szL = [110,38,135,50,120,40, 42,140,52,118,38,142, 148,48,98,150,42,130, 48,132,38,122,58,138, 128,45,145,48,112,38];
-      let li = 0;
-      [0.93,0.75,0.57,0.38,0.18].forEach((ry, row) => {
-        [0.05,0.22,0.39,0.56,0.73,0.90].forEach((rx, col) => {
-          const jx = (col%2===0?-1:1)*0.012*ZW, jy = (row%2===0?-1:1)*0.015*ZH;
-          const x = Math.round(rx*ZW + jx);
-          const y = Math.round(-(TH + PH + ry*ZH) + jy);
-          const s = szL[li++ % szL.length];
-          const img = this.add.image(x, y, lk[li % lk.length])
-            .setDisplaySize(s * lm * gm, s * lm * gm).setDepth(3).setAlpha(0.85);
-          this.limiarDecos.push({ img, baseSize: s });
-          this.decoImages.push({ img, baseSize: s });
-        });
+      const LIMIAR_POS = [
+        [  73, -2246, 110], [ 445, -2246,  38], [ 726, -2246, 135], [1098, -2246,  50], [1379, -2246, 120], [1751, -2246,  40],
+        [  73, -2019,  42], [ 445, -2019, 140], [ 726, -2019,  52], [1098, -2019, 118], [1379, -2019,  38], [1751, -2019, 142],
+        [  73, -1857, 148], [ 445, -1857,  48], [ 726, -1857,  98], [1098, -1857, 150], [1379, -1857,  42], [1751, -1857, 130],
+        [  73, -1619,  48], [ 445, -1619, 132], [ 726, -1619,  38], [1098, -1619, 122], [1379, -1619,  58], [1751, -1619, 138],
+        [  73, -1436, 128], [ 445, -1436,  45], [ 726, -1436, 145], [1098, -1436,  48], [1379, -1436, 112], [1751, -1436,  38],
+      ];
+      LIMIAR_POS.forEach(([x, y, s], i) => {
+        const img = this.add.image(x, y, lk[(i + 1) % lk.length])
+          .setDisplaySize(s * lm * gm, s * lm * gm).setDepth(3).setAlpha(0.85);
+        this.limiarDecos.push({ img, baseSize: s });
+        this.decoImages.push({ img, baseSize: s });
       });
     }
   }
@@ -538,11 +525,11 @@ export class Zone1Scene extends Phaser.Scene {
       if (!plantData) return;
       this.plants.push(new Plant(this, x, y, plantData));
     });
-    TRANSICAO_PLANT_SPAWNS.forEach(({ id, xFrac, yOff }) => {
+    TRANSICAO_PLANT_SPAWNS.forEach(({ id, x, y }) => {
       if (GameState.collected.has(id)) return;
       const plantData = PLANTS[id];
       if (!plantData) return;
-      this.plants.push(new Plant(this, Math.round(xFrac * ZW), -yOff, plantData));
+      this.plants.push(new Plant(this, x, y, plantData));
     });
     LIMIAR_PLANT_SPAWNS.forEach(({ id, xFrac, yOff }) => {
       if (GameState.collected.has(id)) return;
