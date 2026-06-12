@@ -89,10 +89,11 @@ export class DebugPanel {
     this._slider('globalSizeMult', z1._globalSizeMult ?? 1.0);
     // Transição tab
     this._slider('transH',         z1._transH      ?? 400);
-    this._slider('tw-fundoAlpha',  z1._tw?.fundoParede?.alpha ?? 0.50);
-    this._slider('tw-caminhoAlpha',z1._tw?.caminho?.alpha     ?? 0.90);
-    this._slider('tw-caminhoY',    z1._tw?.caminho?.y         ?? 0);
-    this._slider('tw-paredeAlpha', z1._tw?.parede?.alpha      ?? 1.0);
+    this._slider('paredeH',        z1._paredeH     ?? 700);
+    this._slider('tw-fundoAlpha',  z1._pz?.fundoParede?.alpha ?? 0.50);
+    this._slider('tw-caminhoAlpha',z1._tz?.caminho?.alpha     ?? 0.90);
+    this._slider('tw-caminhoY',    z1._tz?.caminho?.y         ?? 0);
+    this._slider('tw-paredeAlpha', z1._pz?.parede?.alpha      ?? 1.0);
     // Limiar tab
     this._slider('limiarDecoMult', z1._limiarDecoMult ?? 1.0);
     this._slider('campoDecoMult',  z1._campoDecoMult  ?? 1.0);
@@ -123,7 +124,8 @@ export class DebugPanel {
     const area = z1?._currentArea || '—';
     const zw   = z1?._zoneW ?? '—';
     const zh   = z1?._zoneH ?? '—';
-    const th   = z1?._transH ?? '—';
+    const th   = z1?._transH  ?? '—';
+    const ph   = z1?._paredeH ?? '—';
     const el   = document.getElementById('dp-stats-body');
     if (el) el.innerHTML =
       `<span style="color:#7bc67e">FPS</span> <b>${fps}</b>` +
@@ -131,6 +133,7 @@ export class DebugPanel {
       `&nbsp;<span style="color:#7bc67e">Y</span> <b>${py}</b>` +
       `<br><span style="color:#7bc67e">Zona</span> <b>${zw}×${zh}</b>` +
       `&nbsp;<span style="color:#7bc67e">TH</span> <b>${th}</b>` +
+      `&nbsp;<span style="color:#7bc67e">PH</span> <b>${ph}</b>` +
       `<br><span style="color:#7bc67e">Área</span> <b>${area}</b>`;
   }
 
@@ -294,15 +297,18 @@ export class DebugPanel {
   // ── Tab: Transição ────────────────────────────────────────────────────────
   _buildTabTransicao() { return `
     <div id="dp-tab-transicao" style="display:none">
-      <div style="${this._css.sec}">ALTURA DA ZONA DE TRANSIÇÃO</div>
-      ${this._sliderRow('transH','Transição Height px', 100, 900, 25, 400)}
-      <button id="dp-restart-trans" style="${this._css.btnY}">↺ Reiniciar Zona (aplica altura)</button>
+      <div style="${this._css.sec}">ALTURAS DAS ZONAS</div>
+      ${this._sliderRow('transH', 'Transição Height px', 100, 1200, 25, 400)}
+      ${this._sliderRow('paredeH','Parede Height px',    200, 2000, 50, 700)}
+      <button id="dp-restart-trans" style="${this._css.btnY}">↺ Reiniciar Zona (aplica alturas)</button>
 
-      <div style="${this._css.sec}">CAMADAS PRINCIPAIS</div>
-      ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',   0, 1, 0.01, 0.50)}
-      ${this._sliderRow('tw-caminhoAlpha','Caminho α',        0, 1, 0.01, 0.90)}
+      <div style="${this._css.sec}">TRANSIÇÃO — CAMADAS</div>
+      ${this._sliderRow('tw-caminhoAlpha','Caminho α',         0, 1, 0.01, 0.90)}
       ${this._sliderRow('tw-caminhoY',    'Caminho Y offset', -500, 200, 5, 0)}
-      ${this._sliderRow('tw-paredeAlpha', 'Parede Principal α', 0, 1, 0.01, 1.0)}
+
+      <div style="${this._css.sec}">PAREDE DE PLANTAS — CAMADAS</div>
+      ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',    0, 1, 0.01, 0.50)}
+      ${this._sliderRow('tw-paredeAlpha', 'Parede Principal α',0, 1, 0.01, 1.0)}
       <button id="dp-rebuild-trans" style="${this._css.btnW}">↺ Reconstruir Parede (sem reiniciar)</button>
 
       <div style="${this._css.sec}">DECORAÇÕES z1_cl_XX</div>
@@ -458,13 +464,14 @@ export class DebugPanel {
     const z1 = this._z1();
     const el = document.getElementById('dp-limiar-info');
     if (!el || !z1) return;
-    const ZH = z1._zoneH ?? 1080, TH = z1._transH ?? 400;
+    const ZH = z1._zoneH ?? 1080, TH = z1._transH ?? 400, PH = z1._paredeH ?? 700;
     el.innerHTML =
-      `<span style="color:#5a8c5a">Y range</span> <b>-(${TH+ZH}) a -${TH}</b><br>` +
-      `<span style="color:#5a8c5a">Altura</span> <b>${ZH}px</b>&nbsp;&nbsp;` +
-      `<span style="color:#5a8c5a">TH</span> <b>${TH}px</b><br>` +
-      `<span style="color:#5a8c5a">Farfalha 1</span> y=<b>-(${TH}+380)=-${TH+380}</b><br>` +
-      `<span style="color:#5a8c5a">Farfalha 2</span> y=<b>-(${TH}+500)=-${TH+500}</b>`;
+      `<span style="color:#5a8c5a">Limiar Y</span> <b>-(${TH+PH}) a -(${TH+PH+ZH})</b><br>` +
+      `<span style="color:#5a8c5a">ZH</span> <b>${ZH}px</b>` +
+      `&nbsp;&nbsp;<span style="color:#5a8c5a">TH</span> <b>${TH}px</b>` +
+      `&nbsp;&nbsp;<span style="color:#5a8c5a">PH</span> <b>${PH}px</b><br>` +
+      `<span style="color:#5a8c5a">Farfalha 1</span> y=<b>-(${TH}+${PH}+380)=-${TH+PH+380}</b><br>` +
+      `<span style="color:#5a8c5a">Farfalha 2</span> y=<b>-(${TH}+${PH}+500)=-${TH+PH+500}</b>`;
   }
 
   // ── plant list ────────────────────────────────────────────────────────────
@@ -476,7 +483,8 @@ export class DebugPanel {
     el.innerHTML = z1.plants.map(p => {
       const col  = p.isCollected ? '#7bc67e' : '#8ac88a';
       const mark = p.isCollected ? '✓' : '○';
-      const area = p.y < -(z1._transH ?? 400) ? 'limiar' : p.y < 0 ? 'trans' : p.x > (z1._zoneW ?? 1920) ? 'jardim' : 'campo';
+      const TH = z1._transH ?? 400, PH = z1._paredeH ?? 700, ZW = z1._zoneW ?? 1920;
+      const area = p.y < -(TH + PH) ? 'limiar' : p.y < -TH ? 'parede' : p.y < 0 ? 'trans' : p.x > ZW ? 'jardim' : 'campo';
       return `<span style="color:${col}">${mark}</span> <b>${p.plantData?.id ?? '?'}</b>` +
              ` <span style="color:#5a8c5a">${Math.round(p.x)},${Math.round(p.y)}</span>` +
              ` <span style="color:#4a7a4a;font-size:9px">[${area}]</span>`;
@@ -494,11 +502,12 @@ export class DebugPanel {
 
   _tpPreset(name) {
     const z1 = this._z1();
-    const ZW = z1?._zoneW ?? 1920, ZH = z1?._zoneH ?? 1080, TH = z1?._transH ?? 400;
+    const ZW = z1?._zoneW ?? 1920, ZH = z1?._zoneH ?? 1080;
+    const TH = z1?._transH ?? 400, PH = z1?._paredeH ?? 700;
     const presets = {
       campo:     [ZW * 0.33, ZH * 0.55],
       transicao: [ZW * 0.33, -(TH * 0.5)],
-      limiar:    [ZW * 0.33, -(TH + ZH * 0.5)],
+      limiar:    [ZW * 0.33, -(TH + PH + ZH * 0.5)],
       jardim:    [ZW + ZW * 0.4, ZH * 0.5],
     };
     const [x, y] = presets[name] || [640, 600];
@@ -510,7 +519,7 @@ export class DebugPanel {
     // Slider live-apply
     const sliders = [
       'zoom','playerSize','vagScale','vagQty','vagFreq','globalSizeMult',
-      'zoneW','zoneH','transH',
+      'zoneW','zoneH','transH','paredeH',
       'tw-fundoAlpha','tw-caminhoAlpha','tw-caminhoY','tw-paredeAlpha',
       'limiarDecoMult','campoDecoMult','jardimDecoMult',
       'placaSize','placaX','placaY','placaLimiarX','placaLimiarYOff',
@@ -546,21 +555,25 @@ export class DebugPanel {
       const wv = parseFloat(document.getElementById('dp-zoneW').value);
       const hv = parseFloat(document.getElementById('dp-zoneH').value);
       const th = parseFloat(document.getElementById('dp-transH').value);
+      const ph = parseFloat(document.getElementById('dp-paredeH').value);
       this._game.registry.set('debugZoneW', wv);
       this._game.registry.set('debugZoneH', hv);
       this._game.registry.set('debugTransH', th);
+      this._game.registry.set('debugParedeH', ph);
       z1.scene.restart();
-      this._msg(`Reiniciada ${wv}×${hv} TH=${th} ✓`);
+      this._msg(`Reiniciada ${wv}×${hv} TH=${th} PH=${ph} ✓`);
     });
     document.getElementById('dp-restart-trans').addEventListener('click', () => {
       const z1 = this._z1();
       if (!z1) { this._msg('Zona 1 não está ativa'); return; }
       const th = parseFloat(document.getElementById('dp-transH').value);
+      const ph = parseFloat(document.getElementById('dp-paredeH').value);
       this._game.registry.set('debugZoneW', z1._zoneW);
       this._game.registry.set('debugZoneH', z1._zoneH);
       this._game.registry.set('debugTransH', th);
+      this._game.registry.set('debugParedeH', ph);
       z1.scene.restart();
-      this._msg(`Reiniciada TH=${th} ✓`);
+      this._msg(`Reiniciada TH=${th} PH=${ph} ✓`);
     });
 
     // Rebuild fireflies
@@ -628,6 +641,7 @@ export class DebugPanel {
         zoneW:          z1._zoneW       ?? 1920,
         zoneH:          z1._zoneH       ?? 1080,
         transH:         z1._transH      ?? 400,
+        paredeH:        z1._paredeH     ?? 700,
         globalSizeMult: z1._globalSizeMult ?? 1.0,
         campoDecoMult:  z1._campoDecoMult  ?? 1.0,
         jardimDecoMult: z1._jardimDecoMult ?? 1.0,
@@ -638,10 +652,10 @@ export class DebugPanel {
         placaLimiarX:   z1._placaLimiarX   ?? 280,
         placaLimiarYOff:z1._placaLimiarYOff ?? 120,
         tw: {
-          fundoAlpha:   z1._tw?.fundoParede?.alpha ?? 0.5,
-          caminhoAlpha: z1._tw?.caminho?.alpha     ?? 0.9,
-          caminhoY:     z1._tw?.caminho?.y         ?? 0,
-          paredeAlpha:  z1._tw?.parede?.alpha      ?? 1.0,
+          fundoAlpha:   z1._pz?.fundoParede?.alpha ?? 0.5,
+          caminhoAlpha: z1._tz?.caminho?.alpha     ?? 0.9,
+          caminhoY:     z1._tz?.caminho?.y         ?? 0,
+          paredeAlpha:  z1._pz?.parede?.alpha      ?? 1.0,
           decos: (z1._tw?.decos || []).map(d => ({
             n: d.n, xFrac: +d.xFrac.toFixed(3), h: d.h, alpha: +d.alpha.toFixed(2)
           })),
@@ -693,18 +707,21 @@ export class DebugPanel {
       case 'transH':
         this._msg(`transH=${v} → clica ↺ Reiniciar`); break;
 
-      // ── Transition wall live adjustments ─────────────────────────────────
+      // ── Live zone layer adjustments ───────────────────────────────────────
       case 'tw-fundoAlpha':
-        z1._tw?.fundoParede?.setAlpha(v); break;
+        z1._pz?.fundoParede?.setAlpha(v); break;
 
       case 'tw-caminhoAlpha':
-        z1._tw?.caminho?.setAlpha(v); break;
+        z1._tz?.caminho?.setAlpha(v); break;
 
       case 'tw-caminhoY':
-        z1._tw?.caminho?.setY(v); break;
+        z1._tz?.caminho?.setY(v); break;
 
       case 'tw-paredeAlpha':
-        z1._tw?.parede?.setAlpha(v); break;
+        z1._pz?.parede?.setAlpha(v); break;
+
+      case 'paredeH':
+        this._msg(`paredeH=${v} → clica ↺ Reiniciar`); break;
 
       // ── Per-zone deco mults ───────────────────────────────────────────────
       case 'campoDecoMult':
@@ -747,7 +764,7 @@ export class DebugPanel {
 
       case 'placaLimiarYOff':
         z1._placaLimiarYOff = v;
-        z1.placaLimiar?.setY(-(z1._transH + z1._zoneH - v)); break;
+        z1.placaLimiar?.setY(-(z1._transH + z1._paredeH + z1._zoneH - v)); break;
 
       // ── Plant scale ───────────────────────────────────────────────────────
       case 'plantScale':
