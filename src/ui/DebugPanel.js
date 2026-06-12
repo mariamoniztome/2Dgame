@@ -91,8 +91,8 @@ export class DebugPanel {
     this._slider('transH',         z1._transH      ?? 525);
     this._slider('paredeH',        z1._paredeH     ?? 700);
     this._slider('tw-fundoAlpha',  z1._pz?.fundoParede?.alpha ?? 0.50);
-    this._slider('tw-caminhoAlpha',z1._tz?.caminho?.alpha     ?? 0.90);
-    this._slider('tw-caminhoY',    z1._tz?.caminho?.y         ?? Math.round(-(z1._transH ?? 525) * 0.3));
+    this._slider('tw-caminhoAlpha',z1._tz?.caminho?.alpha     ?? 1.0);
+    this._slider('tw-caminhoY',    z1._tz?.caminho?.y         ?? Math.round(-(z1._transH ?? 525) / 2));
     this._slider('tw-paredeAlpha', z1._pz?.parede?.alpha      ?? 1.0);
     // Limiar tab
     this._slider('transDecoMult',  z1._transDecoMult  ?? 1.0);
@@ -304,8 +304,8 @@ export class DebugPanel {
       <button id="dp-restart-trans" style="${this._css.btnY}">↺ Reiniciar Zona (aplica alturas)</button>
 
       <div style="${this._css.sec}">TRANSIÇÃO — CAMADAS</div>
-      ${this._sliderRow('tw-caminhoAlpha','Caminho α',        0,    1,    0.01, 0.90)}
-      ${this._sliderRow('tw-caminhoY',    'Caminho Y',       -800, 0,    5,   -158)}
+      ${this._sliderRow('tw-caminhoAlpha','Caminho α',       0,    1,    0.01, 1.0)}
+      ${this._sliderRow('tw-caminhoY',    'Caminho Y',      -800, 0,    5,   -262)}
 
       <div style="${this._css.sec}">PAREDE DE PLANTAS — CAMADAS</div>
       ${this._sliderRow('tw-fundoAlpha',  'Fundo Parede α',    0, 1, 0.01, 0.50)}
@@ -655,10 +655,10 @@ export class DebugPanel {
         placaLimiarX:   z1._placaLimiarX   ?? 280,
         placaLimiarYOff:z1._placaLimiarYOff ?? 120,
         tw: {
-          fundoAlpha:   z1._pz?.fundoParede?.alpha ?? 0.5,
-          caminhoAlpha: z1._tz?.caminho?.alpha     ?? 0.9,
-          caminhoY:     z1._tz?.caminho?.y         ?? 0,
-          paredeAlpha:  z1._pz?.parede?.alpha      ?? 1.0,
+          fundoAlpha:   z1._pz?.fundoParede?.alpha      ?? 0.55,
+          caminhoAlpha: z1._tz?.caminho?.alpha        ?? 1.0,
+          caminhoY:     z1._tz?.caminho?.y            ?? -262,
+          paredeAlpha:  z1._pz?.paredes?.[0]?.alpha   ?? 1.0,
           decos: (z1._tw?.decos || []).map(d => ({
             n: d.n, xFrac: +d.xFrac.toFixed(3), h: d.h, alpha: +d.alpha.toFixed(2)
           })),
@@ -721,7 +721,7 @@ export class DebugPanel {
         z1._tz?.caminho?.setY(v); break;
 
       case 'tw-paredeAlpha':
-        z1._pz?.parede?.setAlpha(v); break;
+        (z1._pz?.paredes || (z1._pz?.parede ? [z1._pz.parede] : [])).forEach(p => p.setAlpha(v)); break;
 
       case 'paredeH':
         this._msg(`paredeH=${v} → clica ↺ Reiniciar`); break;

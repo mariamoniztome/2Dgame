@@ -36,9 +36,10 @@ const PLANT_SPAWNS = [
   { id: 'gotateia',   x: 2220, y: 320  },   // jardim
   { id: 'gotateia',   x: 2790, y: 520  },   // jardim
 ];
-// Transição plants (yOff = depth from y=0, so y = -yOff)
+// Transição plants (yOff = depth from y=0, so y = -yOff).
+// Trepadeira is placed near the top of the transição zone, just below the parede.
 const TRANSICAO_PLANT_SPAWNS = [
-  { id: 'trepadeira', xFrac: 0.33, yOff: 200 },
+  { id: 'trepadeira', xFrac: 0.50, yOff: 460 },
 ];
 // Limiar plants (y = -(TH + PH + yOff))
 const LIMIAR_PLANT_SPAWNS = [
@@ -248,27 +249,24 @@ export class Zone1Scene extends Phaser.Scene {
     const cx = ZW / 2;
     this._tz = {};
 
-    // fundo.svg is a 1920×525 landscape gradient (campo→darker).
-    // Rotate -90° to use it as a vertical gradient for the transição zone.
-    // setDisplaySize(TH, ZW) then angle(-90) → visible W=ZW, H=TH
+    // fundo.svg (1920×525) — stretched to fill the full transição zone (ZW×TH).
+    // No rotation: the SVG gradient runs top→bottom, so we display it directly.
     if (this.textures.exists('z1_bg_trans')) {
       this._tz.fundo = this.add.image(cx, -TH / 2, 'z1_bg_trans')
         .setOrigin(0.5, 0.5)
-        .setDisplaySize(TH, ZW)
-        .setAngle(-90)
+        .setDisplaySize(ZW, TH)
         .setDepth(2)
-        .setAlpha(0.90);
+        .setAlpha(1.0);
     }
 
-    // caminho.svg (1920×525) — displayed at natural aspect ratio, vertically centered
-    // at ~30% depth from bottom: y ≈ -TH*0.3, matching the path emerging from campo.
+    // caminho.svg (1920×525) — natural aspect ratio, centered vertically in the zone.
     if (this.textures.exists('z1_caminho')) {
-      const h = ZW * (525 / 1920);  // natural height at full ZW width
-      this._tz.caminho = this.add.image(cx, Math.round(-TH * 0.3), 'z1_caminho')
+      const h = ZW * (525 / 1920);
+      this._tz.caminho = this.add.image(cx, Math.round(-TH / 2), 'z1_caminho')
         .setOrigin(0.5, 0.5)
         .setDisplaySize(ZW, h)
         .setDepth(3)
-        .setAlpha(0.90);
+        .setAlpha(1.0);
     }
   }
 
@@ -292,13 +290,20 @@ export class Zone1Scene extends Phaser.Scene {
         .setDepth(1).setAlpha(0.55);
     }
 
-    // ── 2. Main plant wall (ParedãodePlantas) — viewBox 1920×1735 ─────────
-    // Origin (0.5, 1) at baseY — base of wall at transition/parede border
+    // ── 2. Main plant wall (ParedãodePlantas) — tiled 3× horizontally ───────
+    // Each tile: w=ZW/3, h=(ZW/3)*(1735/1920). Three tiles fill the full width
+    // and keep height ≈ PH instead of one oversized image.
+    this._pz.paredes = [];
     if (this.textures.exists('z1_parede')) {
-      const h = ZW * (1735 / 1920);
-      this._pz.parede = this.add.image(cx, baseY, 'z1_parede')
-        .setOrigin(0.5, 1).setDisplaySize(ZW, h)
-        .setDepth(3).setAlpha(1.0);
+      const tileW = ZW / 3;
+      const tileH = tileW * (1735 / 1920);
+      [ZW / 6, ZW / 2, ZW * 5 / 6].forEach(tx => {
+        const p = this.add.image(Math.round(tx), baseY, 'z1_parede')
+          .setOrigin(0.5, 1).setDisplaySize(tileW, tileH)
+          .setDepth(3).setAlpha(1.0);
+        this._pz.paredes.push(p);
+      });
+      this._pz.parede = this._pz.paredes[0];  // compat alias for debug
     }
 
     // ── 3. Individual decorative elements (grounded at baseY) ─────────────
@@ -345,7 +350,7 @@ export class Zone1Scene extends Phaser.Scene {
   _rebuildParedeZone() {
     if (this._pz) {
       this._pz.fundoParede?.destroy();
-      this._pz.parede?.destroy();
+      (this._pz.paredes || (this._pz.parede ? [this._pz.parede] : [])).forEach(p => p?.destroy());
       (this._pz.decos || []).forEach(d => d.img?.destroy());
       this._pz = null; this._tw = null;
     }
