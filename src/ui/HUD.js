@@ -393,6 +393,11 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       ? this.add.image(cx, cy, 'mm_star').setDisplaySize(starSize, starSize).setDepth(63).setMask(mask)
       : this.add.circle(cx, cy, Math.max(4, Math.round(W * 0.0044)), 0xffffff, 1).setDepth(63).setMask(mask);
 
+    // Subtle border ring on top of everything (no mask — acts as frame)
+    this.add.graphics().setDepth(65)
+      .lineStyle(1.5, 0x000000, 0.35)
+      .strokeCircle(cx, cy, R);
+
     this.mmZoneLabel = null;  // label removed by design
 
     this._drawMinimapBg('Zone1');
