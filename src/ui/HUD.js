@@ -563,27 +563,32 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
 
     const K  = this._mmK ?? 2;
     const cx = this._mmCX, cy = this._mmCY;
+    const R  = this._mmR;
 
-    // Player position in base minimap coords
     const { dotX, dotY } = this._worldToMinimap(
       zone, GameState.playerX ?? 640, GameState.playerY ?? 360
     );
 
-    // Pan map images so the player's world position lands at the circle centre
-    // ix = cx - K*(dotX - cx)  ←  derived from: playerScreenX = ix + K*(dotX - cx) = cx
-    const ix = cx - K * (dotX - cx);
-    const iy = cy - K * (dotY - cy);
+    // Pan map images so player appears centred.
+    // Clamp so the image always covers the full circle (max shift = R*(K-1)).
+    // With K=2 the image is 4R wide, so clamping to ±R keeps both edges within range.
+    const maxPan = R * (K - 1);
+    const rawIx  = cx - K * (dotX - cx);
+    const rawIy  = cy - K * (dotY - cy);
+    const ix = Phaser.Math.Clamp(rawIx, cx - maxPan, cx + maxPan);
+    const iy = Phaser.Math.Clamp(rawIy, cy - maxPan, cy + maxPan);
     this.mmImg1?.setPosition(ix, iy);
     this.mmImg2?.setPosition(ix, iy);
 
-    // Player star stays fixed at circle centre
-    this.mmDot?.setPosition(cx, cy);
+    // Star and plant dots use the actual image position so they stay in sync
+    // with the map.  When unclamped the star is at (cx,cy); at the edges it
+    // drifts slightly to show the player is near the boundary.
+    this.mmDot?.setPosition(ix + K * (dotX - cx), iy + K * (dotY - cy));
 
-    // Plant dots pan relative to player
     this._plantDots.forEach(d => {
       if (d._worldX === undefined) return;
       const { dotX: pdotX, dotY: pdotY } = this._worldToMinimap(zone, d._worldX, d._worldY);
-      d.setPosition(cx + K * (pdotX - dotX), cy + K * (pdotY - dotY));
+      d.setPosition(ix + K * (pdotX - cx), iy + K * (pdotY - cy));
     });
   }
 
