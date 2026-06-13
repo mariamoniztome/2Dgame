@@ -74,6 +74,8 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._placaLimiarX    === undefined) this._placaLimiarX    = 936;
     if (this._placaLimiarYOff === undefined) this._placaLimiarYOff = 981;
     if (this._placaLimiarSize === undefined) this._placaLimiarSize = 174;
+    if (this._placaJardimX    === undefined) this._placaJardimX    = 2880;
+    if (this._placaJardimY    === undefined) this._placaJardimY    = 450;
     if (this._globalSizeMult  === undefined) this._globalSizeMult  = this.game.registry.get('debugGlobalSizeMult') ?? 1.0;
 
     // L-shaped world physics bounds (campo + transição + parede + limiar)
@@ -239,6 +241,10 @@ export class Zone1Scene extends Phaser.Scene {
       this.placaLimiar = this.add.image(lx, ly, 'z1_placa_limiar')
         .setDisplaySize(ls, ls).setDepth(4);
     }
+    if (this.textures.exists('z1_placa_jardim')) {
+      this.placaJardim = this.add.image(this._placaJardimX, this._placaJardimY, 'z1_placa_jardim')
+        .setDisplaySize(ps, ps).setDepth(4);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -264,7 +270,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // caminho.svg — position/size tuned in debug panel.
     if (this.textures.exists('z1_caminho')) {
-      this._tz.caminho = this.add.image(1005, -260, 'z1_caminho')
+      this._tz.caminho = this.add.image(994, -273, 'z1_caminho')
         .setOrigin(0.5, 0.5)
         .setDisplaySize(2256, 617)
         .setAngle(-179)
@@ -287,7 +293,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     // ── 1. Background glow (Fundo_ParedãodePlantas) — viewBox 2077×1550 ──
     if (this.textures.exists('z1_fundo_parede')) {
-      this._pz.fundoParede = this.add.image(888, 171, 'z1_fundo_parede')
+      this._pz.fundoParede = this.add.image(887, -141, 'z1_fundo_parede')
         .setOrigin(0.5, 1).setDisplaySize(2077, 1433)
         .setDepth(1).setAlpha(0.55);
     }
@@ -427,7 +433,7 @@ export class Zone1Scene extends Phaser.Scene {
       [975,  755,  50],
       [1516, 358,  205],
       [1494, 644,  230],
-      [1237, 187,  240],
+      [1215, 107,  240],
       [985,  520,  170],
       [168,  838,  215],
       [981,  980,  215],
@@ -460,8 +466,8 @@ export class Zone1Scene extends Phaser.Scene {
         [ 235, -491,  45], [1876, -353,  54], [1430, -377, 286],
         [1424,  988,  83], [ 279, -262,  50], [ 999, -216,  47],
         [ 672,  -48, 112], [1853, -406,  85], [ 865, -505,  57],
-        [ 973, -404,  58], [1571, -224,  83], [1133, -409, 526],
-        [ 804, -361, 551], [1043,  -57, 128], [1673, -387, 318],
+        [ 938, -443,  58], [1571, -224,  83], [1107, -344, 526],
+        [ 750, -396, 551], [1043,  -57, 128], [1673, -387, 318],
       ];
       TRANS_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, tk[(i + 1) % tk.length])
@@ -473,17 +479,21 @@ export class Zone1Scene extends Phaser.Scene {
 
     // ── Jardim Invertido  x:ZW–ZW*2, y:0–ZH ─────────────────────────────
     const jm = this._jardimDecoMult ?? 1.0;
+    const jardimNums = ['02','03','04','05','06','07','08','09','10','12','13','14','15','16','18','19','20'];
+    const jk = jardimNums.filter(n => this.textures.exists(`z1_jardim_${n}`))
+                         .map(n => `z1_jardim_${n}`);
+    const jardimKeys = jk.length > 0 ? jk : ck;  // fall back to campo keys if jardim not loaded
 
-    if (ck.length > 0) {
+    if (jardimKeys.length > 0) {
       const JARDIM_POS = [
         [2064,  67, 120], [2448,  67,  45], [2717,  67,  95], [3101,  67, 140], [3350,  67,  55], [3715,  67, 110],
         [2064, 311,  45], [2448, 311, 130], [2717, 311,  38], [3101, 311, 115], [3350, 311,  60], [3715, 311, 135],
         [2064, 488, 145], [2448, 488,  50], [2717, 488,  95], [3101, 488, 148], [3350, 488,  42], [3715, 488, 130],
-        [2064, 743,  48], [2448, 743, 132], [2717, 743,  38], [3101, 743, 122], [3350, 743,  58], [3715, 743, 140],
+        [2064, 743,  48], [2448, 743, 132], [2717, 743,  38], [3101, 743, 250], [3350, 743,  58], [3715, 743, 140],
         [2064, 920, 130], [2448, 920,  48], [2717, 920, 142], [3101, 920,  38], [3350, 920,  92], [3715, 920,  60],
       ];
       JARDIM_POS.forEach(([x, y, s], i) => {
-        const img = this.add.image(x, y, ck[(i + 1) % ck.length])
+        const img = this.add.image(x, y, jardimKeys[i % jardimKeys.length])
           .setDisplaySize(s * jm * gm, s * jm * gm).setDepth(3).setAlpha(0.78);
         this.jardimDecos.push({ img, baseSize: s });
         this.decoImages.push({ img, baseSize: s });
@@ -503,9 +513,9 @@ export class Zone1Scene extends Phaser.Scene {
       const LIMIAR_POS = [
         [ 183, -2118, 278], [ 532, -2148, 310], [ 726, -2246, 135], [1133, -2156, 266], [1379, -2246, 120], [1751, -2246,  40],
         [1328, -1500, 354], [ 612, -1705, 100], [1552, -2197, 452], [1320, -1764, 118], [1586, -1950, 126], [1748, -2078, 190],
-        [  80, -1635, 196], [ 255, -1784, 256], [ 844, -1938, 306], [1085, -1836, 214], [1338, -2012, 258], [1751, -1857, 130],
-        [ 101, -1320,  48], [ 445, -1619, 132], [ 858, -1588, 278], [1395, -1345, 210], [1825, -1667, 202], [1533, -1590, 290],
-        [ 339, -1468, 312], [ 533, -1900, 109], [ 603, -1340,  57], [1039, -1486,  96], [1229, -1575, 216], [1702, -1370, 246],
+        [  88, -1560, 100], [ 255, -1784, 256], [ 844, -1938, 306], [1085, -1836, 214], [1338, -2012, 258], [1751, -1857, 130],
+        [ 101, -1320,  48], [ 445, -1619, 132], [ 858, -1588, 278], [1330, -1322, 122], [1825, -1667, 202], [1533, -1590, 290],
+        [ 403, -1386, 312], [ 533, -1900, 109], [ 603, -1340,  57], [1039, -1486,  96], [1229, -1575, 216], [1702, -1370, 246],
       ];
       LIMIAR_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, lk[(i + 1) % lk.length])

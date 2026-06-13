@@ -41,9 +41,10 @@ export class BootScene extends Phaser.Scene {
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
     this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 1024, height: 1024 });
     // Plant sprites
-    this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',   { width: 256, height: 256 });
+    this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',    { width: 256, height: 256 });
     this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });
     this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 256, height: 256 });
+    this.load.svg('plant_img_gotateia',   '/assets/zone1/jardim/gotateia.svg',   { width: 256, height: 256 });
     // Firefly sprite — load at 512 so scale ~0.59 downscales cleanly (no upscale blur)
     this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 512, height: 512 });
     // Area backgrounds and transition zone assets — loaded at native SVG viewBox size
@@ -53,8 +54,9 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('z1_caminho',     '/assets/zone1/transicao/caminho.svg',      { width: 1920, height: 525  });
     this.load.svg('z1_parede',      '/assets/zone1/transicao/parede.svg',       { width: 1920, height: 1735 });
     // Location signs — 512px raster for crisp display at large sizes (up to zoom 2)
-    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',  { width: 512, height: 512 });
-    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg', { width: 512, height: 512 });
+    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',   { width: 512, height: 512 });
+    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg',  { width: 512, height: 512 });
+    this.load.svg('z1_placa_jardim', '/assets/zone1/jardim/placa.svg',  { width: 512, height: 512 });
     // Decorative elements — load at 512×512 so they stay sharp at 300–450px display size
     ['02','03','04','05','06','07','08','09','10','11','13','14','17','18','19','20','21','22','23','24','25'].forEach(n =>
       this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 512, height: 512 })
@@ -66,6 +68,9 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('z1_ventoinha_degradee', '/assets/zone1/campo/ventoinha_degradee.svg', { width: 512, height: 512 });
     ['02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
       this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
+    );
+    ['02','03','04','05','06','07','08','09','10','12','13','14','15','16','18','19','20'].forEach(n =>
+      this.load.svg(`z1_jardim_${n}`, `/assets/zone1/jardim/elem_${n}.svg`, { width: 512, height: 512 })
     );
     // Transition wall elements: Campo dos Vagalumes ↔ Limiar Secreto (y=0 border)
     ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>
