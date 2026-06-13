@@ -244,7 +244,7 @@ export class Zone1Scene extends Phaser.Scene {
     g.fillStyle(0x2a4030, 1); g.fillRect(0, -(TH + PH), ZW, PH);
 
     // ── Limiar Secreto (y:-(ZH+TH+PH)–-(TH+PH)) ─────────────────────
-    g.fillStyle(0x355138, 1); g.fillRect(0, -(ZH + TH + PH), ZW, ZH);
+    g.fillStyle(0x37533a, 1); g.fillRect(0, -(ZH + TH + PH), ZW, ZH);
 
     // ── Jardim Invertido (right of campo) ────────────────────────────
     g.fillStyle(0x6d8469, 1); g.fillRect(ZW, 0, ZW, ZH);
@@ -716,7 +716,8 @@ export class Zone1Scene extends Phaser.Scene {
       MusicManager.playArea(area);
 
       // Canvas background matches the current area (jardim has its own colour)
-      this.cameras.main.setBackgroundColor(area === 'jardimInvertido' ? '#6d8469' : '#afd6a8');
+      const BG = area === 'jardimInvertido' ? '#6d8469' : area === 'limiarSecreto' ? '#37533a' : '#afd6a8';
+      this.cameras.main.setBackgroundColor(BG);
 
       // Vagalume emitter only active in campo
       if (area === 'campoVagalumes') {
