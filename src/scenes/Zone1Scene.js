@@ -20,8 +20,8 @@ const ZONE_H = 720;
 
 const AREAS = {
   campoVagalumes:  { label: 'Campo dos Vagalumes'   },
-  transicao:       { label: 'Transição'              },
-  paredeZone:      { label: 'Parede de Plantas'      },
+  transicao:       { label: ''                       },  // no banner for passage zones
+  paredeZone:      { label: ''                       },
   limiarSecreto:   { label: 'Limiar Secreto'         },
   jardimInvertido: { label: 'Jardim Invertido'       },
 };
@@ -603,6 +603,7 @@ export class Zone1Scene extends Phaser.Scene {
   // ─────────────────────────────────────────────────────────────────────────
   update(time, delta) {
     if (this._dbFrozen) return;   // freeze everything while debug panel is open
+    if (this._cutscene) return;   // cinematic playing — freeze all input
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
 
     // ── Hard boundary: cannot enter Parede/Limiar until vine is collected ─
@@ -659,7 +660,8 @@ export class Zone1Scene extends Phaser.Scene {
     if (area !== this._currentArea) {
       const prev = this._currentArea;
       this._currentArea = area;
-      this.game.events.emit('areaChanged', AREAS[area].label);
+      const areaLabel = AREAS[area].label;
+      if (areaLabel) this.game.events.emit('areaChanged', areaLabel);
 
       // Vagalume emitter only active in campo
       if (area === 'campoVagalumes') {
@@ -842,6 +844,31 @@ export class Zone1Scene extends Phaser.Scene {
         this._emitNarrative('Encontraste um portal! Leva-te de volta quando precisares.');
       });
     }
+
+    this._playVineClimbCinematic();
+  }
+
+  _playVineClimbCinematic() {
+    const TH = this._transH, PH = this._paredeH;
+    const cam = this.cameras.main;
+    this._cutscene = true;
+    cam.stopFollow();
+
+    // Reveal the parede: pan up to its top, pause, then return to player
+    const px = this.player.x;
+    const peakY = -(TH + PH * 0.85);
+
+    cam.pan(px, peakY, 2200, 'Sine.easeInOut', false, (_c, progress) => {
+      if (progress < 1) return;
+      this.time.delayedCall(700, () => {
+        cam.pan(px, this.player.y, 1200, 'Sine.easeInOut', false, (_c2, p2) => {
+          if (p2 < 1) return;
+          cam.startFollow(this.player, true, 1, 1);
+          cam.setLerp(0.12, 0.12);
+          this._cutscene = false;
+        });
+      });
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────

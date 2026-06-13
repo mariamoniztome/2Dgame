@@ -64,7 +64,11 @@ export class MapScene extends Phaser.Scene {
     const W = this.scale.width;
     const H = this.scale.height;
 
+    this._W = W; this._H = H;
     this._blockedTimer = null;
+    this._debugMode = false;
+    this._debugObjs = [];   // { img, label, posText }
+    this._debugOverlays = [];
 
     // ── Backgrounds ───────────────────────────────────────────────────────
     // Solid base guarantees no zone scene bleeds through when map is open
@@ -87,9 +91,10 @@ export class MapScene extends Phaser.Scene {
           .setDisplaySize(size, size)
           .setDepth(3)
           .setInteractive({ useHandCursor: true });
-        img.on('pointerover', () => this.tweens.add({ targets: img, scale: 1.08, duration: 120 }));
-        img.on('pointerout',  () => this.tweens.add({ targets: img, scale: 1.00, duration: 120 }));
-        img.on('pointerdown', () => this._enterZone('Zone1', area.startArea));
+        img.on('pointerover', () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.08, duration: 120 }); });
+        img.on('pointerout',  () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.00, duration: 120 }); });
+        img.on('pointerdown', () => { if (!this._debugMode) this._enterZone('Zone1', area.startArea); });
+        this._debugObjs.push({ img, label: area.icon, group: 'zone1' });
       }
 
       this.add.text(W * area.lxp, H * area.lyp, area.label, {
@@ -108,15 +113,19 @@ export class MapScene extends Phaser.Scene {
     DECO_ICONS.forEach(({ icon, xp, yp, sp }) => {
       if (!this.textures.exists(icon)) return;
       const s = Math.round(W * sp);
-      this.add.image(W * xp, H * yp, icon).setDisplaySize(s, s).setDepth(4);
+      const img = this.add.image(W * xp, H * yp, icon).setDisplaySize(s, s).setDepth(4)
+        .setInteractive({ useHandCursor: false });
+      this._debugObjs.push({ img, label: icon, group: 'deco' });
     });
 
     // ── Portal icons ──────────────────────────────────────────────────────
     if (this.textures.exists('map_portal')) {
       PORTAL_ICONS.forEach(({ xp, yp, sp }) => {
         const s = Math.round(W * sp);
-        this.add.image(W * xp, H * yp, 'map_portal')
-          .setDisplaySize(s, s).setDepth(4).setAlpha(0.85);
+        const img = this.add.image(W * xp, H * yp, 'map_portal')
+          .setDisplaySize(s, s).setDepth(4).setAlpha(0.85)
+          .setInteractive({ useHandCursor: false });
+        this._debugObjs.push({ img, label: 'map_portal', group: 'portal' });
       });
     }
 
@@ -142,8 +151,9 @@ export class MapScene extends Phaser.Scene {
       fontSize: '11px', fontFamily: 'Georgia, serif', color: '#6a9a6a',
     }).setOrigin(0.5, 1).setDepth(5);
 
-    this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-    this.keyM   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    this.keyEsc   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    this.keyDebug = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
     this.cameras.main.fadeIn(500, 0, 0, 0);
   }
@@ -170,19 +180,133 @@ export class MapScene extends Phaser.Scene {
     } else {
       // Always render padlocks — SVG if available, fallback generated texture in BootScene
       lockPositions.forEach(({ xp, yp }) => {
-        this.add.image(W * xp, H * yp, 'map_cadeado')
-          .setDisplaySize(lockSize, lockSize).setDepth(5);
+        const img = this.add.image(W * xp, H * yp, 'map_cadeado')
+          .setDisplaySize(lockSize, lockSize).setDepth(5)
+          .setInteractive({ useHandCursor: false });
+        this._debugObjs.push({ img, label: `lock_${key}`, group: 'lock' });
       });
       const hitZone = this.add.rectangle(hitX, hitY, hitW, hitH, 0, 0)
         .setDepth(6).setInteractive({ useHandCursor: false });
-      hitZone.on('pointerdown', () => this._showBlocked());
+      hitZone.on('pointerdown', () => { if (!this._debugMode) this._showBlocked(); });
     }
   }
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc) || Phaser.Input.Keyboard.JustDown(this.keyM)) {
+      if (this._debugMode) { this._toggleDebug(); return; }
       this._returnToGame();
     }
+    if (Phaser.Input.Keyboard.JustDown(this.keyDebug)) {
+      this._toggleDebug();
+    }
+    if (this._debugMode && this.keyLog && Phaser.Input.Keyboard.JustDown(this.keyLog)) {
+      this._logMapConfig();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Debug mode — drag icons, copy positions
+  // ─────────────────────────────────────────────────────────────────────────
+  _toggleDebug() {
+    this._debugMode = !this._debugMode;
+
+    if (this._debugMode) {
+      this._enableMapDebug();
+    } else {
+      this._disableMapDebug();
+    }
+  }
+
+  _enableMapDebug() {
+    const W = this._W, H = this._H;
+
+    // Dim background to make positions clearer
+    this._debugDim = this.add.rectangle(0, 0, W, H, 0x000000, 0.35)
+      .setOrigin(0).setDepth(50);
+
+    // Debug label banner
+    this._debugBanner = this.add.text(W / 2, 8, 'DEBUG MAPA  (D — fechar · L — log config)', {
+      fontSize: '12px', fontFamily: 'monospace', color: '#ffee44',
+      backgroundColor: '#000000cc', padding: { x: 8, y: 4 },
+    }).setOrigin(0.5, 0).setDepth(60);
+
+    // Key for copying config
+    this.keyLog = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
+
+    // Enable drag on all tracked objects
+    this._debugObjs.forEach(entry => {
+      const { img } = entry;
+      if (!img.active) return;
+      img.setInteractive({ draggable: true, useHandCursor: true });
+
+      // Position label
+      const posText = this.add.text(img.x, img.y - img.displayHeight / 2 - 10,
+        this._fmtPos(img.x, img.y, W, H),
+        { fontSize: '9px', fontFamily: 'monospace', color: '#ffee44',
+          stroke: '#000000', strokeThickness: 2 }
+      ).setOrigin(0.5, 1).setDepth(62);
+
+      // Highlight ring
+      const ring = this.add.graphics().setDepth(61);
+      ring.lineStyle(1.5, 0xffee44, 0.7);
+      ring.strokeCircle(img.x, img.y, img.displayWidth / 2 + 4);
+
+      entry.posText = posText;
+      entry.ring    = ring;
+      this._debugOverlays.push(posText, ring);
+    });
+
+    this.input.on('drag', (_ptr, img, dragX, dragY) => {
+      img.setPosition(dragX, dragY);
+      // Update labels and rings
+      const entry = this._debugObjs.find(e => e.img === img);
+      if (entry?.posText) {
+        entry.posText.setPosition(dragX, dragY - img.displayHeight / 2 - 10);
+        entry.posText.setText(this._fmtPos(dragX, dragY, W, H));
+      }
+      if (entry?.ring) {
+        entry.ring.clear();
+        entry.ring.lineStyle(1.5, 0xffee44, 0.7);
+        entry.ring.strokeCircle(dragX, dragY, img.displayWidth / 2 + 4);
+      }
+    });
+  }
+
+  _disableMapDebug() {
+    this._debugDim?.destroy();
+    this._debugBanner?.destroy();
+    this._debugOverlays.forEach(o => o.destroy());
+    this._debugOverlays = [];
+    this._debugObjs.forEach(e => { delete e.posText; delete e.ring; });
+    this.input.off('drag');
+    if (this.keyLog) { this.keyLog.destroy(); this.keyLog = null; }
+  }
+
+  _fmtPos(x, y, W, H) {
+    return `xp:${(x / W).toFixed(3)} yp:${(y / H).toFixed(3)}`;
+  }
+
+  _logMapConfig() {
+    const W = this._W, H = this._H;
+    const out = { zone1Icons: [], decoIcons: [], portalIcons: [], locks: [] };
+    let z = 0, d = 0, p = 0, l = 0;
+    this._debugObjs.forEach(({ img, group }) => {
+      if (!img.active) return;
+      const xp = +(img.x / W).toFixed(4);
+      const yp = +(img.y / H).toFixed(4);
+      const sp = +(img.displayWidth / W).toFixed(4);
+      if (group === 'zone1')  out.zone1Icons[z++]  = { xp, yp, size: sp };
+      if (group === 'deco')   out.decoIcons[d++]   = { xp, yp, sp };
+      if (group === 'portal') out.portalIcons[p++]  = { xp, yp, sp };
+      if (group === 'lock')   out.locks[l++]        = { xp, yp };
+    });
+    console.log('MAP CONFIG:\n' + JSON.stringify(out, null, 2));
+    // Copy to clipboard if available
+    try { navigator.clipboard.writeText(JSON.stringify(out, null, 2)); } catch (_) {}
+    this._debugBanner?.setText('Config copiado! (ver consola)');
+    this.time.delayedCall(2000, () =>
+      this._debugBanner?.setText('DEBUG MAPA  (D — fechar · L — log config)')
+    );
   }
 
   _showBlocked() {
