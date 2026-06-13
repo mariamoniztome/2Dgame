@@ -164,6 +164,17 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
+    // First time entering a zone: auto-show controls for 5 s then dismiss
+    if (this.game.registry.get('firstZoneEntry')) {
+      this.game.registry.remove('firstZoneEntry');
+      this.time.delayedCall(1200, () => {
+        document.getElementById('controls-panel')?.classList.add('visible');
+        this.time.delayedCall(5000, () => {
+          document.getElementById('controls-panel')?.classList.remove('visible');
+        });
+      });
+    }
+
     this._nearPlant      = null;
     this._nearPortal     = false;
     this._vineClimbed    = GameState.collected.has('trepadeira');
