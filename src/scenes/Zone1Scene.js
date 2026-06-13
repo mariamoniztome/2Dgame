@@ -414,7 +414,7 @@ export class Zone1Scene extends Phaser.Scene {
       [1730, 652,  235],
       [484,  98,   175],
       [1800, 975,  324],
-      [829,  100,  175],
+      [845,   91,  175],
       [1741, 151,  190],
       [632,  293,  180],
       [266,  125,  240],
@@ -683,6 +683,11 @@ export class Zone1Scene extends Phaser.Scene {
         });
       } else {
         this._applyCameraBounds(area);
+      }
+
+      // Mark jardim as visited (unlocks it on the map)
+      if (area === 'jardimInvertido' && !GameState.visitedJardim) {
+        GameState.visitedJardim = true;
       }
 
       // First-time hint when entering Jardim without any plants

@@ -19,6 +19,8 @@ class GameStateManager {
     this.playerX = 420;
     this.playerY = 1200;
     this.plantSpawns = [];
+    this.visitedJardim = false;
+    this.shownIntro    = false;
   }
 
   addPlant(plantData) {

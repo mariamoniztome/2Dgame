@@ -7,60 +7,53 @@ export class Portal extends Phaser.GameObjects.Container {
     this.destination = opts.destination || null;
     this.isLocked    = opts.locked !== false;
 
-    // Outer ring
-    this.ring = scene.add.image(0, 0, 'portal').setDisplaySize(110, 110).setAlpha(0.75);
+    // Portal image — no rotation, static
+    this.ring = scene.add.image(0, 0, 'portal').setDisplaySize(160, 160).setAlpha(this.isLocked ? 0.45 : 0.85);
 
     // Inner glow
-    this.glow = scene.add.circle(0, 0, 20, 0x7bc67e, 0.4);
+    this.glow = scene.add.circle(0, 0, 22, 0x7bc67e, 0.35);
 
     // Lock indicator
-    this.lockText = scene.add.text(0, -48, '🔒', {
-      fontSize: '18px',
+    this.lockText = scene.add.text(0, -72, '🔒', {
+      fontSize: '20px',
     }).setOrigin(0.5).setVisible(this.isLocked);
 
     // Hint
-    this.hintText = scene.add.text(0, 50, 'C — Portal', {
-      fontSize: '11px',
+    this.hintText = scene.add.text(0, 66, 'C — usar portal', {
+      fontSize: '12px',
       fontFamily: 'Georgia, serif',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 2,
+      color: '#d8f5d0',
+      stroke: '#061006',
+      strokeThickness: 3,
+      backgroundColor: 'rgba(5,14,10,0.75)',
+      padding: { x: 8, y: 4 },
     }).setOrigin(0.5).setAlpha(0);
 
     this.add([this.ring, this.glow, this.lockText, this.hintText]);
     scene.add.existing(this);
     this.setDepth(4);
 
-    // Rotation
-    scene.tweens.add({
-      targets: this.ring,
-      angle: 360,
-      duration: 6000,
-      repeat: -1,
-      ease: 'Linear',
-    });
-
-    // Pulse
+    // Soft pulse on the glow only (no rotation)
     scene.tweens.add({
       targets: this.glow,
-      scale: { from: 1, to: 1.6 },
-      alpha: { from: 0.4, to: 0 },
-      duration: 1800,
+      scale: { from: 1, to: 1.5 },
+      alpha: { from: 0.35, to: 0 },
+      duration: 2000,
       repeat: -1,
-      ease: 'Power2.easeOut',
+      ease: 'Sine.easeInOut',
     });
   }
 
   unlock() {
     this.isLocked = false;
     this.lockText.setVisible(false);
-    this.ring.setAlpha(1);
-    this.glow.setFillStyle(0x7bc67e, 0.7);
+    this.ring.setAlpha(0.85);
+    this.glow.setFillStyle(0x7bc67e, 0.6);
 
     this.scene.tweens.add({
       targets: this,
-      scale: { from: 0.8, to: 1.2 },
-      duration: 300,
+      scale: { from: 0.85, to: 1.1 },
+      duration: 320,
       yoyo: true,
     });
   }
