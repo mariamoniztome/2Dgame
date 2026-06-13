@@ -100,6 +100,16 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('map_icone_gotateia',   '/assets/map/map_icone_gotateia.svg',   { width: 128, height: 128 });
     this.load.svg('map_icone_trepadeira', '/assets/map/map_icone_trepadeira.svg', { width: 128, height: 128 });
 
+    // ── Audio ────────────────────────────────────────────────────────────────
+    // Background music (per zone)
+    ['campo','transicao','limiar','jardim','intro'].forEach(k =>
+      this.load.audio(`music_${k}`, `/assets/audio/music_${k}.mp3`)
+    );
+    // Sound effects
+    this.load.audio('sfx_spell',  '/assets/audio/sfx_spell.mp3');
+    this.load.audio('sfx_planta', '/assets/audio/sfx_planta.mp3');
+    this.load.audio('sfx_portal', '/assets/audio/sfx_portal.mp3');
+
     // Graceful fallback: don't crash if Unsplash is unreachable
     this.load.on('loaderror', (file) => {
       console.warn(`[Boot] Could not load: ${file.key}`);

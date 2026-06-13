@@ -1,7 +1,9 @@
 // Procedural audio via Web Audio API — no audio files needed.
-// Call SoundManager.init(audioContext) once, then call methods from anywhere.
+// File-based SFX (sfx_spell, sfx_planta, sfx_portal) are played via Phaser
+// when loaded; otherwise procedural synthesis is used as fallback.
 
-let _ctx = null;
+let _ctx   = null;
+let _scene = null;
 
 function ctx() {
   if (!_ctx && typeof AudioContext !== 'undefined') _ctx = new AudioContext();
@@ -9,7 +11,16 @@ function ctx() {
 }
 
 function initFromPhaser(scene) {
+  _scene = scene;
   if (scene?.sound?.context) _ctx = scene.sound.context;
+}
+
+function playSfx(key, volume = 0.7) {
+  if (_scene?.cache?.audio?.exists(key)) {
+    _scene.sound.play(key, { volume });
+    return true;
+  }
+  return false;
 }
 
 // ── low-level helpers ────────────────────────────────────────────────────────
@@ -66,8 +77,9 @@ export const SoundManager = {
     noise(running ? 0.07 : 0.09, running ? 0.06 : 0.045, running ? 1800 : 900);
   },
 
-  // Plant collected: ascending sparkle chord based on element
+  // Plant collected: file SFX + procedural chord
   collectPlant(element = 'EARTH') {
+    playSfx('sfx_planta', 0.75);
     const chords = {
       WATER: [523, 659, 784, 988],
       FIRE:  [392, 523, 659, 784],
@@ -75,7 +87,7 @@ export const SoundManager = {
       EARTH: [440, 554, 659, 880],
     };
     const freqs = chords[element] || chords.EARTH;
-    freqs.forEach((f, i) => osc('sine', f, 0.45, 0.11, null, i * 65));
+    freqs.forEach((f, i) => osc('sine', f, 0.45, 0.08, null, i * 65));
   },
 
   // Shake / water-drop
@@ -83,10 +95,12 @@ export const SoundManager = {
     osc('sine', 900, 0.28, 0.12, 220);
   },
 
-  // Spell cast: sweep up
+  // Spell cast: file SFX, fallback to sweep
   castSpell() {
-    osc('sawtooth', 180, 0.55, 0.18, 680);
-    osc('sine',     360, 0.35, 0.10, 900, 80);
+    if (!playSfx('sfx_spell', 0.70)) {
+      osc('sawtooth', 180, 0.55, 0.18, 680);
+      osc('sine',     360, 0.35, 0.10, 900, 80);
+    }
   },
 
   // Spell unlock banner
@@ -104,10 +118,12 @@ export const SoundManager = {
     osc('sine', open ? 440 : 330, 0.25, 0.09);
   },
 
-  // Portal enter
+  // Portal enter: file SFX, fallback to procedural
   portal() {
-    osc('sine', 220, 0.8, 0.14, 880);
-    osc('sine', 440, 0.5, 0.10, 660, 200);
+    if (!playSfx('sfx_portal', 0.80)) {
+      osc('sine', 220, 0.8, 0.14, 880);
+      osc('sine', 440, 0.5, 0.10, 660, 200);
+    }
   },
 
   // Inventory full warning

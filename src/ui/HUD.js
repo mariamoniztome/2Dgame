@@ -210,7 +210,7 @@ export class HUDScene extends Phaser.Scene {
       const fake = this.add.text(sx, slotY, '?', {
         fontSize: fs.sm, fontFamily: 'monospace', color: '#b28cbf',
       }).setOrigin(0.5).setAlpha(0).setDepth(57);
-      this._slots.push({ bg, icon, fake, sx, slotY, slotS, r });
+      this._slots.push({ bg, icon, fake, sx, slotY, slotS, iconS, r });
     }
 
     // Objective bar — 3 progress dots for Zone2 unlock (farfalha, ventoinha, trepadeira)
@@ -505,7 +505,7 @@ export class HUDScene extends Phaser.Scene {
         // Prefer SVG sprite, fall back to generated texture
         const key = this.textures.exists(`plant_img_${plant.id}`) ? `plant_img_${plant.id}` :
                     this.textures.exists(`plant_${plant.id}`)     ? `plant_${plant.id}` : 'plant_missing';
-        s.icon.setTexture(key).setAlpha(0.98).setTint(0xffffff).setScale(1);
+        s.icon.setTexture(key).setDisplaySize(s.iconS, s.iconS).setAlpha(0.98).setTint(0xffffff);
         if (plant.isFake) s.icon.setTint(0xc8a6d4);
         s.fake.setAlpha(plant.isFake ? 1 : 0);
         this._drawSlotBg(s.bg, s.sx, s.slotY, s.slotS, s.r, col, 0.9);

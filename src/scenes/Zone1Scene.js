@@ -7,6 +7,7 @@ import { Player } from '../objects/Player.js';
 import { Plant } from '../objects/Plant.js';
 import { Portal } from '../objects/Portal.js';
 import { SoundManager } from '../SoundManager.js';
+import { MusicManager } from '../MusicManager.js';
 
 // Zone 1 — L-shaped world (ZW = debugZoneW, ZH = debugZoneH, TH = debugTransH, PH = debugParedeH):
 //   Campo dos Vagalumes     x:0–ZW      y:0–ZH             (#afd6a8)
@@ -131,14 +132,13 @@ export class Zone1Scene extends Phaser.Scene {
       0x000000, 0.28
     ).setDepth(4);
 
-    // Dead-zone walls: block the top-right quadrant (x>_zoneW, y<0)
+    // Dead-zone walls: block horizontal entry into top-right dead zone (x>_zoneW, y<0)
+    // _wallH blocks upward movement past y=0 while in the right column (x>_zoneW)
     const _wallH = this.add.rectangle(this._zoneW + this._zoneW / 2, -2, this._zoneW, 6).setAlpha(0);
     this.physics.add.existing(_wallH, true);
     this.physics.add.collider(this.player, _wallH);
-
-    const _wallV = this.add.rectangle(this._zoneW + 2, -this._zoneH / 2, 6, this._zoneH).setAlpha(0);
-    this.physics.add.existing(_wallV, true);
-    this.physics.add.collider(this.player, _wallV);
+    // Note: rightward blocking when y<0 is handled by the soft guard in update()
+    // so we do NOT place a _wallV here — it conflicts with the guard and traps the player.
 
     // Camera — start bounded to the left column (campo + limiar only)
     this.cameras.main.setZoom(2.0);
@@ -184,6 +184,9 @@ export class Zone1Scene extends Phaser.Scene {
     this._sprintTrailTimer    = 0;       // sprint particle trail throttle
     // First appearance: 35s in (player needs time to collect at least one plant)
     this.time.delayedCall(35000, () => this._scheduleLadrao());
+
+    MusicManager.init(this);
+    this.time.delayedCall(200, () => MusicManager.playArea('campoVagalumes'));
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
 
@@ -698,6 +701,7 @@ export class Zone1Scene extends Phaser.Scene {
       this._currentArea = area;
       const areaLabel = AREAS[area].label;
       if (areaLabel) this.game.events.emit('areaChanged', areaLabel);
+      MusicManager.playArea(area);
 
       // Vagalume emitter only active in campo
       if (area === 'campoVagalumes') {
@@ -1038,6 +1042,7 @@ export class Zone1Scene extends Phaser.Scene {
       return;
     }
     SoundManager.portal();
+    MusicManager.stop();
     this.cameras.main.fadeOut(700, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.game.events.off('plantStolen', this._onPlantStolen, this);
