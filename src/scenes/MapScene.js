@@ -98,8 +98,9 @@ export class MapScene extends Phaser.Scene {
           .setAlpha(jardimLocked ? 0.4 : 1)
           .setInteractive({ useHandCursor: !jardimLocked });
         if (!jardimLocked) {
-          img.on('pointerover', () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.08, duration: 120 }); });
-          img.on('pointerout',  () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.00, duration: 120 }); });
+          const baseScale = img.scaleX;
+          img.on('pointerover', () => { if (!this._debugMode) this.tweens.add({ targets: img, scaleX: baseScale * 1.08, scaleY: baseScale * 1.08, duration: 120 }); });
+          img.on('pointerout',  () => { if (!this._debugMode) this.tweens.add({ targets: img, scaleX: baseScale, scaleY: baseScale, duration: 120 }); });
           img.on('pointerdown', () => { if (!this._debugMode) this._enterZone('Zone1', area.startArea); });
         } else {
           img.on('pointerdown', () => { if (!this._debugMode) this._showBlocked(); });
