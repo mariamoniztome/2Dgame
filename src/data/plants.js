@@ -7,8 +7,8 @@ export const PLANTS = {
     zone: 1,
     rarity: 'comum',
     essential: false,
-    collectMethod: 'fast',
-    narrativeText: 'Sou ventania, redemoinho, furacão, tempestade. Nunca desamparo — combina-me com a planta de água para vencer o fogo.',
+    collectMethod: 'interact',
+    narrativeText: 'Apanha a Gotateia para desbloquear o feitiço.',
     unsplashId: 'photo-1490750967868-88df5691cc5f',
   },
   gotateia: {
@@ -19,7 +19,7 @@ export const PLANTS = {
     rarity: 'comum',
     essential: false,
     collectMethod: 'shake',
-    narrativeText: 'Sou água, que vence pela persistência. Combina-me com a planta de ar para vencer o fogo.',
+    narrativeText: 'Apanha a Ventoinha-branca para desbloquear o feitiço.',
     unsplashId: 'photo-1508193638397-1c4234db14d8',
   },
   farfalha: {
@@ -42,7 +42,7 @@ export const PLANTS = {
     rarity: 'comum',
     essential: false,
     collectMethod: 'climb',
-    narrativeText: 'Aqui estou eu para te proteger. Encontra a planta da luz e combina-me com ela.',
+    narrativeText: 'Apanha a Tezaluz para desbloquear o feitiço.',
     unsplashId: 'photo-1416879595882-3373a0480b5b',
   },
 
@@ -55,7 +55,7 @@ export const PLANTS = {
     rarity: 'incomum',
     essential: false,
     collectMethod: 'interact',
-    narrativeText: 'Apanhaste-me e agora te protejo. Combina-me com a planta que tudo trepa.',
+    narrativeText: 'Apanha a Trepadeira-viva para desbloquear o feitiço.',
     unsplashId: 'photo-1515488764276-beab7607c1e6',
   },
   craveira: {
@@ -66,7 +66,7 @@ export const PLANTS = {
     rarity: 'incomum',
     essential: false,
     collectMethod: 'interact',
-    narrativeText: 'Eu guio-te pelos caminhos — combina-me com a flor cheia de espinhos.',
+    narrativeText: 'Apanha a Espinhosa-doce para desbloquear o feitiço.',
     unsplashId: 'photo-1533616688419-b7a585564566',
   },
   espinhosa_doce: {
@@ -77,7 +77,7 @@ export const PLANTS = {
     rarity: 'incomum',
     essential: false,
     collectMethod: 'slow',
-    narrativeText: 'Os meus espinhos são avisos dos perigos que você enfrentará. Nos buracos encontrarás a minha combinação.',
+    narrativeText: 'Apanha a Craveira para desbloquear o feitiço.',
     unsplashId: 'photo-1561828995-aa79a2db86dd',
   },
   bocarra: {
@@ -88,7 +88,7 @@ export const PLANTS = {
     rarity: 'incomum',
     essential: false,
     collectMethod: 'interact',
-    narrativeText: 'Voa, bruxinha. Descobre os segredos que o ar tem para te contar — combina-me com a planta que faz o vento soprar.',
+    narrativeText: 'Apanha a Ventoinha-branca para desbloquear o feitiço.',
     unsplashId: 'photo-1563013544-824ae1b704d3',
   },
   aurorabromelia: {
@@ -110,7 +110,7 @@ export const PLANTS = {
     rarity: 'incomum',
     essential: true,
     collectMethod: 'interact',
-    narrativeText: 'Eu sou a tua guia, levar-te-ei mais longe. Sozinha, consigo guiar-te até encontrares a planta que procuras. Para uma nova área desbloquear, com os sussurros tens que me juntar.',
+    narrativeText: 'Apanha a Sussurreira para desbloquear o feitiço.',
     unsplashId: 'photo-1558618666-fcd25c85cd64',
   },
 
@@ -134,7 +134,7 @@ export const PLANTS = {
     rarity: 'rara',
     essential: false,
     collectMethod: 'interact',
-    narrativeText: 'Eu sou o sussurro do bosque. Combinada com a ninfa do pântano, abro-te uma nova porta.',
+    narrativeText: 'Apanha a Ninfária para desbloquear o feitiço.',
     unsplashId: 'photo-1468327768560-75b778cbb551',
   },
   faisca_mato: {

@@ -88,6 +88,9 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('hud_ajuda', '/assets/ui/ajuda_btn.svg', { width: 440, height: 112 });
     // ── Minimap player star marker
     this.load.svg('mm_star', '/assets/ui/estrela.svg', { width: 64, height: 64 });
+    // ── Mute button icons (Lucide-style)
+    this.load.svg('hud_vol_on',  '/assets/ui/volume_on.svg',  { width: 64, height: 64 });
+    this.load.svg('hud_vol_off', '/assets/ui/volume_off.svg', { width: 64, height: 64 });
 
     // ── Audio ────────────────────────────────────────────────────────────────
     // Background music (per zone)
@@ -115,10 +118,10 @@ export class BootScene extends Phaser.Scene {
       overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
     }
 
-    // Flag consumed by the first zone scene to auto-show controls on entry
+    // Flag consumed by Zone1 to auto-show controls on first entry
     this.game.registry.set('firstZoneEntry', true);
 
-    this.scene.start('Map');
+    this.scene.start('Zone1');
   }
 
   _generateTextures() {

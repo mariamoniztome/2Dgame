@@ -20,11 +20,13 @@ const FADE_MS       = 1600;   // crossfade duration in ms
 
 let _scene      = null;
 let _current    = null;   // currently playing Phaser Sound object
+let _fadeInTw   = null;   // active fade-in tween (for _current)
 let _fadeTw     = null;   // active fade-out tween
 let _fadingOut  = null;   // sound currently being faded out (may differ from prev _current)
 
 function _killFading() {
-  if (_fadeTw) { _fadeTw.stop(); _fadeTw = null; }
+  if (_fadeInTw) { _fadeInTw.stop(); _fadeInTw = null; }
+  if (_fadeTw)   { _fadeTw.stop();   _fadeTw   = null; }
   if (_fadingOut) { try { _fadingOut.stop(); _fadingOut.destroy?.(); } catch (_) {} _fadingOut = null; }
 }
 
@@ -68,7 +70,10 @@ export const MusicManager = {
 
     const next = _scene.sound.add(key, { loop: true, volume: 0 });
     next.play();
-    _scene.tweens.add({ targets: next, volume: MASTER_VOLUME, duration: FADE_MS });
+    _fadeInTw = _scene.tweens.add({
+      targets: next, volume: MASTER_VOLUME, duration: FADE_MS,
+      onComplete: () => { _fadeInTw = null; },
+    });
     _current = next;
 
     if (prev) {

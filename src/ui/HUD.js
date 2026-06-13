@@ -576,10 +576,10 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       const plant = PLANTS[s.id];
       const ok    = GameState.collected.has(s.id);
       const el    = plant ? ELEMENTS[plant.element] : null;
-      const col   = ok ? (el?.color ?? 0x7DB98A) : 0x4a8060;
-      const r     = ok ? 3 : 2;
-      const dot   = this.add.circle(cx, cy, r, col, ok ? 0.9 : 0.6).setDepth(61);
-      if (ok) dot.setStrokeStyle(0.8, 0xffffff, 0.3);
+      const col   = ok ? (el?.color ?? 0x7DB98A) : 0xfff0a0;
+      const r     = ok ? 5 : 4;
+      const dot   = this.add.circle(cx, cy, r, col, 1).setDepth(61);
+      dot.setStrokeStyle(ok ? 1.5 : 1, 0x000000, 0.7);
       if (this._mmMask) dot.setMask(this._mmMask);
       dot._worldX = s.x;
       dot._worldY = s.y;
@@ -644,8 +644,9 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._toastActive = true;
     const plant  = this._toastQueue.shift();
     const W      = this.scale.width;
-    const TW     = Math.round(W * 0.160);
-    const TH     = 70;
+    const fs     = this._fs(W);
+    const TW     = Math.round(W * 0.185);
+    const TH     = 80;
     const r      = 10;
     const startY = (this._spellPanelBottom ?? 80) + 8;
 
@@ -657,16 +658,11 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     c.add([
       bg,
       this.add.text(10, 9, plant.name, {
-        fontSize: `${Math.max(11, Math.round(W * 0.0075))}px`,
-        fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
+        fontSize: fs.lg, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
       }),
-      this.add.text(TW - 10, 9, '+ apanhada', {
-        fontSize: `${Math.max(8, Math.round(W * 0.0047))}px`,
-        fontFamily: FU, color: C.label,
-      }).setOrigin(1, 0),
-      this.add.text(10, 30, (plant.narrativeText || '').substring(0, 55) + '…', {
-        fontSize: `${Math.max(9, Math.round(W * 0.0050))}px`,
-        fontFamily: FU, color: '#000000',
+
+      this.add.text(10, 36, (plant.narrativeText || '').substring(0, 65) + '…', {
+        fontSize: fs.sm, fontFamily: FU, color: '#000000',
         wordWrap: { width: TW - 20 },
       }),
     ]);
@@ -1174,52 +1170,28 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._muteBtnCX = bx;
     this._muteBtnCY = by;
     this._muteBtnS  = btnS;
+
     this._muteBtnGfx = this.add.graphics().setDepth(55);
-    this._drawMuteBtn();
-    this.add.zone(bx, by, btnS, ajudaH)
+    const gfx = this._muteBtnGfx;
+    gfx.fillStyle(C.panel, 1);
+    gfx.fillRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
+    gfx.lineStyle(1.5, C.border, 0.4);
+    gfx.strokeRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
+
+    const iconS = Math.round(btnS * 0.62);
+    this._muteBtnImg = this.add.image(bx, by, SoundManager.isMuted() ? 'hud_vol_off' : 'hud_vol_on')
+      .setDisplaySize(iconS, iconS)
+      .setDepth(56);
+
+    this.add.zone(bx, by, btnS, btnS)
       .setInteractive({ useHandCursor: true })
-      .setDepth(56)
+      .setDepth(57)
       .on('pointerdown', () => this._toggleMute());
   }
 
   _drawMuteBtn() {
-    const gfx  = this._muteBtnGfx;
-    const cx   = this._muteBtnCX;
-    const cy   = this._muteBtnCY;
-    const size = this._muteBtnS;
-    const muted = SoundManager.isMuted();
-    if (!gfx) return;
-    gfx.clear();
-
-    // Pink background
-    gfx.fillStyle(C.panel, 1);
-    gfx.fillRoundedRect(cx - size / 2, cy - size / 2, size, size, 6);
-    gfx.lineStyle(1, C.border, 0.3);
-    gfx.strokeRoundedRect(cx - size / 2, cy - size / 2, size, size, 6);
-
-    // Speaker icon
-    const s = size * 0.45;
-    gfx.fillStyle(0x000000, 0.72);
-    // Body (rectangle)
-    gfx.fillRect(cx - s * 0.90, cy - s * 0.38, s * 0.42, s * 0.76);
-    // Horn (triangle)
-    gfx.fillTriangle(
-      cx - s * 0.48, cy - s * 0.52,
-      cx - s * 0.48, cy + s * 0.52,
-      cx + s * 0.22, cy
-    );
-
-    if (muted) {
-      // Red X
-      gfx.lineStyle(2, 0xb42d27, 0.95);
-      gfx.lineBetween(cx + s * 0.15, cy - s * 0.55, cx + s * 0.75, cy + s * 0.55);
-      gfx.lineBetween(cx + s * 0.75, cy - s * 0.55, cx + s * 0.15, cy + s * 0.55);
-    } else {
-      // Sound waves (arcs on right side of horn)
-      gfx.lineStyle(1.5, 0x000000, 0.72);
-      gfx.beginPath(); gfx.arc(cx + s * 0.22, cy, s * 0.44, -0.55, 0.55); gfx.strokePath();
-      gfx.beginPath(); gfx.arc(cx + s * 0.22, cy, s * 0.72, -0.68, 0.68); gfx.strokePath();
-    }
+    if (!this._muteBtnImg) return;
+    this._muteBtnImg.setTexture(SoundManager.isMuted() ? 'hud_vol_off' : 'hud_vol_on');
   }
 
   _toggleMute() {

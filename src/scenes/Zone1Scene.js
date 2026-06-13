@@ -164,14 +164,11 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
-    // First time entering a zone: auto-show controls for 5 s then dismiss
+    // First time entering a zone: show controls until the user dismisses them
     if (this.game.registry.get('firstZoneEntry')) {
       this.game.registry.remove('firstZoneEntry');
       this.time.delayedCall(1200, () => {
-        document.getElementById('controls-panel')?.classList.add('visible');
-        this.time.delayedCall(5000, () => {
-          document.getElementById('controls-panel')?.classList.remove('visible');
-        });
+        this.scene.get('HUD')?._showControls();
       });
     }
 

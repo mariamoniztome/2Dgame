@@ -46,19 +46,14 @@ const PORTAL_ICONS = [
 ];
 
 // Padlock size — fraction of W. Change here or tune with scroll in debug mode.
-const LOCK_SP = 0.0313;
+const LOCK_SP = 0.065;
 
 // Padlocks — Zone 2 (middle area) and Zone 3 (right area)
 const Z2_LOCKS = [
-  { xp: 0.38,  yp: 0.14   },
-  { xp: 0.61,  yp: 0.19   },
-  { xp: 0.341, yp: 0.4963 },
-  { xp: 0.61,  yp: 0.58   },
+  { xp: 0.50, yp: 0.40 },
 ];
 const Z3_LOCKS = [
-  { xp: 0.86, yp: 0.10 },
-  { xp: 0.89, yp: 0.44 },
-  { xp: 0.83, yp: 0.84 },
+  { xp: 0.87, yp: 0.40 },
 ];
 
 export class MapScene extends Phaser.Scene {
