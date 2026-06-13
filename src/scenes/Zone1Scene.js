@@ -710,6 +710,7 @@ export class Zone1Scene extends Phaser.Scene {
     if (area !== this._currentArea) {
       const prev = this._currentArea;
       this._currentArea = area;
+      GameState.currentArea = area;
       const areaLabel = AREAS[area].label;
       if (areaLabel) this.game.events.emit('areaChanged', areaLabel);
       MusicManager.playArea(area);
@@ -1012,7 +1013,7 @@ export class Zone1Scene extends Phaser.Scene {
     if (plant.isCollected) return;
     const data = plant.plantData;
     if (!GameState.addPlant(data)) {
-      this._emitNarrative('A mochila está cheia! Tens 6 plantas.');
+      this._emitNarrative('A mochila está cheia! Tens 14 plantas.');
       return;
     }
     plant.collect();
@@ -1966,34 +1967,27 @@ export class Zone1Scene extends Phaser.Scene {
   //  Zone-unlock full-screen transition
   // ─────────────────────────────────────────────────────────────────────────
   _showZoneUnlockTransition(zoneName) {
-    const W = GAME_WIDTH, H = GAME_HEIGHT;
-    const overlay = this.add.graphics().setScrollFactor(0).setDepth(200);
-    overlay.fillStyle(0x000000, 0);
-    overlay.fillRect(0, 0, W, H);
+    const cam = this.cameras.main;
+    const SW = cam.width, SH = cam.height;
 
-    const bg = this.textures.exists('z1_bg_trans')
-      ? this.add.image(W / 2, H / 2, 'z1_bg_trans')
-          .setDisplaySize(W, H).setScrollFactor(0).setDepth(199).setAlpha(0)
-      : null;
+    const overlay = this.add.graphics().setScrollFactor(0).setDepth(500).setAlpha(0);
+    overlay.fillStyle(0x000000, 0.72);
+    overlay.fillRect(0, 0, SW, SH);
 
-    const label = this.add.text(W / 2, H / 2, `Nova área desbloqueada\n${zoneName}`, {
-      fontSize: '22px', fontFamily: 'Georgia, serif',
-      color: '#f0f8e0', stroke: '#000000', strokeThickness: 3,
-      align: 'center',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setAlpha(0);
-
-    const objs = [overlay, label, ...(bg ? [bg] : [])];
+    const label = this.add.text(SW / 2, SH / 2, `Nova área desbloqueada\n${zoneName}`, {
+      fontSize: '26px', fontFamily: 'Georgia, serif',
+      color: '#f0f8e0', stroke: '#000000', strokeThickness: 4,
+      align: 'center', lineSpacing: 6,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);
 
     this.tweens.add({
-      targets: [overlay, ...(bg ? [bg] : [])],
-      alpha: 1,
-      duration: 600,
+      targets: overlay, alpha: 1, duration: 500,
       onComplete: () => {
-        this.tweens.add({ targets: label, alpha: 1, duration: 400 });
-        this.time.delayedCall(2400, () => {
+        this.tweens.add({ targets: label, alpha: 1, duration: 350 });
+        this.time.delayedCall(2600, () => {
           this.tweens.add({
-            targets: objs, alpha: 0, duration: 700,
-            onComplete: () => objs.forEach(o => o.destroy()),
+            targets: [overlay, label], alpha: 0, duration: 600,
+            onComplete: () => { overlay.destroy(); label.destroy(); },
           });
         });
       },

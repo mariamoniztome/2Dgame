@@ -202,8 +202,8 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
 
   // ── Inventory — 3×4 circular slots with name labels below, bottom-left ────
   _buildInventory(W, H, fs) {
-    const COLS      = 6;
-    const MAX_SLOTS = 12;
+    const COLS      = 7;
+    const MAX_SLOTS = 14;
     const slotR     = Math.max(12, Math.round(W * 0.016));
     const iconS     = Math.round(slotR * 1.25);
     const gapX      = Math.max(4, Math.round(W * 0.006));
@@ -248,7 +248,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
     }).setOrigin(0, 0).setDepth(55);
 
-    this.inventoryCount = this.add.text(px0 + iw - padX - 18, titleY, '0/12', {
+    this.inventoryCount = this.add.text(px0 + iw - padX - 18, titleY, '0/14', {
       fontSize: fs.sm, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(55);
 
@@ -671,7 +671,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       return (comboIds.has(a.id) ? 0 : 1) - (comboIds.has(b.id) ? 0 : 1);
     });
 
-    this.inventoryCount?.setText(`${sorted.length}/12`);
+    this.inventoryCount?.setText(`${sorted.length}/14`);
 
     this._slots.forEach((s, i) => {
       const plant = sorted[i];

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GameState } from '../GameState.js';
+import { MusicManager } from '../MusicManager.js';
 
 // ── Layout — positions as fractions of (W, H) ─────────────────────────────
 
@@ -72,6 +73,9 @@ export class MapScene extends Phaser.Scene {
     this._debugMode = false;
     this._debugObjs = [];   // { img, label, posText }
     this._debugOverlays = [];
+
+    MusicManager.init(this);
+    MusicManager.playIntro();
 
     // ── Backgrounds ───────────────────────────────────────────────────────
     // Solid base guarantees no zone scene bleeds through when map is open
@@ -404,6 +408,13 @@ export class MapScene extends Phaser.Scene {
     this.cameras.main.once('camerafadeoutcomplete', () => {
       if (this.scene.isPaused(zone)) {
         this.scene.resume(zone);
+        const zoneScene = this.scene.get(zone);
+        MusicManager.init(zoneScene);
+        if (zone === 'Zone1' && GameState.currentArea) {
+          MusicManager.playArea(GameState.currentArea);
+        } else {
+          MusicManager.stop();
+        }
         this.scene.stop();
       } else {
         this.scene.start(zone);
