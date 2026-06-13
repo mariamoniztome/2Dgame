@@ -113,7 +113,10 @@ export class BootScene extends Phaser.Scene {
       overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
     }
 
-    this.scene.start('Zone1');
+    // Flag consumed by the first zone scene to auto-show controls on entry
+    this.game.registry.set('firstZoneEntry', true);
+
+    this.scene.start('Map');
   }
 
   _generateTextures() {

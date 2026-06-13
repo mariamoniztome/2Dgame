@@ -172,7 +172,12 @@ export class MapScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0).setDepth(100);
 
     // ── Close hint ────────────────────────────────────────────────────────
-    this.add.text(W / 2, H - 12, 'ESC ou M — voltar ao jogo', {
+    // On first launch there is no active zone to return to
+    this._isInitial = !GameState.currentZone;
+    const hintText  = this._isInitial
+      ? 'Escolhe uma zona para explorar'
+      : 'ESC ou M — voltar ao jogo';
+    this.add.text(W / 2, H - 12, hintText, {
       fontSize: '11px', fontFamily: 'Georgia, serif', color: '#6a9a6a',
     }).setOrigin(0.5, 1).setDepth(5);
 
@@ -219,7 +224,7 @@ export class MapScene extends Phaser.Scene {
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc) || Phaser.Input.Keyboard.JustDown(this.keyM)) {
       if (this._debugMode) { this._toggleDebug(); return; }
-      this._returnToGame();
+      if (!this._isInitial) this._returnToGame();
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyDebug)) {
       this._toggleDebug();
