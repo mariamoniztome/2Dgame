@@ -398,6 +398,16 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       .lineStyle(1.5, 0x000000, 0.35)
       .strokeCircle(cx, cy, R);
 
+    // Clickable hit zone — opens the world map (same as M key)
+    this.add.zone(cx, cy, R * 2, R * 2)
+      .setInteractive({
+        hitArea: new Phaser.Geom.Circle(0, 0, R),
+        hitAreaCallback: Phaser.Geom.Circle.Contains,
+        useHandCursor: true,
+      })
+      .setDepth(66)
+      .on('pointerdown', () => this._openMap());
+
     this.mmZoneLabel = null;  // label removed by design
 
     this._drawMinimapBg('Zone1');
@@ -491,6 +501,14 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   _hideControls() {
     this._controlsVisible = false;
     document.getElementById('controls-panel')?.classList.remove('visible');
+  }
+
+  _openMap() {
+    const zoneKey = GameState.currentZone;
+    if (!zoneKey) return;
+    SoundManager.mapToggle(true);
+    if (this.scene.isActive(zoneKey)) this.scene.pause(zoneKey);
+    if (!this.scene.isActive('Map')) this.scene.launch('Map');
   }
 
   // ── Minimap internals ─────────────────────────────────────────────────────
