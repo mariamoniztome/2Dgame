@@ -207,6 +207,24 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0xffff00, 0.45); g.fillCircle(4, 4, 6);
     g.generateTexture('firefly', 8, 8);
 
+    // ── Minimap player marker — white 5-pointed star ──────────────────────
+    g.clear();
+    const _sp = 5, _outerR = 12, _innerR = 5, _sCx = 16, _sCy = 16;
+    const _buildStar = () => {
+      g.beginPath();
+      for (let i = 0; i < _sp * 2; i++) {
+        const a = (i * Math.PI / _sp) - Math.PI / 2;
+        const r = i % 2 === 0 ? _outerR : _innerR;
+        const px = _sCx + Math.cos(a) * r;
+        const py = _sCy + Math.sin(a) * r;
+        if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      }
+      g.closePath();
+    };
+    g.fillStyle(0xffffff, 1); _buildStar(); g.fillPath();
+    g.lineStyle(1.5, 0xb42d27, 1); _buildStar(); g.strokePath();
+    g.generateTexture('mm_star', 32, 32);
+
     // ── Missing-plant placeholder — red X ─────────────────────────────────
     g.clear();
     g.lineStyle(5, 0xff2222, 1);
