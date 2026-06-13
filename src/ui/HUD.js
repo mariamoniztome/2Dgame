@@ -14,7 +14,7 @@ const C_DEFAULTS = {
   border:  0x000000,
   accent:  0xb42d27,
   text:    '#000000',
-  label:   '#555555',
+  label:   '#000000',
   muted:   '#888888',
   textLt:  '#ffffff',
   plant:   0x7bc67e,
@@ -128,8 +128,8 @@ export class HUDScene extends Phaser.Scene {
     }).setOrigin(0.5).setAlpha(0).setDepth(200);
 
     // Ajuda button — swap /assets/ui/ajuda_btn.svg to update the design
-    const ajudaH = Math.round(W * 0.034);
-    const ajudaW = Math.round(ajudaH * (220 / 56));
+const ajudaH = Math.round(W * 0.034 * 0.5);
+const ajudaW = Math.round(ajudaH * (220 / 56));
     this.add.image(10 + ajudaW / 2, 10 + ajudaH / 2, 'hud_ajuda')
       .setDisplaySize(ajudaW, ajudaH).setOrigin(0.5).setDepth(55)
       .setInteractive({ useHandCursor: true })
@@ -176,7 +176,7 @@ export class HUDScene extends Phaser.Scene {
 
     // "Feitiço" italic label
     this.add.text(rx - pw + padX, ry + padY, 'Feitiço', {
-      fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
+      fontSize: fs.sm, fontFamily: FU, color: '#000000', fontStyle: 'italic',
     }).setOrigin(0, 0).setDepth(55);
 
     // Spell name bold
@@ -584,32 +584,35 @@ export class HUDScene extends Phaser.Scene {
   _showNextToast() {
     if (!this._toastQueue.length) { this._toastActive = false; return; }
     this._toastActive = true;
-    const plant = this._toastQueue.shift();
-    const el    = ELEMENTS[plant.element] || ELEMENTS.EARTH;
-    const hex   = '#' + el.color.toString(16).padStart(6, '0');
-    const W     = this.scale.width;
-    const TW    = Math.round(W * 0.142);
-    const TH    = 68;
+    const plant  = this._toastQueue.shift();
+    const W      = this.scale.width;
+    const TW     = Math.round(W * 0.160);
+    const TH     = 70;
+    const r      = 10;
+    const startY = (this._spellPanelBottom ?? 80) + 8;
 
-    const c = this.add.container(W + 10, 90).setDepth(150);
+    const bg = this.add.graphics();
+    bg.fillStyle(C.panel, 1);
+    bg.fillRoundedRect(0, 0, TW, TH, r);
+
+    const c = this.add.container(W + 10, startY).setDepth(150);
     c.add([
-      this.add.rectangle(0, 0, TW, TH, 0xffffff, 0.97)
-        .setOrigin(0, 0).setStrokeStyle(1.5, C.border, 0.8),
-      this.add.rectangle(0, 0, 5, TH, el.color, 0.9).setOrigin(0, 0),
-      this.add.text(14, 8, plant.name, {
-        fontSize: `${Math.max(11, Math.round(W * 0.0068))}px`,
+      bg,
+      this.add.text(10, 9, plant.name, {
+        fontSize: `${Math.max(11, Math.round(W * 0.0075))}px`,
         fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
       }),
-      this.add.text(14, 26, (plant.narrativeText || '').substring(0, 50) + '…', {
-        fontSize: `${Math.max(9, Math.round(W * 0.0047))}px`,
-        fontFamily: FU, color: '#333333',
-        wordWrap: { width: TW - 22 },
-      }),
-      this.add.text(TW - 8, 8, '+ apanhada', {
+      this.add.text(TW - 10, 9, '+ apanhada', {
         fontSize: `${Math.max(8, Math.round(W * 0.0047))}px`,
-        fontFamily: FU, color: '#b42d27',
+        fontFamily: FU, color: C.label,
       }).setOrigin(1, 0),
+      this.add.text(10, 30, (plant.narrativeText || '').substring(0, 55) + '…', {
+        fontSize: `${Math.max(9, Math.round(W * 0.0050))}px`,
+        fontFamily: FU, color: '#000000',
+        wordWrap: { width: TW - 20 },
+      }),
     ]);
+
     this.tweens.add({ targets: c, x: W - TW - 12, duration: 320, ease: 'Back.easeOut' });
     this.time.delayedCall(3600, () => {
       this.tweens.add({
@@ -675,7 +678,7 @@ export class HUDScene extends Phaser.Scene {
       this.spellName?.setText(spell.name).setColor(C.text);
     } else {
       this.spellGfx?.setAlpha(0.35);
-      this.spellName?.setText('nenhum').setColor(C.label);
+      this.spellName?.setText('Descobre novas plantas...').setColor(C.label);
     }
     this._refreshPlantsActivas(spell);
   }
