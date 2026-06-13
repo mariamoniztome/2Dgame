@@ -111,7 +111,7 @@ export class BootScene extends Phaser.Scene {
       overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
     }
 
-    this.scene.start('Opening');
+    this.scene.start('Zone1');
   }
 
   _generateTextures() {
