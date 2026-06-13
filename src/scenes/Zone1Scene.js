@@ -914,14 +914,11 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._vineClimbed) return;
     this._vineClimbed = true;
 
-    this._emitNarrative('A trepadeira abre caminho para o Limiar Secreto…');
+    this._emitNarrative('A trepadeira abre o caminho para o Limiar Secreto!');
     this.portal.unlock();
 
     if (!GameState.discoveredPortals.has('zone1_limiar')) {
       GameState.discoverPortal('zone1_limiar');
-      this.time.delayedCall(800, () => {
-        this._emitNarrative('Encontraste um portal! Leva-te de volta quando precisares.');
-      });
     }
 
     this._playVineClimbCinematic();

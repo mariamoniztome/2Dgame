@@ -192,6 +192,8 @@ export class HUDScene extends Phaser.Scene {
     this._spellPanelBottom = ry + ph;
     this._spellPanelRight  = rx;
     this._spellPanelWidth  = pw;
+    this._hudBounds = this._hudBounds || {};
+    this._hudBounds.spell = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Feitiço' };
   }
 
   // ── Plantas Activas — 2 circles below spell pill ───────────────────────────
@@ -242,6 +244,8 @@ export class HUDScene extends Phaser.Scene {
 
     this._plantsActivasGroup = grp;
     grp.forEach(o => o.setVisible(false));
+    this._hudBounds = this._hudBounds || {};
+    this._hudBounds.plantsActivas = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Plantas Activas' };
   }
 
   // ── Inventory — circular slots, 3 cols × 4 rows, up to 12 (bottom-left) ──
@@ -295,6 +299,9 @@ export class HUDScene extends Phaser.Scene {
 
       this._slots.push({ slotGfx, icon, fake, sx, sy, slotR, iconS });
     }
+
+    this._hudBounds = this._hudBounds || {};
+    this._hudBounds.inventory = { x: px0, y: py0, w: iw, h: ih, label: 'Inventário' };
 
     // Objective bar above the panel
     const objY = py0 - 18;
@@ -372,38 +379,74 @@ export class HUDScene extends Phaser.Scene {
     }).setOrigin(0.5, 0).setDepth(62);
 
     this._drawMinimapBg('Zone1');
+    this._hudBounds = this._hudBounds || {};
+    this._hudBounds.minimap = { x: px - MMPW, y: py - MMPH, w: MMPW, h: MMPH, label: 'Minimap' };
   }
 
-  // ── Controls panel (H toggle) — bigger with border-radius ─────────────────
+  // ── Controls panel (H toggle) — 2-column layout with border-radius ────────
   _buildControlsPanel(W, H, fs) {
-    const cx = W / 2, cy = H / 2;
-    const pw = Math.round(W * 0.38), ph = Math.round(H * 0.46);
-    const r  = 16;
+    const cx   = W / 2, cy = H / 2;
+    const pw   = Math.round(W * 0.38), ph = Math.round(H * 0.48);
+    const r    = 16;
+    const padX = Math.round(pw * 0.08);
+    const padY = Math.round(ph * 0.07);
 
     const gfx = this.add.graphics().setDepth(300).setVisible(false);
-    gfx.fillStyle(C.bg, 0.95);
+    gfx.fillStyle(C.bg, 0.96);
     gfx.fillRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, r);
     gfx.lineStyle(1.5, C.border, 0.85);
     gfx.strokeRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, r);
 
-    const txt = this.add.text(cx, cy - ph * 0.38,
-      'CONTROLOS\n\n' +
-      'WASD / Setas    Mover\n' +
-      'Shift                  Correr\n' +
-      'C                        Apanhar / Interagir\n' +
-      'F                         Lançar feitiço\n' +
-      'Q                        Mudar feitiço\n' +
-      'M                        Mapa do jardim\n' +
-      'H                        Fechar ajuda', {
-        fontSize: fs.md, fontFamily: 'monospace',
-        color: C.text, align: 'left', lineSpacing: 9,
-      }).setOrigin(0.5, 0).setDepth(301).setVisible(false);
+    const grp = [gfx];
 
-    const close = this.add.text(cx, cy + ph * 0.40, 'Prima H ou ESC para fechar', {
+    // Title
+    const titleY = cy - ph / 2 + padY;
+    const title = this.add.text(cx, titleY, 'CONTROLOS', {
+      fontSize: fs.lg, fontFamily: 'Georgia, serif', color: C.magic, fontStyle: 'bold',
+    }).setOrigin(0.5, 0).setDepth(301).setVisible(false);
+    grp.push(title);
+
+    // Divider below title
+    const sepY  = titleY + Math.round(ph * 0.12);
+    const sepGfx = this.add.graphics().setDepth(301).setVisible(false);
+    sepGfx.lineStyle(1, C.border, 0.35);
+    sepGfx.lineBetween(cx - pw / 2 + padX, sepY, cx + pw / 2 - padX, sepY);
+    grp.push(sepGfx);
+
+    // Two-column rows
+    const rows = [
+      ['WASD / Setas', 'Mover'],
+      ['Shift',         'Correr'],
+      ['C',             'Apanhar / Interagir'],
+      ['F',             'Lançar feitiço'],
+      ['Q',             'Mudar feitiço'],
+      ['M',             'Mapa do jardim'],
+      ['H',             'Fechar ajuda'],
+    ];
+    const contentH  = ph - padY * 2 - Math.round(ph * 0.12) - 30;
+    const lineH     = Math.round(contentH / rows.length);
+    const colLeft   = cx - pw / 2 + padX;
+    const colRight  = cx - pw / 2 + Math.round(pw * 0.42);
+
+    rows.forEach(([key, action], i) => {
+      const iy = sepY + 10 + i * lineH;
+      grp.push(
+        this.add.text(colLeft,  iy, key, {
+          fontSize: fs.md, fontFamily: 'monospace', color: C.accent,
+        }).setOrigin(0, 0).setDepth(301).setVisible(false),
+        this.add.text(colRight, iy, action, {
+          fontSize: fs.md, fontFamily: 'monospace', color: C.text,
+        }).setOrigin(0, 0).setDepth(301).setVisible(false),
+      );
+    });
+
+    // Close hint at bottom
+    const close = this.add.text(cx, cy + ph / 2 - padY, 'Prima H ou ESC para fechar', {
       fontSize: fs.sm, fontFamily: 'Georgia, serif', color: '#e8c96a', fontStyle: 'italic',
-    }).setOrigin(0.5).setDepth(301).setVisible(false);
+    }).setOrigin(0.5, 1).setDepth(301).setVisible(false);
+    grp.push(close);
 
-    this._ctrlGroup = [gfx, txt, close];
+    this._ctrlGroup = grp;
     this.input.keyboard.on('keydown-ESC', () => {
       if (this._controlsVisible) {
         this._controlsVisible = false;
@@ -712,103 +755,245 @@ export class HUDScene extends Phaser.Scene {
     SoundManager.areaChange();
   }
 
-  // ── HUD debug panel (Shift+D) ─────────────────────────────────────────────
+  // ── HUD debug panel (Shift+D) — comprehensive inspector ──────────────────
   _buildHUDDebugPanel(W, H, fs) {
     if (this._hudFontMult === undefined) this._hudFontMult = 1.0;
+    if (this._wireframeOn === undefined) this._wireframeOn = false;
 
-    const PW = 260, PH = 340;
-    const px = 10, py = Math.round(H * 0.10);
+    const PW = 310, PH = 520;
+    const px  = 10;
+    const py  = Math.round(H * 0.06);
+    const INN = 10;  // inner padding
 
     const grp = [];
-    const bg = this.add.graphics().setDepth(500).setScrollFactor(0);
-    bg.fillStyle(0x050e08, 0.94);
-    bg.fillRoundedRect(px, py, PW, PH, 8);
-    bg.lineStyle(1.5, 0x88c890, 0.65);
-    bg.strokeRoundedRect(px, py, PW, PH, 8);
+    const dep = 500;
+
+    const _txt = (x, y, str, style, depth = dep + 1) =>
+      grp.push(this.add.text(x, y, str, style).setDepth(depth).setScrollFactor(0)) && grp[grp.length - 1];
+
+    const _btn = (x, y, label, onClick, w = 0) => {
+      const b = this.add.text(x, y, label, {
+        fontSize: '10px', fontFamily: 'monospace', color: '#ffef7a',
+        backgroundColor: '#1a2e1a', padding: { x: 6, y: 3 },
+      }).setDepth(dep + 2).setScrollFactor(0).setInteractive({ useHandCursor: true });
+      if (w) b.setFixedSize(w, 0);
+      b.on('pointerdown', onClick)
+       .on('pointerover', function() { this.setColor('#ffffff'); })
+       .on('pointerout',  function() { this.setColor('#ffef7a'); });
+      grp.push(b);
+      return b;
+    };
+
+    // ── Panel background ──────────────────────────────────────────────────
+    const bg = this.add.graphics().setDepth(dep).setScrollFactor(0);
+    bg.fillStyle(0x06080e, 0.96);
+    bg.fillRoundedRect(px, py, PW, PH, 10);
+    bg.lineStyle(1.5, 0x4a3d6e, 0.80);
+    bg.strokeRoundedRect(px, py, PW, PH, 10);
     grp.push(bg);
 
-    const title = this.add.text(px + PW / 2, py + 12, 'HUD DEBUG  [Shift+D]', {
-      fontSize: '11px', fontFamily: 'monospace', color: '#7bc67e',
-      stroke: '#050e08', strokeThickness: 2,
-    }).setOrigin(0.5, 0).setDepth(501).setScrollFactor(0);
-    grp.push(title);
+    let cy2 = py + INN;
 
-    const fsy = py + 40;
-    grp.push(this.add.text(px + 10, fsy, 'FONT SCALE', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#c8f2bf',
-    }).setDepth(501).setScrollFactor(0));
+    // ── Header ────────────────────────────────────────────────────────────
+    _txt(px + PW / 2, cy2, 'HUD DEBUG  [Shift+D]', {
+      fontSize: '12px', fontFamily: 'monospace', color: '#d4a8f0',
+      stroke: '#06080e', strokeThickness: 2,
+    }).setOrigin(0.5, 0);
+    cy2 += 20;
 
-    const fsMult = this.add.text(px + PW / 2, fsy, `×${this._hudFontMult.toFixed(2)}`, {
-      fontSize: '12px', fontFamily: 'monospace', color: '#ffef7a',
-    }).setOrigin(0.5, 0).setDepth(501).setScrollFactor(0);
+    // Resolution + zoom info (live, regenerated on each toggle)
+    const zoom = this.cameras.main?.zoom ?? 1;
+    _txt(px + INN, cy2, `Resolução: ${W}×${H}   Zoom: ${zoom}`, {
+      fontSize: '9px', fontFamily: 'monospace', color: '#7a9a7e',
+    });
+    cy2 += 16;
+
+    // ── Section: ELEMENTOS ────────────────────────────────────────────────
+    this._dbSep(grp, px, cy2, PW, dep, 'ELEMENTOS');
+    cy2 += 16;
+
+    const HIGHLIGHT_COLORS = [0xff6666, 0x66aaff, 0xffee66, 0x66ff99, 0xff88ee];
+    const bounds = this._hudBounds || {};
+    const elemList = [
+      bounds.spell,
+      bounds.plantsActivas,
+      bounds.inventory,
+      bounds.minimap,
+    ].filter(Boolean);
+
+    this._dbHighlightGfx = this._dbHighlightGfx || this.add.graphics().setDepth(dep + 10).setScrollFactor(0);
+    this._dbHighlightGfx.setVisible(false);
+    grp.push(this._dbHighlightGfx);
+
+    elemList.forEach((b, i) => {
+      const col = HIGHLIGHT_COLORS[i % HIGHLIGHT_COLORS.length];
+      const hexStr = '#' + col.toString(16).padStart(6, '0');
+      _txt(px + INN, cy2,
+        `${b.label.padEnd(14)} x:${b.x} y:${b.y} ${b.w}×${b.h}px`, {
+          fontSize: '9px', fontFamily: 'monospace', color: hexStr,
+        });
+      _btn(px + PW - 54, cy2 - 1, '[◉]', () => this._dbHighlightElement(b, col));
+      cy2 += 14;
+    });
+
+    // Wireframe toggle
+    this._dbWireBtn = _btn(px + INN, cy2, this._wireframeOn ? '[ WIREFRAME ON ]' : '[ WIREFRAME OFF ]',
+      () => this._toggleWireframe());
+    cy2 += 22;
+
+    // ── Section: TIPOGRAFIA ───────────────────────────────────────────────
+    this._dbSep(grp, px, cy2, PW, dep, 'TIPOGRAFIA');
+    cy2 += 16;
+
+    const fsMult = this.add.text(px + PW / 2, cy2,
+      `FONT SCALE  ×${this._hudFontMult.toFixed(2)}`, {
+        fontSize: '10px', fontFamily: 'monospace', color: '#ffef7a',
+      }).setOrigin(0.5, 0).setDepth(dep + 1).setScrollFactor(0);
     grp.push(fsMult);
     this._dbFsMult = fsMult;
 
-    const btnStyle = { fontSize: '13px', fontFamily: 'monospace', color: '#7bc67e',
-      backgroundColor: '#0d2918', padding: { x: 7, y: 3 } };
+    _btn(px + PW - 52, cy2, '−', () => this._adjustHUDFont(-0.05));
+    _btn(px + PW - 28, cy2, '+', () => this._adjustHUDFont(+0.05));
+    cy2 += 16;
 
-    const btnMinus = this.add.text(px + PW - 52, fsy - 1, '−', btnStyle)
-      .setDepth(502).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    const btnPlus  = this.add.text(px + PW - 24, fsy - 1, '+', btnStyle)
-      .setDepth(502).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    btnMinus.on('pointerdown', () => this._adjustHUDFont(-0.05));
-    btnPlus.on('pointerdown',  () => this._adjustHUDFont(+0.05));
-    grp.push(btnMinus, btnPlus);
-
-    const fsLabelY = fsy + 28;
-    this._dbFsSizes = this.add.text(px + 10, fsLabelY, '', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#d4ecc8', lineSpacing: 3,
-    }).setDepth(501).setScrollFactor(0);
+    this._dbFsSizes = this.add.text(px + INN, cy2, '', {
+      fontSize: '9px', fontFamily: 'monospace', color: '#b8d8b0', lineSpacing: 3,
+    }).setDepth(dep + 1).setScrollFactor(0);
     grp.push(this._dbFsSizes);
     this._updateHUDDebugFsSizes(W);
+    cy2 += 52;
 
-    const colY = fsLabelY + 80;
-    grp.push(this.add.text(px + 10, colY, 'CORES', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#c8f2bf',
-    }).setDepth(501).setScrollFactor(0));
+    // ── Section: CORES ────────────────────────────────────────────────────
+    this._dbSep(grp, px, cy2, PW, dep, 'CORES  (clica para copiar hex)');
+    cy2 += 16;
 
     const colorEntries = Object.entries(C);
-    colorEntries.forEach(([name, val], idx) => {
-      const row = Math.floor(idx / 2);
-      const col = idx % 2;
-      const cx = px + 12 + col * 126;
-      const cy = colY + 18 + row * 22;
+    colorEntries.forEach(([name, val]) => {
       const isHex = typeof val === 'string';
-      const numVal = isHex ? parseInt(val.replace('#',''), 16) : val;
-      const hexStr = isHex ? val : '#' + numVal.toString(16).padStart(6,'0');
+      const numVal = isHex ? parseInt(val.replace('#', ''), 16) : val;
+      const hexStr = isHex ? val : '#' + numVal.toString(16).padStart(6, '0');
 
-      const swatch = this.add.rectangle(cx, cy + 6, 14, 14, numVal, 1)
-        .setOrigin(0, 0.5).setDepth(502).setScrollFactor(0);
-      const label = this.add.text(cx + 18, cy, `${name}: ${hexStr}`, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#d4ecc8',
-      }).setDepth(502).setScrollFactor(0);
-      grp.push(swatch, label);
+      // Wider swatch
+      const swatch = this.add.rectangle(px + INN, cy2 + 6, 28, 13, numVal, 1)
+        .setOrigin(0, 0.5).setDepth(dep + 2).setScrollFactor(0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this._copyToClipboard(hexStr))
+        .on('pointerover', function() { this.setAlpha(0.6); })
+        .on('pointerout',  function() { this.setAlpha(1); });
+      grp.push(swatch);
+
+      _txt(px + INN + 32, cy2, name, {
+        fontSize: '9px', fontFamily: 'monospace', color: '#9a90b0',
+      });
+      const hexLabel = _txt(px + INN + 80, cy2, hexStr, {
+        fontSize: '9px', fontFamily: 'monospace', color: hexStr === '#f0e8ff' ? '#c0b8d0' : hexStr,
+      });
+      hexLabel.setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this._copyToClipboard(hexStr))
+        .on('pointerover', function() { this.setAlpha(0.6); })
+        .on('pointerout',  function() { this.setAlpha(1); });
+
+      // Live-preview: highlight all elements using this colour (future enhancement)
+      cy2 += 17;
     });
+    cy2 += 4;
 
-    const copyY = py + PH - 22;
-    const copyBtn = this.add.text(px + PW / 2, copyY, '[ COPIAR CONFIG ]', {
-      fontSize: '10px', fontFamily: 'monospace', color: '#ffef7a',
-      backgroundColor: '#003300', padding: { x: 8, y: 3 },
-    }).setOrigin(0.5).setDepth(502).setScrollFactor(0)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this._copyHUDConfig())
-      .on('pointerover', function() { this.setColor('#ffffff'); })
-      .on('pointerout',  function() { this.setColor('#ffef7a'); });
-    grp.push(copyBtn);
+    // ── Footer buttons ────────────────────────────────────────────────────
+    this._dbSep(grp, px, cy2, PW, dep);
+    cy2 += 8;
+    _btn(px + INN, cy2, '[ COPIAR CONFIG ]', () => this._copyHUDConfig(), 130);
+    _btn(px + INN + 140, cy2, '[ RESET FONTS ]', () => { this._hudFontMult = 1.0; this._adjustHUDFont(0); }, 120);
+
+    // ── Wireframe overlay (separate, persistent) ──────────────────────────
+    if (!this._wireframeGfx) {
+      this._wireframeGfx = this.add.graphics().setDepth(dep - 1).setScrollFactor(0);
+    }
+    this._wireframeGfx.setVisible(false);
+    grp.push(this._wireframeGfx);
 
     this._hudDebugGroup = grp;
     grp.forEach(o => o.setVisible(false));
     this._hudDebugVisible = false;
   }
 
+  _dbSep(grp, px, y, PW, dep, label = '') {
+    const sepGfx = this.add.graphics().setDepth(dep + 1).setScrollFactor(0);
+    sepGfx.lineStyle(1, 0x4a3d6e, 0.50);
+    sepGfx.lineBetween(px + 10, y + 7, px + PW - 10, y + 7);
+    grp.push(sepGfx);
+    if (label) {
+      grp.push(this.add.text(px + 14, y, label, {
+        fontSize: '9px', fontFamily: 'monospace', color: '#7b5ea7',
+        backgroundColor: '#06080e', padding: { x: 3, y: 0 },
+      }).setDepth(dep + 2).setScrollFactor(0));
+    }
+  }
+
   _toggleHUDDebug() {
     this._hudDebugVisible = !this._hudDebugVisible;
     this._hudDebugGroup?.forEach(o => o.setVisible(this._hudDebugVisible));
+    if (!this._hudDebugVisible) {
+      this._dbHighlightGfx?.clear().setVisible(false);
+      if (!this._wireframeOn) this._wireframeGfx?.setVisible(false);
+    }
+    if (this._hudDebugVisible && this._wireframeOn) this._drawWireframe();
+  }
+
+  _dbHighlightElement(b, col) {
+    const gfx = this._dbHighlightGfx;
+    if (!gfx) return;
+    gfx.clear().setVisible(true);
+    gfx.lineStyle(2, col, 0.95);
+    gfx.strokeRect(b.x, b.y, b.w, b.h);
+    gfx.lineStyle(1, col, 0.3);
+    gfx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+    // Pulsing tween
+    this.tweens.killTweensOf(gfx);
+    this.tweens.add({ targets: gfx, alpha: { from: 1, to: 0.2 }, duration: 600, yoyo: true, repeat: 3,
+      onComplete: () => gfx.setVisible(false).setAlpha(1) });
+  }
+
+  _toggleWireframe() {
+    this._wireframeOn = !this._wireframeOn;
+    this._dbWireBtn?.setText(this._wireframeOn ? '[ WIREFRAME ON ]' : '[ WIREFRAME OFF ]');
+    if (this._wireframeOn) { this._drawWireframe(); }
+    else { this._wireframeGfx?.clear().setVisible(false); }
+  }
+
+  _drawWireframe() {
+    const gfx = this._wireframeGfx;
+    if (!gfx) return;
+    gfx.clear().setVisible(true);
+    const HIGHLIGHT_COLORS = [0xff6666, 0x66aaff, 0xffee66, 0x66ff99, 0xff88ee];
+    const bounds = this._hudBounds || {};
+    Object.values(bounds).forEach((b, i) => {
+      const col = HIGHLIGHT_COLORS[i % HIGHLIGHT_COLORS.length];
+      gfx.lineStyle(1.5, col, 0.75);
+      gfx.strokeRect(b.x, b.y, b.w, b.h);
+      gfx.fillStyle(col, 0.06);
+      gfx.fillRect(b.x, b.y, b.w, b.h);
+      // Corner label
+      gfx.fillStyle(col, 0.9);
+      gfx.fillRect(b.x, b.y, b.label.length * 5 + 4, 11);
+    });
+    // Label text drawn separately (graphics can't do text)
+    this._wireLabels?.forEach(t => t.destroy());
+    this._wireLabels = Object.values(bounds).map((b, i) => {
+      const col = HIGHLIGHT_COLORS[i % HIGHLIGHT_COLORS.length];
+      return this.add.text(b.x + 2, b.y, b.label, {
+        fontSize: '8px', fontFamily: 'monospace',
+        color: '#' + col.toString(16).padStart(6, '0'),
+      }).setDepth(499).setScrollFactor(0);
+    });
+    if (!this._wireframeOn) {
+      this._wireLabels?.forEach(t => t.destroy());
+      this._wireLabels = [];
+    }
   }
 
   _adjustHUDFont(delta) {
     this._hudFontMult = Math.max(0.5, Math.min(2.0, (this._hudFontMult || 1) + delta));
-    this._dbFsMult?.setText(`×${this._hudFontMult.toFixed(2)}`);
+    this._dbFsMult?.setText(`FONT SCALE  ×${this._hudFontMult.toFixed(2)}`);
     this._updateHUDDebugFsSizes(this.scale.width);
   }
 
@@ -816,28 +1001,15 @@ export class HUDScene extends Phaser.Scene {
     if (!this._dbFsSizes) return;
     const m = this._hudFontMult || 1;
     const lines = [
-      `sm  = max(12, W×0.0100) × ${m.toFixed(2)} = ${Math.max(12, Math.round(W * 0.0100 * m))}px`,
-      `md  = max(14, W×0.0120) × ${m.toFixed(2)} = ${Math.max(14, Math.round(W * 0.0120 * m))}px`,
-      `lg  = max(17, W×0.0135) × ${m.toFixed(2)} = ${Math.max(17, Math.round(W * 0.0135 * m))}px`,
-      `xl  = max(21, W×0.0165) × ${m.toFixed(2)} = ${Math.max(21, Math.round(W * 0.0165 * m))}px`,
+      `sm = max(12, W×0.010) × ${m.toFixed(2)} → ${Math.max(12, Math.round(W * 0.010 * m))}px`,
+      `md = max(14, W×0.012) × ${m.toFixed(2)} → ${Math.max(14, Math.round(W * 0.012 * m))}px`,
+      `lg = max(17, W×0.0135)× ${m.toFixed(2)} → ${Math.max(17, Math.round(W * 0.0135 * m))}px`,
+      `xl = max(21, W×0.0165)× ${m.toFixed(2)} → ${Math.max(21, Math.round(W * 0.0165 * m))}px`,
     ];
     this._dbFsSizes.setText(lines.join('\n'));
   }
 
-  _copyHUDConfig() {
-    const m = this._hudFontMult || 1;
-    const W = this.scale.width;
-    const lines = [
-      `// _fs() font sizes (scale ×${m.toFixed(2)}):`,
-      `sm: Math.max(12, Math.round(W * ${(0.0100 * m).toFixed(4)}))`,
-      `md: Math.max(14, Math.round(W * ${(0.0120 * m).toFixed(4)}))`,
-      `lg: Math.max(17, Math.round(W * ${(0.0135 * m).toFixed(4)}))`,
-      `xl: Math.max(21, Math.round(W * ${(0.0165 * m).toFixed(4)}))`,
-      '',
-      '// Colors (C object):',
-      ...Object.entries(C).map(([k, v]) => `${k}: ${typeof v === 'string' ? `'${v}'` : `0x${v.toString(16).padStart(6,'0')}`},`),
-    ];
-    const text = lines.join('\n');
+  _copyToClipboard(text) {
     const ta = document.createElement('textarea');
     ta.value = text;
     Object.assign(ta.style, { position: 'fixed', top: '-9999px', opacity: '0' });
@@ -845,5 +1017,30 @@ export class HUDScene extends Phaser.Scene {
     ta.focus(); ta.select();
     try { document.execCommand('copy'); } catch (_) {}
     document.body.removeChild(ta);
+  }
+
+  _copyHUDConfig() {
+    const m = this._hudFontMult || 1;
+    const W = this.scale.width;
+    const H = this.scale.height;
+    const lines = [
+      `// HUD Config  —  ${W}×${H}  scale×${m.toFixed(2)}`,
+      `// Font sizes:`,
+      `sm: Math.max(12, Math.round(W * ${(0.010 * m).toFixed(4)}))`,
+      `md: Math.max(14, Math.round(W * ${(0.012 * m).toFixed(4)}))`,
+      `lg: Math.max(17, Math.round(W * ${(0.0135 * m).toFixed(4)}))`,
+      `xl: Math.max(21, Math.round(W * ${(0.0165 * m).toFixed(4)}))`,
+      '',
+      '// Colors:',
+      ...Object.entries(C).map(([k, v]) =>
+        `  ${k}: ${typeof v === 'string' ? `'${v}'` : `0x${v.toString(16).padStart(6,'0')}`},`
+      ),
+      '',
+      '// Panel bounds:',
+      ...Object.values(this._hudBounds || {}).map(b =>
+        `  ${b.label}: x=${b.x} y=${b.y} w=${b.w} h=${b.h}`
+      ),
+    ];
+    this._copyToClipboard(lines.join('\n'));
   }
 }
