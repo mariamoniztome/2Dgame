@@ -10,8 +10,8 @@ export class Portal extends Phaser.GameObjects.Container {
     // Portal image — no rotation, static
     this.ring = scene.add.image(0, 0, 'portal').setDisplaySize(160, 160).setAlpha(this.isLocked ? 0.45 : 0.85);
 
-    // Inner glow
-    this.glow = scene.add.circle(0, 0, 22, 0x7bc67e, 0.35);
+    // Inner glow — radius matches portal image (160px → half = 80px)
+    this.glow = scene.add.circle(0, 0, 62, 0x7bc67e, 0.35);
 
     // Lock indicator
     this.lockText = scene.add.text(0, -72, '🔒', {

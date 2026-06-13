@@ -6,16 +6,16 @@ import { GameState } from '../GameState.js';
 const ZONE1_ICONS = [
   {
     icon: 'map_icone_limiar',
-    xp: 0.09, yp: 0.19,
-    size: 0.10,
+    xp: 0.0581, yp: 0.1281,
+    size: 0.1003,
     label: 'limiar\nsecreto',
     lxp: 0.09, lyp: 0.36,
     startArea: 'limiarSecreto',
   },
   {
     icon: 'map_icone_campo',
-    xp: 0.09, yp: 0.76,
-    size: 0.1,
+    xp: 0.0535, yp: 0.7739,
+    size: 0.1003,
     label: 'campo dos\nvagalumes',
     lxp: 0.09, lyp: 0.90,
     startArea: 'campoVagalumes',
@@ -23,7 +23,7 @@ const ZONE1_ICONS = [
   {
     icon: 'map_icone_jardim',
     xp: 0.39, yp: 0.74,
-    size: 0.10,
+    size: 0.1003,
     label: 'jardim\ninvertido',
     lxp: 0.39, lyp: 0.88,
     startArea: 'jardimInvertido',
@@ -32,24 +32,27 @@ const ZONE1_ICONS = [
 
 // Decorative plant/creature icons — size as fraction of W
 const DECO_ICONS = [
-  { icon: 'map_icone_ventoinha',  xp: 0.20, yp: 0.87, sp: 0.090 },
-  { icon: 'map_icone_farfalha',   xp: 0.17, yp: 0.09, sp: 0.085 },
-  { icon: 'map_icone_gotateia',   xp: 0.53, yp: 0.86, sp: 0.080 },
-  { icon: 'map_icone_trepadeira', xp: 0.04, yp: 0.32, sp: 0.078 },
+  { icon: 'map_icone_ventoinha',  xp: 0.1779, yp: 0.7676, sp: 0.0898 },
+  { icon: 'map_icone_farfalha',   xp: 0.1596, yp: 0.0698, sp: 0.0853 },
+  { icon: 'map_icone_gotateia',   xp: 0.5313, yp: 0.9068, sp: 0.0801 },
+  { icon: 'map_icone_trepadeira', xp: 0.0361, yp: 0.5501, sp: 0.0781 },
 ];
 
 // Portal icons — entry/exit points between zones
 const PORTAL_ICONS = [
-  { xp: 0.27, yp: 0.42, sp: 0.06 },  // Zone1 → Zone2 passage
-  { xp: 0.72, yp: 0.28, sp: 0.06 },  // Zone2 → Zone3 passage
+  { xp: 0.1893, yp: 0.2101, sp: 0.0599 },  // Zone1 → Zone2 passage
+  { xp: 0.7167, yp: 0.3306, sp: 0.0599 },  // Zone2 → Zone3 passage
 ];
+
+// Padlock size — fraction of W. Change here or tune with scroll in debug mode.
+const LOCK_SP = 0.0313;
 
 // Padlocks — Zone 2 (middle area) and Zone 3 (right area)
 const Z2_LOCKS = [
-  { xp: 0.38, yp: 0.14 },
-  { xp: 0.61, yp: 0.19 },
-  { xp: 0.30, yp: 0.49 },
-  { xp: 0.61, yp: 0.58 },
+  { xp: 0.38,  yp: 0.14   },
+  { xp: 0.61,  yp: 0.19   },
+  { xp: 0.341, yp: 0.4963 },
+  { xp: 0.61,  yp: 0.58   },
 ];
 const Z3_LOCKS = [
   { xp: 0.86, yp: 0.10 },
@@ -141,11 +144,11 @@ export class MapScene extends Phaser.Scene {
         const img = this.add.image(px, py, 'map_portal')
           .setDisplaySize(s, s).setDepth(4).setAlpha(0.85)
           .setInteractive({ useHandCursor: false });
-        this.add.text(px, py + s * 0.7, portalLabels[pi] || 'Portal', {
-          fontSize: `${Math.round(W * 0.012)}px`,
-          fontFamily: 'Georgia, serif', color: '#b8e8b8',
-          stroke: '#061006', strokeThickness: 2, fontStyle: 'italic',
-        }).setOrigin(0.5, 0).setDepth(5).setAlpha(0.75);
+        // this.add.text(px, py + s * 0.7, portalLabels[pi] || 'Portal', {
+        //   fontSize: `${Math.round(W * 0.012)}px`,
+        //   fontFamily: 'Georgia, serif', color: '#b8e8b8',
+        //   stroke: '#061006', strokeThickness: 2, fontStyle: 'italic',
+        // }).setOrigin(0.5, 0).setDepth(5).setAlpha(0.75);
         this._debugObjs.push({ img, label: 'map_portal', group: 'portal' });
       });
     }
@@ -181,7 +184,7 @@ export class MapScene extends Phaser.Scene {
 
   _buildZone(key, lockPositions, W, H, hitX, hitY, hitW, hitH) {
     const unlocked = GameState.isZoneUnlocked(key);
-    const lockSize = Math.round(W * 0.105);
+    const lockSize = Math.round(W * LOCK_SP);
 
     if (unlocked) {
       const label = key === 'Zone2' ? 'Zona 2' : 'Zona 3';
@@ -240,13 +243,15 @@ export class MapScene extends Phaser.Scene {
 
   _enableMapDebug() {
     const W = this._W, H = this._H;
+    this._debugHover = null;
 
     // Dim background to make positions clearer
     this._debugDim = this.add.rectangle(0, 0, W, H, 0x000000, 0.35)
       .setOrigin(0).setDepth(50);
 
     // Debug label banner
-    this._debugBanner = this.add.text(W / 2, 8, 'DEBUG MAPA  (D — fechar · L — log config)', {
+    this._debugBanner = this.add.text(W / 2, 8,
+      'DEBUG MAPA  (D — fechar · L — log · scroll — tamanho)', {
       fontSize: '12px', fontFamily: 'monospace', color: '#ffee44',
       backgroundColor: '#000000cc', padding: { x: 8, y: 4 },
     }).setOrigin(0.5, 0).setDepth(60);
@@ -254,16 +259,19 @@ export class MapScene extends Phaser.Scene {
     // Key for copying config
     this.keyLog = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
 
-    // Enable drag on all tracked objects
+    // Enable drag + hover tracking on all tracked objects
     this._debugObjs.forEach(entry => {
       const { img } = entry;
       if (!img.active) return;
       img.setInteractive({ useHandCursor: true });
       this.input.setDraggable(img);
 
-      // Position label
+      img.on('pointerover', () => { this._debugHover = entry; });
+      img.on('pointerout',  () => { if (this._debugHover === entry) this._debugHover = null; });
+
+      // Position + size label
       const posText = this.add.text(img.x, img.y - img.displayHeight / 2 - 10,
-        this._fmtPos(img.x, img.y, W, H),
+        this._fmtEntry(img),
         { fontSize: '9px', fontFamily: 'monospace', color: '#ffee44',
           stroke: '#000000', strokeThickness: 2 }
       ).setOrigin(0.5, 1).setDepth(62);
@@ -280,17 +288,50 @@ export class MapScene extends Phaser.Scene {
 
     this.input.on('drag', (_ptr, img, dragX, dragY) => {
       img.setPosition(dragX, dragY);
-      // Update labels and rings
       const entry = this._debugObjs.find(e => e.img === img);
       if (entry?.posText) {
         entry.posText.setPosition(dragX, dragY - img.displayHeight / 2 - 10);
-        entry.posText.setText(this._fmtPos(dragX, dragY, W, H));
+        entry.posText.setText(this._fmtEntry(img));
       }
       if (entry?.ring) {
         entry.ring.clear();
         entry.ring.lineStyle(1.5, 0xffee44, 0.7);
         entry.ring.strokeCircle(dragX, dragY, img.displayWidth / 2 + 4);
       }
+    });
+
+    // Scroll wheel — resize object under pointer.
+    // For locks: all locks resize together (uniform size).
+    this.input.on('wheel', (_ptr, currentlyOver, _dx, deltaY) => {
+      // Find which debug entry is under the pointer
+      let entry = null;
+      for (const obj of currentlyOver) {
+        entry = this._debugObjs.find(e => e.img === obj);
+        if (entry) break;
+      }
+      if (!entry) entry = this._debugHover;
+      if (!entry?.img?.active) return;
+
+      const step = deltaY > 0 ? -4 : 4;
+
+      // Locks resize uniformly — resize every lock entry
+      const targets = entry.group === 'lock'
+        ? this._debugObjs.filter(e => e.group === 'lock')
+        : [entry];
+
+      targets.forEach(e => {
+        const newSize = Math.max(10, e.img.displayWidth + step);
+        e.img.setDisplaySize(newSize, newSize);
+        if (e.ring) {
+          e.ring.clear();
+          e.ring.lineStyle(1.5, 0xffee44, 0.7);
+          e.ring.strokeCircle(e.img.x, e.img.y, newSize / 2 + 4);
+        }
+        if (e.posText) {
+          e.posText.setPosition(e.img.x, e.img.y - newSize / 2 - 10);
+          e.posText.setText(this._fmtEntry(e.img));
+        }
+      });
     });
   }
 
@@ -301,11 +342,14 @@ export class MapScene extends Phaser.Scene {
     this._debugOverlays = [];
     this._debugObjs.forEach(e => { delete e.posText; delete e.ring; });
     this.input.off('drag');
+    this.input.off('wheel');
+    this._debugHover = null;
     if (this.keyLog) { this.keyLog.destroy(); this.keyLog = null; }
   }
 
-  _fmtPos(x, y, W, H) {
-    return `xp:${(x / W).toFixed(3)} yp:${(y / H).toFixed(3)}`;
+  _fmtEntry(img) {
+    const W = this._W, H = this._H;
+    return `xp:${(img.x/W).toFixed(3)} yp:${(img.y/H).toFixed(3)} sp:${(img.displayWidth/W).toFixed(3)}`;
   }
 
   _logMapConfig() {
@@ -320,7 +364,7 @@ export class MapScene extends Phaser.Scene {
       if (group === 'zone1')  out.zone1Icons[z++]  = { xp, yp, size: sp };
       if (group === 'deco')   out.decoIcons[d++]   = { xp, yp, sp };
       if (group === 'portal') out.portalIcons[p++]  = { xp, yp, sp };
-      if (group === 'lock')   out.locks[l++]        = { xp, yp };
+      if (group === 'lock')   out.locks[l++]        = { xp, yp, sp };
     });
     console.log('MAP CONFIG:\n' + JSON.stringify(out, null, 2));
     // Copy to clipboard if available
