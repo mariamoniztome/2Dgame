@@ -7,7 +7,7 @@ const ZONE1_ICONS = [
   {
     icon: 'map_icone_limiar',
     xp: 0.09, yp: 0.19,
-    size: 0.20,
+    size: 0.10,
     label: 'limiar\nsecreto',
     lxp: 0.09, lyp: 0.36,
     startArea: 'limiarSecreto',
@@ -15,7 +15,7 @@ const ZONE1_ICONS = [
   {
     icon: 'map_icone_campo',
     xp: 0.09, yp: 0.76,
-    size: 0.20,
+    size: 0.1,
     label: 'campo dos\nvagalumes',
     lxp: 0.09, lyp: 0.90,
     startArea: 'campoVagalumes',
@@ -23,7 +23,7 @@ const ZONE1_ICONS = [
   {
     icon: 'map_icone_jardim',
     xp: 0.39, yp: 0.74,
-    size: 0.18,
+    size: 0.10,
     label: 'jardim\ninvertido',
     lxp: 0.39, lyp: 0.88,
     startArea: 'jardimInvertido',
@@ -133,7 +133,7 @@ export class MapScene extends Phaser.Scene {
     });
 
     // ── Portal icons ──────────────────────────────────────────────────────
-    const portalLabels = ['Portal → Zona 2', 'Portal → Zona 3'];
+    // const portalLabels = ['Portal → Zona 2', 'Portal → Zona 3'];
     if (this.textures.exists('map_portal')) {
       PORTAL_ICONS.forEach(({ xp, yp, sp }, pi) => {
         const s = Math.round(W * sp);

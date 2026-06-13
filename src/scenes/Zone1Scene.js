@@ -1099,6 +1099,25 @@ export class Zone1Scene extends Phaser.Scene {
 
   _onPlantStolen(plant) {
     this._emitNarrative(`O Sussurro-Ladrão levou a tua ${plant.name}! Volta ao Campo para procurar mais.`, 5000);
+
+    const allSpawns = [
+      ...PLANT_SPAWNS,
+      ...TRANSICAO_PLANT_SPAWNS,
+      ...LIMIAR_PLANT_SPAWNS,
+    ].filter(s => s.id === plant.id);
+    if (!allSpawns.length) return;
+
+    // Pick a random spawn; if multiple exist, avoid repeating position by shuffling
+    const shuffled = allSpawns.sort(() => Math.random() - 0.5);
+    const spawn = shuffled[0];
+    const plantData = PLANTS[plant.id];
+    if (!plantData) return;
+
+    this.time.delayedCall(15000, () => {
+      if (GameState.collected.has(plant.id)) return;
+      const newPlant = new Plant(this, spawn.x, spawn.y, plantData);
+      this.plants.push(newPlant);
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
