@@ -190,8 +190,8 @@ export class Zone1Scene extends Phaser.Scene {
     this._ladraoStole         = false;
     this._tutorialShown       = false;   // show on first movement, not on timer
     this._sprintTrailTimer    = 0;       // sprint particle trail throttle
-    // First appearance: 35s in (player needs time to collect at least one plant)
-    this.time.delayedCall(35000, () => this._scheduleLadrao());
+    // First appearance: 20s in (player needs time to collect at least one plant)
+    this.time.delayedCall(20000, () => this._scheduleLadrao());
 
     MusicManager.init(this);
     this.time.delayedCall(200, () => MusicManager.playArea('campoVagalumes'));
@@ -641,9 +641,12 @@ export class Zone1Scene extends Phaser.Scene {
 
     // ── Hard boundary: limiar → dead zone (right wall at x=_zoneW) ───────
     // In Limiar (y<0) the player must NOT cross into the top-right quadrant.
+    // Only kill rightward velocity so the player can still escape left.
     if (this.player.y < 0 && this.player.x >= this._zoneW - 2) {
       this.player.setX(this._zoneW - 2);
-      if (this.player.body) this.player.body.velocity.x = 0;
+      if (this.player.body && this.player.body.velocity.x > 0) {
+        this.player.body.velocity.x = 0;
+      }
     }
 
     const ph = this.player.displayHeight;
@@ -1306,7 +1309,7 @@ export class Zone1Scene extends Phaser.Scene {
   _scheduleLadrao() {
     if (!this.scene.isActive('Zone1')) return;
     if (GameState.inventory.length === 0) {
-      this.time.delayedCall(12000, () => this._scheduleLadrao());
+      this.time.delayedCall(8000, () => this._scheduleLadrao());
       return;
     }
     this._spawnLadrao();
@@ -1386,8 +1389,8 @@ export class Zone1Scene extends Phaser.Scene {
     this._ladrao?.destroy();
     this._ladrao = null;
     const delay = stole
-      ? Phaser.Math.Between(55000, 85000)
-      : Phaser.Math.Between(25000, 45000);
+      ? Phaser.Math.Between(35000, 55000)
+      : Phaser.Math.Between(15000, 28000);
     this.time.delayedCall(delay, () => this._scheduleLadrao());
   }
 

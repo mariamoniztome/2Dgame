@@ -139,11 +139,18 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   _buildCreature() {
+    this.creature?.destroy();
     this.creature = new Creature(this, 700, 950, 'creature_bocarra', {
       type: 'bocarra',
       followRange: 400,
-      stealThreshold: 3500,
-      speed: 70,
+      stealThreshold: 2800,
+      speed: 78,
+      onDefeat: () => {
+        this.time.delayedCall(
+          Phaser.Math.Between(20000, 35000),
+          () => { if (this.scene.isActive('Zone2')) this._buildCreature(); }
+        );
+      },
     });
   }
 
@@ -231,7 +238,12 @@ export class Zone2Scene extends Phaser.Scene {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, portal.x, portal.y);
       const near = dist < 65;
       portal.showHint(near);
-      if (near) this._nearPortal = portal;
+      if (near) {
+        this._nearPortal = portal;
+        if (!portal.isLocked && !GameState.discoveredPortals.has(portal.portalId)) {
+          GameState.discoverPortal(portal.portalId);
+        }
+      }
     });
   }
 

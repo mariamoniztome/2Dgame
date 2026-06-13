@@ -12,6 +12,7 @@ export class Creature extends Phaser.Physics.Arcade.Sprite {
     this.followRange   = opts.followRange   ?? 500;
     this.stealThreshold = opts.stealThreshold ?? 3000; // ms player must be still
     this.speed         = opts.speed         ?? 90;
+    this._onDefeat     = opts.onDefeat      ?? null;
 
     this.setDepth(8);
     this.body.setSize(32, 32);
@@ -96,6 +97,7 @@ export class Creature extends Phaser.Physics.Arcade.Sprite {
         this.setActive(false);
         this.setVisible(false);
         this.scene.game.events.emit('creatureDefeated', this.creatureType);
+        if (this._onDefeat) this._onDefeat();
       },
     });
   }

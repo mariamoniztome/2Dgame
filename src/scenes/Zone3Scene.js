@@ -145,15 +145,25 @@ export class Zone3Scene extends Phaser.Scene {
   }
 
   _buildCreatures() {
-    this.ecos = [];
-    for (let i = 0; i < 2; i++) {
-      this.ecos.push(new Creature(this, 380 + i * 500, 850, 'creature_eco', {
-        type: 'eco',
-        followRange: 350,
-        stealThreshold: 4000,
-        speed: 65,
-      }));
-    }
+    this.ecos = [null, null];
+    const positions = [[380, 850], [880, 850]];
+    positions.forEach((pos, i) => this._spawnEco(i, pos[0], pos[1]));
+  }
+
+  _spawnEco(i, x, y) {
+    this.ecos[i]?.destroy();
+    this.ecos[i] = new Creature(this, x, y, 'creature_eco', {
+      type: 'eco',
+      followRange: 350,
+      stealThreshold: 3000,
+      speed: 72,
+      onDefeat: () => {
+        this.time.delayedCall(
+          Phaser.Math.Between(25000, 40000),
+          () => { if (this.scene.isActive('Zone3')) this._spawnEco(i, x, y); }
+        );
+      },
+    });
   }
 
   _buildPortals() {
