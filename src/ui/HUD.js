@@ -285,7 +285,7 @@ export class HUDScene extends Phaser.Scene {
     this._drawInventoryPanel(H - 10 - ihCollapsed, ihCollapsed);
 
     // Title row
-    const titleY = H - 10 - ihCollapsed + 6;
+    const titleY = H - 10 - ihCollapsed + 12;
     this._invTitleText = this.add.text(px0 + padX, titleY, 'Inventário', {
       fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
     }).setOrigin(0, 0).setDepth(55);
@@ -350,8 +350,6 @@ export class HUDScene extends Phaser.Scene {
     gfx.clear();
     gfx.fillStyle(C.panel, 1);
     gfx.fillRoundedRect(this._invPX0, py0, this._invIW, ih, this._invR);
-    gfx.lineStyle(1.5, C.border, 1);
-    gfx.strokeRoundedRect(this._invPX0, py0, this._invIW, ih, this._invR);
   }
 
   _toggleInventory() {
