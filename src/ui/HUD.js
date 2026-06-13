@@ -50,6 +50,9 @@ export class HUDScene extends Phaser.Scene {
       this._toastQueue      = [];
       this._toastActive     = false;
       this._controlsVisible = false;
+      this._userPaused      = false;
+      this._pauseCount      = 0;
+      this.input.keyboard.on('keydown-SPACE', () => this._toggleSpacePause());
     }
 
     this._slots              = [];
@@ -81,8 +84,10 @@ export class HUDScene extends Phaser.Scene {
         this._narrativeTimer     = null;
         this._lastZone           = null;
         this._mmMask             = null;
+        this._pauseCount         = 0;
         this._buildAll(gameSize.width, gameSize.height);
         if (ctrlVis) this._showControls();
+        if (this._userPaused) this._showPauseOverlay();
         this._refresh();
         this._drawMinimapBg(GameState.currentZone || 'Zone1');
       }, 150);
@@ -137,8 +142,10 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this._toggleControls());
 
+    this._buildMuteButton(W, H, ajudaH, ajudaW);
     this._buildControlsPanel(W, H, fs);
     this._buildHUDDebugPanel(W, H, fs);
+    this._buildPauseOverlay(W, H);
 
     this.input.keyboard.on('keydown-H', () => this._toggleControls());
     this.input.keyboard.on('keydown-D', (e) => { if (e.shiftKey) this._toggleHUDDebug(); });
@@ -486,6 +493,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._ctrlGroup = [];
     this.input.keyboard.on('keydown-ESC', () => {
       if (this._controlsVisible) this._hideControls();
+      else if (this._userPaused)  this._toggleSpacePause();
     });
   }
 
@@ -496,11 +504,13 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   _showControls() {
     this._controlsVisible = true;
     document.getElementById('controls-panel')?.classList.add('visible');
+    this._pauseZone();
   }
 
   _hideControls() {
     this._controlsVisible = false;
     document.getElementById('controls-panel')?.classList.remove('visible');
+    this._resumeZone();
   }
 
   _openMap() {
@@ -1136,10 +1146,12 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._lastZone           = null;
     this._wireframeOn        = wireOn;
     this._mmMask             = null;
+    this._pauseCount         = 0;
 
     this._buildAll(W, H);
     if (ctrlVis) this._showControls(); else this._hideControls();
     if (dbgVis)  { this._hudDebugVisible = false; this._toggleHUDDebug(); }
+    if (this._userPaused) this._showPauseOverlay();
     this._refresh();
     this._drawMinimapBg(GameState.currentZone || 'Zone1');
   }
@@ -1152,6 +1164,137 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     ta.focus(); ta.select();
     try { document.execCommand('copy'); } catch (_) {}
     document.body.removeChild(ta);
+  }
+
+  // ── Mute button — pink square to the right of ajuda ──────────────────────
+  _buildMuteButton(W, H, ajudaH, ajudaW) {
+    const btnS = ajudaH;
+    const bx   = 10 + ajudaW + 6 + btnS / 2;
+    const by   = 10 + ajudaH / 2;
+    this._muteBtnCX = bx;
+    this._muteBtnCY = by;
+    this._muteBtnS  = btnS;
+    this._muteBtnGfx = this.add.graphics().setDepth(55);
+    this._drawMuteBtn();
+    this.add.zone(bx, by, btnS, ajudaH)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(56)
+      .on('pointerdown', () => this._toggleMute());
+  }
+
+  _drawMuteBtn() {
+    const gfx  = this._muteBtnGfx;
+    const cx   = this._muteBtnCX;
+    const cy   = this._muteBtnCY;
+    const size = this._muteBtnS;
+    const muted = SoundManager.isMuted();
+    if (!gfx) return;
+    gfx.clear();
+
+    // Pink background
+    gfx.fillStyle(C.panel, 1);
+    gfx.fillRoundedRect(cx - size / 2, cy - size / 2, size, size, 6);
+    gfx.lineStyle(1, C.border, 0.3);
+    gfx.strokeRoundedRect(cx - size / 2, cy - size / 2, size, size, 6);
+
+    // Speaker icon
+    const s = size * 0.45;
+    gfx.fillStyle(0x000000, 0.72);
+    // Body (rectangle)
+    gfx.fillRect(cx - s * 0.90, cy - s * 0.38, s * 0.42, s * 0.76);
+    // Horn (triangle)
+    gfx.fillTriangle(
+      cx - s * 0.48, cy - s * 0.52,
+      cx - s * 0.48, cy + s * 0.52,
+      cx + s * 0.22, cy
+    );
+
+    if (muted) {
+      // Red X
+      gfx.lineStyle(2, 0xb42d27, 0.95);
+      gfx.lineBetween(cx + s * 0.15, cy - s * 0.55, cx + s * 0.75, cy + s * 0.55);
+      gfx.lineBetween(cx + s * 0.75, cy - s * 0.55, cx + s * 0.15, cy + s * 0.55);
+    } else {
+      // Sound waves (arcs on right side of horn)
+      gfx.lineStyle(1.5, 0x000000, 0.72);
+      gfx.strokeArc(cx + s * 0.22, cy, s * 0.44, -0.55, 0.55);
+      gfx.strokeArc(cx + s * 0.22, cy, s * 0.72, -0.68, 0.68);
+    }
+  }
+
+  _toggleMute() {
+    SoundManager.toggleMute();
+    this._drawMuteBtn();
+  }
+
+  // ── Pause overlay (Space key) ─────────────────────────────────────────────
+  _buildPauseOverlay(W, H) {
+    const grp = [];
+
+    const bg = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.55)
+      .setScrollFactor(0)
+      .setInteractive()
+      .on('pointerdown', () => { if (this._userPaused) this._toggleSpacePause(); });
+    grp.push(bg);
+
+    const barW = Math.max(14, Math.round(W * 0.024));
+    const barH = Math.max(38, Math.round(W * 0.068));
+    const gap  = Math.max(10, Math.round(W * 0.016));
+    const cx   = W / 2;
+    const cy   = H / 2 - Math.round(H * 0.05);
+
+    const pauseGfx = this.add.graphics();
+    pauseGfx.fillStyle(C.panel, 1);
+    pauseGfx.fillRoundedRect(cx - gap / 2 - barW, cy - barH / 2, barW, barH, 4);
+    pauseGfx.fillRoundedRect(cx + gap / 2,         cy - barH / 2, barW, barH, 4);
+    grp.push(pauseGfx);
+
+    const lfs = Math.max(13, Math.round(W * 0.013));
+    const sfs = Math.max(10, Math.round(W * 0.009));
+
+    const label = this.add.text(cx, cy + barH / 2 + 14, 'PAUSADO', {
+      fontSize: `${lfs}px`, fontFamily: FU, color: '#f6a3b3', fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    grp.push(label);
+
+    const hint = this.add.text(cx, cy + barH / 2 + 14 + lfs + 6, 'Carrega ESPAÇO para continuar', {
+      fontSize: `${sfs}px`, fontFamily: FU, color: '#aaaaaa',
+    }).setOrigin(0.5, 0);
+    grp.push(hint);
+
+    this._pauseOverlay = this.add.container(0, 0, grp).setDepth(250).setVisible(false);
+  }
+
+  _showPauseOverlay() { this._pauseOverlay?.setVisible(true); }
+  _hidePauseOverlay() { this._pauseOverlay?.setVisible(false); }
+
+  // ── Zone pause / resume (reference-counted) ───────────────────────────────
+  _pauseZone() {
+    this._pauseCount = (this._pauseCount || 0) + 1;
+    if (this._pauseCount === 1) {
+      const zk = GameState.currentZone;
+      if (zk && this.scene.isActive(zk)) this.scene.pause(zk);
+    }
+  }
+
+  _resumeZone() {
+    this._pauseCount = Math.max(0, (this._pauseCount || 0) - 1);
+    if (this._pauseCount === 0) {
+      const zk = GameState.currentZone;
+      if (zk && this.scene.isPaused(zk)) this.scene.resume(zk);
+    }
+  }
+
+  _toggleSpacePause() {
+    if (this.scene.isActive('Map')) return;
+    this._userPaused = !this._userPaused;
+    if (this._userPaused) {
+      this._pauseZone();
+      this._showPauseOverlay();
+    } else {
+      this._resumeZone();
+      this._hidePauseOverlay();
+    }
   }
 
   _copyHUDConfig() {

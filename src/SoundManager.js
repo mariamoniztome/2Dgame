@@ -4,6 +4,7 @@
 
 let _ctx   = null;
 let _scene = null;
+let _muted = false;
 
 function ctx() {
   if (!_ctx && typeof AudioContext !== 'undefined') _ctx = new AudioContext();
@@ -72,13 +73,22 @@ function noise(duration, gain = 0.08, lpFreq = 2000) {
 export const SoundManager = {
   init: initFromPhaser,
 
+  toggleMute() {
+    _muted = !_muted;
+    if (_scene?.sound) _scene.sound.setMute(_muted);
+    return _muted;
+  },
+  isMuted() { return _muted; },
+
   // Footstep: soft noise burst, throttled by caller
   footstep(running = false) {
+    if (_muted) return;
     noise(running ? 0.07 : 0.09, running ? 0.06 : 0.045, running ? 1800 : 900);
   },
 
   // Plant collected: file SFX + procedural chord
   collectPlant(element = 'EARTH') {
+    if (_muted) return;
     playSfx('sfx_planta', 0.75);
     const chords = {
       WATER: [523, 659, 784, 988],
@@ -92,11 +102,13 @@ export const SoundManager = {
 
   // Shake / water-drop
   shake() {
+    if (_muted) return;
     osc('sine', 900, 0.28, 0.12, 220);
   },
 
   // Spell cast: file SFX, fallback to sweep
   castSpell() {
+    if (_muted) return;
     if (!playSfx('sfx_spell', 0.70)) {
       osc('sawtooth', 180, 0.55, 0.18, 680);
       osc('sine',     360, 0.35, 0.10, 900, 80);
@@ -105,21 +117,25 @@ export const SoundManager = {
 
   // Spell unlock banner
   spellUnlocked() {
+    if (_muted) return;
     [440, 554, 659, 880].forEach((f, i) => osc('sine', f, 0.6, 0.13, null, i * 100));
   },
 
   // Area transition chime
   areaChange() {
+    if (_muted) return;
     osc('sine', 330, 0.6, 0.07, 440);
   },
 
   // Map open / close
   mapToggle(open = true) {
+    if (_muted) return;
     osc('sine', open ? 440 : 330, 0.25, 0.09);
   },
 
   // Portal enter: file SFX, fallback to procedural
   portal() {
+    if (_muted) return;
     if (!playSfx('sfx_portal', 0.80)) {
       osc('sine', 220, 0.8, 0.14, 880);
       osc('sine', 440, 0.5, 0.10, 660, 200);
@@ -128,6 +144,7 @@ export const SoundManager = {
 
   // Inventory full warning
   inventoryFull() {
+    if (_muted) return;
     osc('square', 220, 0.15, 0.12);
     osc('square', 180, 0.15, 0.15, null, 160);
   },
