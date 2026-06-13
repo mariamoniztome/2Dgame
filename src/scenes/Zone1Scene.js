@@ -32,9 +32,9 @@ const AREAS = {
 const VINE_X = 640;  // kept for AI guidance target
 
 const PLANT_SPAWNS = [
-  { id: 'ventoinha',  x: 92,   y: 1007 },   // campo
+  // { id: 'ventoinha',  x: 92,   y: 1007 },   // campo
   { id: 'ventoinha',  x: 1267, y: 920  },   // campo
-  { id: 'gotateia',   x: 2220, y: 320  },   // jardim
+  // { id: 'gotateia',   x: 2220, y: 320  },   // jardim
   { id: 'gotateia',   x: 3521, y: 706  },   // jardim
 ];
 // Transição plants (yOff = depth from y=0, so y = -yOff).
@@ -45,7 +45,7 @@ const TRANSICAO_PLANT_SPAWNS = [
 // Limiar plants (absolute world coordinates)
 const LIMIAR_PLANT_SPAWNS = [
   { id: 'farfalha', x: 1838, y: -2157 },
-  { id: 'farfalha', x:  358, y: -2207 },
+  // { id: 'farfalha', x:  358, y: -2207 },
 ];
 
 export class Zone1Scene extends Phaser.Scene {
