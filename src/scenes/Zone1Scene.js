@@ -34,7 +34,7 @@ const PLANT_SPAWNS = [
   { id: 'ventoinha',  x: 92,   y: 1007 },   // campo
   { id: 'ventoinha',  x: 1267, y: 920  },   // campo
   { id: 'gotateia',   x: 2220, y: 320  },   // jardim
-  { id: 'gotateia',   x: 2790, y: 520  },   // jardim
+  { id: 'gotateia',   x: 3521, y: 706  },   // jardim
 ];
 // Transição plants (yOff = depth from y=0, so y = -yOff).
 // Trepadeira is placed near the top of the transição zone, just below the parede.
@@ -413,7 +413,7 @@ export class Zone1Scene extends Phaser.Scene {
       [76,   111,  190],
       [1730, 652,  235],
       [484,  98,   175],
-      [1811, 979,  324],
+      [1800, 975,  324],
       [829,  100,  175],
       [1741, 151,  190],
       [632,  293,  180],
@@ -486,11 +486,11 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (jardimKeys.length > 0) {
       const JARDIM_POS = [
-        [2064,  67, 120], [2448,  67,  45], [2717,  67,  95], [3101,  67, 140], [3350,  67,  55], [3715,  67, 110],
-        [2064, 311,  45], [2448, 311, 130], [2717, 311,  38], [3101, 311, 115], [3350, 311,  60], [3715, 311, 135],
-        [2064, 488, 145], [2448, 488,  50], [2717, 488,  95], [3101, 488, 148], [3350, 488,  42], [3715, 488, 130],
-        [2064, 743,  48], [2448, 743, 132], [2717, 743,  38], [3101, 743, 250], [3350, 743,  58], [3715, 743, 140],
-        [2064, 920, 130], [2448, 920,  48], [2717, 920, 142], [3101, 920,  38], [3350, 920,  92], [3715, 920,  60],
+        [2312, 921, 264], [2047, 136, 237], [2300, 490,  71], [2945, 144, 268], [3561, 180, 319], [3410, 501, 366],
+        [1931, 295,  45], [2815, 633, 306], [3007, 550, 134], [3381, 950, 283], [3729, 527, 316], [3735,  88, 135],
+        [2055, 515, 313], [2599, 305, 282], [2344, 156, 367], [2705,  90,  84], [3021, 384, 154], [3220, 621, 290],
+        [3781, 268, 168], [2510, 868,  92], [2522, 674, 230], [3133, 805, 266], [3241, 176, 322], [3715, 743, 140],
+        [2045, 886, 298], [2314, 680, 160], [2717, 920, 334], [2975, 997, 190], [2815, 293,  92], [3701, 950, 268],
       ];
       JARDIM_POS.forEach(([x, y, s], i) => {
         const img = this.add.image(x, y, jardimKeys[i % jardimKeys.length])
@@ -660,6 +660,13 @@ export class Zone1Scene extends Phaser.Scene {
       const prev = this._currentArea;
       this._currentArea = area;
       this.game.events.emit('areaChanged', AREAS[area].label);
+
+      // Vagalume emitter only active in campo
+      if (area === 'campoVagalumes') {
+        this.campoEmitter?.resume();
+      } else if (prev === 'campoVagalumes') {
+        this.campoEmitter?.pause();
+      }
 
       // campo ↔ jardim: camera must snap across a full viewport — hide with a
       // brief black blink (80 ms out, 180 ms in) so the snap is invisible
@@ -993,23 +1000,41 @@ export class Zone1Scene extends Phaser.Scene {
   //  Tutorial overlay
   // ─────────────────────────────────────────────────────────────────────────
   _showTutorial() {
-    const W = 400, H = 96, sx = 30, sy = 30;
+    const W = 420, H = 148, sx = 24, sy = 24;
     const bg = this.add.graphics().setScrollFactor(0).setDepth(60);
-    bg.fillStyle(0x0a1a0a, 0.86);
-    bg.fillRoundedRect(sx, sy, W, H, 10);
-    bg.lineStyle(1, 0x7bc67e, 0.55);
-    bg.strokeRoundedRect(sx, sy, W, H, 10);
-    const rows = [
-      'WASD / setas — mover       Shift — correr',
-      'C — interagir com plantas e portais',
-      'M — mapa     Q — mudar feitiço     F — lançar',
-    ];
-    const texts = rows.map((r, i) =>
-      this.add.text(sx + 14, sy + 10 + i * 26, r, {
-        fontSize: '12px', fontFamily: 'monospace', color: '#b8e8a8',
-      }).setScrollFactor(0).setDepth(61)
-    );
-    const objs = [bg, ...texts];
+    bg.fillStyle(0x061006, 0.90);
+    bg.fillRoundedRect(sx, sy, W, H, 12);
+    bg.lineStyle(1.5, 0x7bc67e, 0.7);
+    bg.strokeRoundedRect(sx, sy, W, H, 12);
+
+    const goal = this.add.text(sx + 16, sy + 12,
+      'Recolhe plantas mágicas para desbloquear novos caminhos.',
+      { fontSize: '12px', fontFamily: 'Georgia, serif', color: '#d4f0c0',
+        wordWrap: { width: W - 32 } }
+    ).setScrollFactor(0).setDepth(61);
+
+    const hint = this.add.text(sx + 16, sy + 38,
+      'Aproxima-te de uma planta brilhante e carrega  C  para a apanhar.',
+      { fontSize: '11px', fontFamily: 'Georgia, serif', color: '#a8d890',
+        wordWrap: { width: W - 32 } }
+    ).setScrollFactor(0).setDepth(61);
+
+    // divider
+    const div = this.add.graphics().setScrollFactor(0).setDepth(61);
+    div.lineStyle(1, 0x3a6a3a, 0.6);
+    div.lineBetween(sx + 16, sy + 75, sx + W - 16, sy + 75);
+
+    const keys = this.add.text(sx + 16, sy + 84,
+      'Mover: WASD / ←↑↓→   Correr: Shift\nInteragir: C   Mapa: M   Feitiço: Q+F',
+      { fontSize: '11px', fontFamily: 'monospace', color: '#7ab870', lineSpacing: 4 }
+    ).setScrollFactor(0).setDepth(61);
+
+    const dismiss_hint = this.add.text(sx + W - 16, sy + H - 12,
+      'move para fechar',
+      { fontSize: '9px', fontFamily: 'Georgia, serif', color: '#456a45' }
+    ).setOrigin(1, 1).setScrollFactor(0).setDepth(61);
+
+    const objs = [bg, goal, hint, div, keys, dismiss_hint];
     const dismiss = () => {
       if (!bg.active) return;
       this.tweens.add({
@@ -1019,7 +1044,7 @@ export class Zone1Scene extends Phaser.Scene {
       this._tutorialDismiss = null;
     };
     this._tutorialDismiss = dismiss;
-    this.time.delayedCall(6000, () => dismiss());
+    this.time.delayedCall(9000, () => dismiss());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1033,8 +1058,9 @@ export class Zone1Scene extends Phaser.Scene {
       const ff = this.add.image(this.player.x, this.player.y, key)
         .setDisplaySize(18, 18).setAlpha(0).setDepth(8);
       this._guideFireflies.push(ff);
-      // 25s staggered delay: player needs time to orient before being guided
-      this.time.delayedCall(25000 + i * 1200, () => this._animateGuideFF(ff));
+      // First play: guide after 8s so player knows where plants are
+      const baseDelay = GameState.inventory.length === 0 ? 8000 : 25000;
+      this.time.delayedCall(baseDelay + i * 1200, () => this._animateGuideFF(ff));
     }
   }
 
@@ -1064,6 +1090,11 @@ export class Zone1Scene extends Phaser.Scene {
 
   _animateGuideFF(ff) {
     if (!ff.active) return;
+    // Guide fireflies only appear in campo dos vagalumes
+    if (this.player.x >= this._zoneW || this.player.y < 0) {
+      this.time.delayedCall(3000, () => ff.active && this._animateGuideFF(ff));
+      return;
+    }
     const target = this._findGuideTarget();
     // No target and vine already climbed → firefly has nothing to do
     if (!target) { ff.destroy(); return; }

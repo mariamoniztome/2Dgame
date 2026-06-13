@@ -32,10 +32,10 @@ const ZONE1_ICONS = [
 
 // Decorative plant/creature icons — size as fraction of W
 const DECO_ICONS = [
-  { icon: 'map_icone_ventoinha',  xp: 0.20, yp: 0.87, sp: 0.060 },
-  { icon: 'map_icone_farfalha',   xp: 0.17, yp: 0.09, sp: 0.055 },
-  { icon: 'map_icone_gotateia',   xp: 0.53, yp: 0.86, sp: 0.050 },
-  { icon: 'map_icone_trepadeira', xp: 0.04, yp: 0.32, sp: 0.048 },
+  { icon: 'map_icone_ventoinha',  xp: 0.20, yp: 0.87, sp: 0.090 },
+  { icon: 'map_icone_farfalha',   xp: 0.17, yp: 0.09, sp: 0.085 },
+  { icon: 'map_icone_gotateia',   xp: 0.53, yp: 0.86, sp: 0.080 },
+  { icon: 'map_icone_trepadeira', xp: 0.04, yp: 0.32, sp: 0.078 },
 ];
 
 // Portal icons — entry/exit points between zones
@@ -150,7 +150,7 @@ export class MapScene extends Phaser.Scene {
 
   _buildZone(key, lockPositions, W, H, hitX, hitY, hitW, hitH) {
     const unlocked = GameState.isZoneUnlocked(key);
-    const lockSize = Math.round(W * 0.065);
+    const lockSize = Math.round(W * 0.105);
 
     if (unlocked) {
       const label = key === 'Zone2' ? 'Zona 2' : 'Zona 3';

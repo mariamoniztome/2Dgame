@@ -90,6 +90,7 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('map_icone_limiar',  '/assets/map/map_icone_limiar.svg',  { width: 512, height: 512 });
     this.load.svg('map_cadeado',       '/assets/map/map_cadeado.svg',       { width: 128, height: 128 });
     this.load.svg('map_portal',        '/assets/map/map_portal.svg',        { width: 128, height: 128 });
+    this.load.svg('portal',            '/assets/map/map_portal.svg',        { width: 256, height: 256 });
     this.load.svg('map_icone_ventoinha',  '/assets/map/map_icone_ventoinha.svg',  { width: 128, height: 128 });
     this.load.svg('map_icone_farfalha',   '/assets/map/map_icone_farfalha.svg',   { width: 128, height: 128 });
     this.load.svg('map_icone_gotateia',   '/assets/map/map_icone_gotateia.svg',   { width: 128, height: 128 });

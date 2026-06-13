@@ -8,7 +8,7 @@ export class Portal extends Phaser.GameObjects.Container {
     this.isLocked    = opts.locked !== false;
 
     // Outer ring
-    this.ring = scene.add.image(0, 0, 'portal').setDisplaySize(80, 80).setAlpha(0.5);
+    this.ring = scene.add.image(0, 0, 'portal').setDisplaySize(110, 110).setAlpha(0.75);
 
     // Inner glow
     this.glow = scene.add.circle(0, 0, 20, 0x7bc67e, 0.4);
