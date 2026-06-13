@@ -715,6 +715,9 @@ export class Zone1Scene extends Phaser.Scene {
       if (areaLabel) this.game.events.emit('areaChanged', areaLabel);
       MusicManager.playArea(area);
 
+      // Canvas background matches the current area (jardim has its own colour)
+      this.cameras.main.setBackgroundColor(area === 'jardimInvertido' ? '#6d8469' : '#afd6a8');
+
       // Vagalume emitter only active in campo
       if (area === 'campoVagalumes') {
         this.campoEmitter?.resume();
