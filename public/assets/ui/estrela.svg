@@ -4,6 +4,9 @@
     <style>
       .cls-1 {
         fill: #bd322c;
+        stroke: #000000;
+        stroke-width: 18;
+        stroke-linejoin: round;
       }
     </style>
   </defs>

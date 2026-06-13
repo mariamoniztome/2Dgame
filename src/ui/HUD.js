@@ -393,13 +393,10 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       ? this.add.image(cx, cy, 'mm_star').setDisplaySize(starSize, starSize).setDepth(63).setMask(mask)
       : this.add.circle(cx, cy, Math.max(4, Math.round(W * 0.0044)), 0xffffff, 1).setDepth(63).setMask(mask);
 
-    // Zone label below — no border ring (removed)
-    this.mmZoneLabel = this.add.text(cx, cy + R + 7, '', {
-      fontSize: fs.sm, fontFamily: FU, color: C.text,
-    }).setOrigin(0.5, 0).setDepth(62);
+    this.mmZoneLabel = null;  // label removed by design
 
     this._drawMinimapBg('Zone1');
-    this._hudBounds.minimap = { x: cx - R, y: cy - R, w: R * 2, h: R * 2 + mmLabel + 8, label: 'Minimap' };
+    this._hudBounds.minimap = { x: cx - R, y: cy - R, w: R * 2, h: R * 2, label: 'Minimap' };
   }
 
   // ── Area badge — SVG image when available, pill fallback otherwise ────────
