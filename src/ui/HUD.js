@@ -767,10 +767,15 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     });
   }
 
-  _showUnlock(msg) {
-    this.unlockBanner?.setText(msg).setAlpha(0).setY(this.scale.height / 2);
+  _showUnlock(msgOrId) {
+    // Accept either a raw spell ID or a pre-formatted string
+    const msg = SPELLS[msgOrId]
+      ? `Feitiço desbloqueado!\n${SPELLS[msgOrId].name}`
+      : msgOrId;
+    const bannerY = Math.round(this.scale.height * 0.18);
+    this.unlockBanner?.setText(msg).setAlpha(0).setY(bannerY + 14);
     this.tweens.add({
-      targets: this.unlockBanner, alpha: 1, y: this.scale.height / 2 - 14,
+      targets: this.unlockBanner, alpha: 1, y: bannerY,
       duration: 380, ease: 'Back.easeOut',
       onComplete: () => this.time.delayedCall(2600, () =>
         this.tweens.add({ targets: this.unlockBanner, alpha: 0, duration: 500 })
