@@ -24,7 +24,7 @@ class GameStateManager {
   }
 
   addPlant(plantData) {
-    if (this.inventory.length >= 6) return false;
+    if (this.inventory.length >= 12) return false;
     if (this.collected.has(plantData.id)) return false;
     this.inventory.push({ ...plantData, isFake: false });
     this.collected.add(plantData.id);
