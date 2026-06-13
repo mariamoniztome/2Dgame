@@ -100,6 +100,11 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('map_icone_gotateia',   '/assets/map/map_icone_gotateia.svg',   { width: 128, height: 128 });
     this.load.svg('map_icone_trepadeira', '/assets/map/map_icone_trepadeira.svg', { width: 128, height: 128 });
 
+    // ── HUD area badges (zone name plates) — 700×127 raster (viewBox 4254×769)
+    this.load.svg('badge_campo',  '/assets/ui/badge_campo.svg',  { width: 700, height: 127 });
+    this.load.svg('badge_jardim', '/assets/ui/badge_jardim.svg', { width: 700, height: 127 });
+    this.load.svg('badge_limiar', '/assets/ui/badge_limiar.svg', { width: 700, height: 127 });
+
     // ── Audio ────────────────────────────────────────────────────────────────
     // Background music (per zone)
     ['campo','transicao','limiar','jardim','intro'].forEach(k =>

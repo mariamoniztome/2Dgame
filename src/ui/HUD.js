@@ -8,20 +8,22 @@ import { SoundManager } from '../SoundManager.js';
 const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
 
 const C_DEFAULTS = {
-  bg:      0x100818,
-  panel:   0x1a1028,
-  border:  0x7b5ea7,
-  dim:     0x4a3d6e,
-  accent:  0xffef7a,
-  magic:   0xd4a8f0,
-  text:    '#f0e8ff',
-  label:   '#c9a8e8',
-  muted:   '#7a6a94',
+  bg:      0xffffff,
+  panel:   0xf6a3b3,
+  panelDk: 0xe38599,
+  border:  0x000000,
+  accent:  0xb42d27,
+  text:    '#000000',
+  label:   '#555555',
+  muted:   '#888888',
+  textLt:  '#ffffff',
   plant:   0x7bc67e,
 };
 
-// Mutable live palette — debug panel edits this, HUD rebuilds to apply changes
 const C = { ...C_DEFAULTS };
+
+const FU = "'Red Hat Text', sans-serif";
+const FD = "'p22-ringwell', Georgia, serif";
 
 const MAP_ZONE_REGIONS = {
   Zone1: {
@@ -33,7 +35,6 @@ const MAP_ZONE_REGIONS = {
   Zone3: [0.72, 0.00, 1.00, 1.00],
 };
 
-// Collect all plant IDs used in any spell for sorting inventory
 function _comboPlantIds() {
   const ids = new Set();
   Object.values(SPELLS).forEach(s => (s.plants || []).forEach(id => ids.add(id)));
@@ -43,7 +44,6 @@ function _comboPlantIds() {
 export class HUDScene extends Phaser.Scene {
   constructor() { super({ key: 'HUD', active: false }); }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
   create() {
     if (!this._initialized) {
       this._initialized     = true;
@@ -58,6 +58,7 @@ export class HUDScene extends Phaser.Scene {
     this._plantsActivasGroup = null;
     this._narrativeTimer     = null;
     this._lastZone           = null;
+    this._mmMask             = null;
 
     const W = this.scale.width, H = this.scale.height;
     this._buildAll(W, H);
@@ -79,6 +80,7 @@ export class HUDScene extends Phaser.Scene {
         this._controlsVisible    = ctrlVis;
         this._narrativeTimer     = null;
         this._lastZone           = null;
+        this._mmMask             = null;
         this._buildAll(gameSize.width, gameSize.height);
         if (ctrlVis) this._ctrlGroup?.forEach(e => e.setVisible(true));
         this._refresh();
@@ -104,37 +106,30 @@ export class HUDScene extends Phaser.Scene {
     this._refresh();
   }
 
-  // ── Build all UI ──────────────────────────────────────────────────────────
   _buildAll(W, H) {
+    this._hudBounds = {};
     const fs = this._fs(W);
     this._buildSpellPanel(W, H, fs);
     this._buildPlantsActivas(W, H, fs);
     this._buildInventory(W, H, fs);
     this._buildMinimap(W, H, fs);
+    this._buildAreaBadge(W, H, fs);
 
     this.narrativeText = this.add.text(W / 2, H - this._mmPH - Math.round(W * 0.009), '', {
-      fontSize: fs.md, fontFamily: 'Georgia, serif',
-      color: '#f5e6c8', wordWrap: { width: W * 0.30 },
-      align: 'center', stroke: '#071410', strokeThickness: 4, lineSpacing: 5,
-      backgroundColor: 'rgba(5,14,10,0.82)',
-      padding: { x: 20, y: 11 },
+      fontSize: fs.md, fontFamily: FU,
+      color: '#000000', wordWrap: { width: W * 0.30 },
+      align: 'center',
+      backgroundColor: 'rgba(246,163,179,0.94)',
+      padding: { x: 18, y: 10 },
     }).setOrigin(0.5, 1).setAlpha(0).setDepth(100);
 
-    this.areaLabel = this.add.text(W / 2, 10, '', {
-      fontSize: fs.md, fontFamily: 'Georgia, serif',
-      color: '#e8ffd8', stroke: '#071410', strokeThickness: 2, fontStyle: 'italic',
-      backgroundColor: 'rgba(5,14,10,0.78)',
-      padding: { x: 14, y: 6 },
-    }).setOrigin(0.5, 0).setAlpha(0).setDepth(55);
-
     this.unlockBanner = this.add.text(W / 2, H / 2, '', {
-      fontSize: fs.lg, fontFamily: 'Georgia, serif',
-      color: '#e8c96a', stroke: '#0D351E', strokeThickness: 4, align: 'center',
+      fontSize: fs.xl, fontFamily: FD,
+      color: '#b42d27', stroke: '#ffffff', strokeThickness: 4, align: 'center',
     }).setOrigin(0.5).setAlpha(0).setDepth(200);
 
     this.add.text(12, 10, '[H] ajuda', {
-      fontSize: fs.md, fontFamily: 'monospace', color: '#eefedd',
-      stroke: '#0a2010', strokeThickness: 3,
+      fontSize: fs.sm, fontFamily: FU, color: '#000000',
     }).setOrigin(0, 0).setDepth(55);
 
     this._buildControlsPanel(W, H, fs);
@@ -145,87 +140,84 @@ export class HUDScene extends Phaser.Scene {
   }
 
   _fs(W) {
+    const m = this._hudFontMult ?? 1;
     return {
-      sm:  `${Math.max(12, Math.round(W * 0.0100))}px`,
-      md:  `${Math.max(14, Math.round(W * 0.0120))}px`,
-      lg:  `${Math.max(17, Math.round(W * 0.0135))}px`,
-      xl:  `${Math.max(21, Math.round(W * 0.0165))}px`,
+      sm: `${Math.max(11, Math.round(W * 0.0090 * m))}px`,
+      md: `${Math.max(13, Math.round(W * 0.0110 * m))}px`,
+      lg: `${Math.max(15, Math.round(W * 0.0130 * m))}px`,
+      xl: `${Math.max(19, Math.round(W * 0.0160 * m))}px`,
     };
   }
 
-  // ── Spell panel — pill shape (top-right) ──────────────────────────────────
+  // ── Spell panel — pink pill, top-right ────────────────────────────────────
   _buildSpellPanel(W, H, fs) {
-    const pw    = Math.round(W * 0.178);
-    const ph    = Math.round(W * 0.056);
-    const rx    = W - 10;
-    const ry    = 10;
-    const pill  = Math.round(ph / 2);
-    const iconS = Math.round(W * 0.030);
+    const ph   = Math.round(W * 0.062);
+    const pw   = Math.round(W * 0.200);
+    const rx   = W - 10;
+    const ry   = 10;
+    const pill = Math.round(ph / 2);
+    const iconS = Math.round(ph * 0.55);
 
-    // Pill background
     const gfx = this.add.graphics().setDepth(50);
-    gfx.fillStyle(C.bg, 0.90);
+    gfx.fillStyle(C.panel, 1);
     gfx.fillRoundedRect(rx - pw, ry, pw, ph, pill);
-    gfx.lineStyle(1.5, C.border, 0.85);
+    gfx.lineStyle(1.5, C.border, 1);
     gfx.strokeRoundedRect(rx - pw, ry, pw, ph, pill);
 
-    // Yellow accent dot on left arc of pill
-    const dotR = Math.max(4, Math.round(W * 0.004));
-    const dotX = rx - pw + pill;
-    const dotY = ry + Math.round(ph / 2);
-    this.add.circle(dotX, dotY, dotR, C.accent, 0.92).setDepth(56);
+    // Small "Feitiço" label top-left inside pill
+    this.add.text(rx - pw + pill + 4, ry + Math.round(ph * 0.15), 'Feitiço', {
+      fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
+    }).setOrigin(0, 0).setDepth(55);
 
-    // Spell icon
-    const icoX = dotX + dotR + Math.round(iconS * 0.60);
-    const icoY = dotY;
-    this.spellGfx = this.add.image(icoX, icoY, 'spell_brisa')
-      .setDisplaySize(iconS, iconS).setAlpha(0.6).setDepth(55);
+    // Spell icon (left of pill content area)
+    const iconX = rx - pw + pill;
+    const iconY = ry + Math.round(ph * 0.62);
+    this.spellGfx = this.add.image(iconX, iconY, 'spell_brisa')
+      .setDisplaySize(iconS, iconS).setAlpha(0.75).setDepth(55);
 
-    // Spell name
-    this.spellName = this.add.text(icoX + Math.round(iconS * 0.60), icoY, 'nenhum', {
-      fontSize: fs.lg, fontFamily: 'Georgia, serif',
-      color: C.muted, fontStyle: 'italic',
+    // Spell name — bold black
+    this.spellName = this.add.text(iconX + Math.round(iconS * 0.62), iconY, 'nenhum', {
+      fontSize: fs.lg, fontFamily: FU, color: C.text, fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(55);
 
-    // Key hints inside pill
-    this.add.text(rx - 10, ry + 5, '[Q] · [F]', {
-      fontSize: fs.sm, fontFamily: 'monospace', color: C.muted,
-    }).setOrigin(1, 0).setDepth(55);
+    // Key hint bottom-right
+    this.add.text(rx - 10, ry + ph - 6, '[Q] Mudar · [F] Lançar', {
+      fontSize: fs.sm, fontFamily: FU, color: C.label,
+    }).setOrigin(1, 1).setDepth(55);
 
     this._spellPanelBottom = ry + ph;
     this._spellPanelRight  = rx;
-    this._spellPanelWidth  = pw;
-    this._hudBounds = this._hudBounds || {};
-    this._hudBounds.spell = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Feitiço' };
+    this._hudBounds.spell  = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Feitiço' };
   }
 
-  // ── Plantas Activas — 2 circles below spell pill ───────────────────────────
+  // ── Plantas Activas — below spell pill ────────────────────────────────────
   _buildPlantsActivas(W, H, fs) {
-    const MAX_PA  = 2;
-    const slotR   = Math.max(16, Math.round(W * 0.022));
-    const iconS   = Math.round(slotR * 1.35);
-    const gap     = Math.max(6, Math.round(W * 0.008));
-    const labelH  = Math.round(W * 0.016);
-    const padH    = Math.max(8, Math.round(W * 0.010));
-    const padW    = Math.max(8, Math.round(W * 0.010));
-    const pw      = MAX_PA * slotR * 2 + (MAX_PA - 1) * gap + padW * 2;
-    const ph      = slotR * 2 + labelH + padH * 2;
-    const rx      = this._spellPanelRight  ?? W - 10;
-    const ry      = (this._spellPanelBottom ?? 68) + 6;
+    const MAX_PA = 2;
+    const slotR  = Math.max(13, Math.round(W * 0.019));
+    const iconS  = Math.round(slotR * 1.3);
+    const gap    = Math.max(6, Math.round(W * 0.009));
+    const labelH = Math.round(W * 0.018);
+    const padH   = Math.max(6, Math.round(W * 0.008));
+    const padW   = Math.max(8, Math.round(W * 0.010));
+    const pw     = MAX_PA * slotR * 2 + (MAX_PA - 1) * gap + padW * 2;
+    const ph     = slotR * 2 + labelH + padH * 2;
+    const rx     = this._spellPanelRight ?? W - 10;
+    const ry     = (this._spellPanelBottom ?? 72) + 6;
 
     const grp = [];
 
     const bg = this.add.graphics().setDepth(50);
-    bg.fillStyle(C.bg, 0.88);
+    bg.fillStyle(C.panel, 1);
     bg.fillRoundedRect(rx - pw, ry, pw, ph, 8);
-    bg.lineStyle(1.5, C.border, 0.80);
+    bg.lineStyle(1.5, C.border, 1);
     bg.strokeRoundedRect(rx - pw, ry, pw, ph, 8);
     grp.push(bg);
 
-    const lbl = this.add.text(rx - pw + padW, ry + 5, 'PLANTAS ACTIVAS', {
-      fontSize: fs.sm, fontFamily: 'monospace', color: C.label,
-    }).setDepth(55);
-    grp.push(lbl);
+    grp.push(
+      this.add.text(rx - pw / 2, ry + 5, 'Plantas activas', {
+        fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
+      }).setOrigin(0.5, 0).setDepth(55)
+    );
 
     this._paSlots = [];
     for (let i = 0; i < MAX_PA; i++) {
@@ -233,9 +225,9 @@ export class HUDScene extends Phaser.Scene {
       const sy = ry + labelH + padH + slotR;
 
       const slotGfx = this.add.graphics().setDepth(51);
-      slotGfx.fillStyle(C.panel, 0.85);
+      slotGfx.fillStyle(0xffffff, 0.55);
       slotGfx.fillCircle(sx, sy, slotR);
-      slotGfx.lineStyle(1.4, C.dim, 0.7);
+      slotGfx.lineStyle(1.4, C.border, 0.4);
       slotGfx.strokeCircle(sx, sy, slotR);
 
       const icon = this.add.image(sx, sy, 'plant_missing')
@@ -247,176 +239,252 @@ export class HUDScene extends Phaser.Scene {
 
     this._plantsActivasGroup = grp;
     grp.forEach(o => o.setVisible(false));
-    this._hudBounds = this._hudBounds || {};
     this._hudBounds.plantsActivas = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Plantas Activas' };
   }
 
-  // ── Inventory — circular slots, 3 cols × 4 rows, up to 12 (bottom-left) ──
+  // ── Inventory — 3×4 circular slots with name labels below, bottom-left ────
   _buildInventory(W, H, fs) {
     const COLS      = 3;
     const MAX_SLOTS = 12;
     const ROWS      = Math.ceil(MAX_SLOTS / COLS);
-    const slotR     = Math.max(14, Math.round(W * 0.016));
-    const iconS     = Math.round(slotR * 1.3);
-    const gap       = Math.max(4, Math.round(W * 0.005));
-    const step      = slotR * 2 + gap;
-    const padX      = Math.max(8, Math.round(W * 0.010));
-    const padTop    = Math.max(18, Math.round(W * 0.022));
-    const padBot    = Math.max(6, Math.round(W * 0.008));
-    const iw        = COLS * step - gap + padX * 2;
-    const ih        = ROWS * step - gap + padTop + padBot;
+    const slotR     = Math.max(14, Math.round(W * 0.019));
+    const iconS     = Math.round(slotR * 1.25);
+    const gapX      = Math.max(5, Math.round(W * 0.007));
+    const gapY      = Math.max(4, Math.round(W * 0.005));
+    const nameLH    = Math.max(12, Math.round(W * 0.013));
+    const stepX     = slotR * 2 + gapX;
+    const stepY     = slotR * 2 + gapY + nameLH;
+    const padX      = Math.max(10, Math.round(W * 0.013));
+    const padTop    = Math.max(40, Math.round(W * 0.038));
+    const padBot    = Math.max(10, Math.round(W * 0.010));
+    const iw        = COLS * stepX - gapX + padX * 2;
+    const ih        = padTop + slotR + (ROWS - 1) * stepY + slotR + nameLH + padBot;
 
     const px0 = 10;
     const py0 = H - 10 - ih;
 
     const panelGfx = this.add.graphics().setDepth(50);
-    panelGfx.fillStyle(C.bg, 0.85);
-    panelGfx.fillRoundedRect(px0, py0, iw, ih, 10);
-    panelGfx.lineStyle(1.5, C.border, 0.80);
-    panelGfx.strokeRoundedRect(px0, py0, iw, ih, 10);
+    panelGfx.fillStyle(C.panel, 1);
+    panelGfx.fillRoundedRect(px0, py0, iw, ih, 12);
+    panelGfx.lineStyle(1.5, C.border, 1);
+    panelGfx.strokeRoundedRect(px0, py0, iw, ih, 12);
 
-    this.add.text(px0 + padX, py0 + 5, 'PLANTAS', {
-      fontSize: fs.sm, fontFamily: 'monospace', color: C.label,
-    }).setDepth(55);
-    this.inventoryCount = this.add.text(px0 + iw - padX, py0 + 5, '0/12', {
-      fontSize: fs.sm, fontFamily: 'monospace', color: '#fff8b4',
+    // "Plantas" bold title
+    this.add.text(px0 + padX, py0 + 8, 'Plantas', {
+      fontSize: fs.lg, fontFamily: FU, color: C.text, fontStyle: 'bold',
+    }).setOrigin(0, 0).setDepth(55);
+
+    // Count in red
+    this.inventoryCount = this.add.text(px0 + iw - padX, py0 + 8, '0/12', {
+      fontSize: fs.md, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(55);
+
+    // Subtitle
+    this.inventorySubtitle = this.add.text(px0 + padX, py0 + 10 + 18, 'para abrir o portal', {
+      fontSize: fs.sm, fontFamily: FU, color: C.label,
+    }).setOrigin(0, 0).setDepth(55);
+
+    // Objective dots top-right
+    const ZONE2_PLANTS = ['farfalha', 'ventoinha', 'trepadeira'];
+    this._objDots = [];
+    ZONE2_PLANTS.forEach((id, i) => {
+      const dot = this.add.circle(px0 + iw - padX - i * 14, py0 + 24, 4, 0xdddddd, 1)
+        .setStrokeStyle(1, C.border, 0.4).setDepth(55);
+      this._objDots.unshift(dot);
+    });
 
     const firstX = px0 + padX + slotR;
     const firstY = py0 + padTop + slotR;
 
+    this._slots = [];
     for (let i = 0; i < MAX_SLOTS; i++) {
-      const col     = i % COLS;
-      const row     = Math.floor(i / COLS);
-      const sx      = firstX + col * step;
-      const sy      = firstY + row * step;
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const sx  = firstX + col * stepX;
+      const sy  = firstY + row * stepY;
 
       const slotGfx = this.add.graphics().setDepth(51);
-      this._drawCircleSlot(slotGfx, sx, sy, slotR, C.dim, 0.7);
+      this._drawCircleSlot(slotGfx, sx, sy, slotR, C.border, 0.20);
 
       const icon = this.add.image(sx, sy, 'plant_missing')
         .setDisplaySize(iconS, iconS).setAlpha(0).setDepth(56);
+
       const fake = this.add.text(sx, sy, '?', {
-        fontSize: fs.sm, fontFamily: 'monospace', color: '#b28cbf',
+        fontSize: fs.sm, fontFamily: FU, color: '#b42d27',
       }).setOrigin(0.5).setAlpha(0).setDepth(57);
 
-      this._slots.push({ slotGfx, icon, fake, sx, sy, slotR, iconS });
+      const nameLabel = this.add.text(sx, sy + slotR + 3, '', {
+        fontSize: `${Math.max(8, Math.round(W * 0.0068))}px`,
+        fontFamily: FU, color: C.label, align: 'center',
+        wordWrap: { width: stepX },
+      }).setOrigin(0.5, 0).setAlpha(0).setDepth(57);
+
+      this._slots.push({ slotGfx, icon, fake, nameLabel, sx, sy, slotR, iconS });
     }
 
-    this._hudBounds = this._hudBounds || {};
     this._hudBounds.inventory = { x: px0, y: py0, w: iw, h: ih, label: 'Inventário' };
-
-    // Objective bar above the panel
-    const objY = py0 - 18;
-    this._objDots  = [];
-    this._objLabel = this.add.text(px0 + padX + 3, objY, '', {
-      fontSize: `${Math.max(10, Math.round(W * 0.009))}px`,
-      fontFamily: 'Georgia, serif', color: C.muted, fontStyle: 'italic',
-    }).setOrigin(0, 0.5).setDepth(55);
-    const ZONE2_PLANTS = ['farfalha', 'ventoinha', 'trepadeira'];
-    ZONE2_PLANTS.forEach((id, i) => {
-      const dot = this.add.circle(px0 + iw - padX - i * 14, objY, 4, C.dim, 1)
-        .setStrokeStyle(1, C.border, 0.6).setDepth(55);
-      this._objDots.unshift(dot);
-    });
   }
 
   _drawCircleSlot(gfx, sx, sy, r, strokeCol, strokeAlpha) {
     gfx.clear();
-    gfx.fillStyle(C.panel, 0.85);
+    gfx.fillStyle(0xffffff, 0.38);
     gfx.fillCircle(sx, sy, r);
-    gfx.lineStyle(1.4, strokeCol, strokeAlpha);
+    gfx.lineStyle(1.5, strokeCol, strokeAlpha);
     gfx.strokeCircle(sx, sy, r);
   }
 
-  // ── Minimap (bottom-right) ────────────────────────────────────────────────
+  // ── Minimap — circular viewport with geometry mask, bottom-right ──────────
   _buildMinimap(W, H, fs) {
-    const MMW  = Math.round(W * 0.120);
-    const MMH  = Math.round(MMW * 9 / 16);
-    const MMPW = MMW + Math.round(W * 0.016);
-    const MMPH = MMH + Math.round(W * 0.020);
-    this._mmPH = MMPH;
+    const R       = Math.round(W * 0.065);
+    const mmLabel = 26;
+    const cx      = W - 10 - R;
+    const cy      = H - 8 - mmLabel - R;
 
-    const px  = W - 10, py = H - 10;
-    const mmX = px - MMPW + Math.round(W * 0.007);
-    const mmY = py - MMPH + Math.round(W * 0.007);
-    this._mmX = mmX;
-    this._mmY = mmY;
-    this._mmW = MMW;
-    this._mmH = MMH;
+    this._mmCX = cx;
+    this._mmCY = cy;
+    this._mmR  = R;
+    this._mmX  = cx - R;
+    this._mmY  = cy - R;
+    this._mmW  = R * 2;
+    this._mmH  = R * 2;
+    this._mmPH = R * 2 + mmLabel + 16;
 
-    this.add.rectangle(px, py, MMPW, MMPH, C.bg, 0.82)
-      .setOrigin(1, 1).setStrokeStyle(1.5, C.border, 0.80).setDepth(50);
+    // Geometry mask — filled circle at screen position
+    const maskGfx = this.make.graphics({ add: false });
+    maskGfx.fillStyle(0xffffff);
+    maskGfx.fillCircle(cx, cy, R);
+    const mask = maskGfx.createGeometryMask();
+    this._mmMask = mask;
 
-    this.add.text(mmX, py - MMPH + 6, 'MAPA', {
-      fontSize: fs.sm, fontFamily: 'monospace', color: C.label,
-    }).setDepth(55);
-    this.add.text(mmX + MMW, py - MMPH + 6, '[M]', {
-      fontSize: fs.sm, fontFamily: 'monospace', color: C.muted,
-    }).setOrigin(1, 0).setDepth(55);
-
+    // Map backgrounds (inside mask)
     if (this.textures.exists('map_fundo01')) {
-      this.add.image(mmX, mmY, 'map_fundo01')
-        .setOrigin(0, 0).setDisplaySize(MMW, MMH).setDepth(58);
+      this.add.image(cx, cy, 'map_fundo01')
+        .setDisplaySize(R * 2, R * 2).setDepth(58).setMask(mask);
+    } else {
+      this.add.circle(cx, cy, R, 0xe8f0ec, 1).setDepth(58).setMask(mask);
     }
     if (this.textures.exists('map_fundo02')) {
-      this.add.image(mmX, mmY, 'map_fundo02')
-        .setOrigin(0, 0).setDisplaySize(MMW, MMH).setDepth(59);
-    }
-    if (!this.textures.exists('map_fundo01')) {
-      this.add.rectangle(mmX, mmY, MMW, MMH, C.panel, 1).setOrigin(0, 0).setDepth(58);
+      this.add.image(cx, cy, 'map_fundo02')
+        .setDisplaySize(R * 2, R * 2).setDepth(59).setMask(mask);
     }
 
-    this.mmGfx = this.add.graphics().setDepth(60);
+    // Drawing layer for zones (inside mask)
+    this.mmGfx = this.add.graphics().setDepth(60).setMask(mask);
 
-    this.mmDot = this.add.circle(
-      mmX + MMW / 2, mmY + MMH / 2,
-      Math.max(4, Math.round(W * 0.0045)), C.accent, 1
-    ).setDepth(62).setStrokeStyle(1.2, 0x0D351E, 0.9);
+    // Player dot (inside mask)
+    this.mmDot = this.add.circle(cx, cy, Math.max(4, Math.round(W * 0.0044)), C.accent, 1)
+      .setDepth(62).setStrokeStyle(1.2, 0xffffff, 0.9).setMask(mask);
 
-    this.add.rectangle(mmX, mmY, MMW, MMH, 0, 0)
-      .setOrigin(0, 0).setStrokeStyle(1.6, C.border, 0.8).setDepth(63);
+    // Border ring drawn on top — no mask, so it acts as frame
+    this.add.graphics().setDepth(64)
+      .lineStyle(3, C.border, 1)
+      .strokeCircle(cx, cy, R);
 
-    this.mmZoneLabel = this.add.text(mmX + MMW / 2, mmY + MMH + 4, '', {
-      fontSize: fs.sm, fontFamily: 'Georgia, serif', color: C.text, fontStyle: 'italic',
+    // Zone label below
+    this.mmZoneLabel = this.add.text(cx, cy + R + 7, '', {
+      fontSize: fs.sm, fontFamily: FU, color: C.text,
     }).setOrigin(0.5, 0).setDepth(62);
 
     this._drawMinimapBg('Zone1');
-    this._hudBounds = this._hudBounds || {};
-    this._hudBounds.minimap = { x: px - MMPW, y: py - MMPH, w: MMPW, h: MMPH, label: 'Minimap' };
+    this._hudBounds.minimap = { x: cx - R, y: cy - R, w: R * 2, h: R * 2 + mmLabel + 8, label: 'Minimap' };
   }
 
-  // ── Controls panel (H toggle) — 2-column layout with border-radius ────────
+  // ── Area badge — SVG image when available, pill fallback otherwise ────────
+  _buildAreaBadge(W, H, fs) {
+    // Badge texture key per area name
+    this._BADGE_KEYS = {
+      'Campo dos Vagalumes': 'badge_campo',
+      'Jardim Invertido':    'badge_jardim',
+      'Limiar Secreto':      'badge_limiar',
+    };
+
+    const bh = Math.round(W * 0.036);
+    const bw = Math.round(bh * (700 / 127));  // preserve SVG aspect ratio
+
+    // SVG image (hidden until area known)
+    this._areaBadgeImg = this.add.image(W / 2, bh / 2 + 8, 'badge_campo')
+      .setDisplaySize(bw, bh).setAlpha(0).setDepth(55);
+
+    // Text pill fallback (for zones without an SVG badge)
+    this._areaBadgeBg     = this.add.graphics();
+    this._areaBadgeSparkL = this.add.text(-80, 15, '✦', {
+      fontSize: fs.md, fontFamily: FD, color: '#b42d27',
+    }).setOrigin(0.5, 0.5);
+    this._areaBadgeSparkR = this.add.text(80, 15, '✦', {
+      fontSize: fs.md, fontFamily: FD, color: '#b42d27',
+    }).setOrigin(0.5, 0.5);
+    this._areaBadgeName = this.add.text(0, 15, '', {
+      fontSize: fs.md, fontFamily: FD, color: C.text, fontStyle: 'bold',
+    }).setOrigin(0.5, 0.5);
+    this._areaBadge = this.add.container(W / 2, 12, [
+      this._areaBadgeBg,
+      this._areaBadgeSparkL,
+      this._areaBadgeSparkR,
+      this._areaBadgeName,
+    ]).setDepth(55).setAlpha(0);
+
+    this._areaBadgeW = bw;
+    this._areaBadgeH = bh;
+  }
+
+  _drawAreaBadge(name) {
+    const key = this._BADGE_KEYS?.[name];
+    if (key && this.textures.exists(key)) {
+      // Show SVG image, hide text pill
+      this._areaBadge.setAlpha(0);
+      this._areaBadgeImg.setTexture(key)
+        .setDisplaySize(this._areaBadgeW, this._areaBadgeH)
+        .setAlpha(1);
+      this._areaUseSvg = true;
+    } else {
+      // Show text pill, hide SVG image
+      this._areaBadgeImg.setAlpha(0);
+      this._areaUseSvg  = false;
+      this._areaBadgeName.setText(name);
+      const tw  = this._areaBadgeName.width;
+      const bh  = 30;
+      const pad = 38;
+      const bw  = Math.max(180, tw + pad * 2);
+      this._areaBadgeBg.clear();
+      this._areaBadgeBg.fillStyle(C.panel, 1);
+      this._areaBadgeBg.fillRoundedRect(-bw / 2, 0, bw, bh, bh / 2);
+      this._areaBadgeBg.lineStyle(1.5, C.border, 1);
+      this._areaBadgeBg.strokeRoundedRect(-bw / 2, 0, bw, bh, bh / 2);
+      this._areaBadgeSparkL.setPosition(-bw / 2 + 16, bh / 2);
+      this._areaBadgeSparkR.setPosition(bw / 2 - 16, bh / 2);
+      this._areaBadgeName.setPosition(0, bh / 2);
+    }
+  }
+
+  // ── Controls panel (H toggle) ─────────────────────────────────────────────
   _buildControlsPanel(W, H, fs) {
     const cx   = W / 2, cy = H / 2;
-    const pw   = Math.round(W * 0.38), ph = Math.round(H * 0.48);
+    const pw   = Math.round(W * 0.38), ph = Math.round(H * 0.50);
     const r    = 16;
     const padX = Math.round(pw * 0.08);
     const padY = Math.round(ph * 0.07);
 
     const gfx = this.add.graphics().setDepth(300).setVisible(false);
-    gfx.fillStyle(C.bg, 0.96);
+    gfx.fillStyle(0xffffff, 0.98);
     gfx.fillRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, r);
-    gfx.lineStyle(1.5, C.border, 0.85);
+    gfx.lineStyle(2, C.border, 1);
     gfx.strokeRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, r);
 
     const grp = [gfx];
 
-    // Title
     const titleY = cy - ph / 2 + padY;
-    const title = this.add.text(cx, titleY, 'CONTROLOS', {
-      fontSize: fs.lg, fontFamily: 'Georgia, serif', color: C.magic, fontStyle: 'bold',
-    }).setOrigin(0.5, 0).setDepth(301).setVisible(false);
-    grp.push(title);
+    grp.push(
+      this.add.text(cx, titleY, 'Controlos', {
+        fontSize: fs.xl, fontFamily: FD, color: '#b42d27', fontStyle: 'bold',
+      }).setOrigin(0.5, 0).setDepth(301).setVisible(false)
+    );
 
-    // Divider below title
-    const sepY  = titleY + Math.round(ph * 0.12);
+    const sepY   = titleY + Math.round(ph * 0.12);
     const sepGfx = this.add.graphics().setDepth(301).setVisible(false);
-    sepGfx.lineStyle(1, C.border, 0.35);
+    sepGfx.lineStyle(1.5, C.border, 0.20);
     sepGfx.lineBetween(cx - pw / 2 + padX, sepY, cx + pw / 2 - padX, sepY);
     grp.push(sepGfx);
 
-    // Two-column rows
     const rows = [
       ['WASD / Setas',  'Mover'],
       ['Shift',         'Correr'],
@@ -426,28 +494,28 @@ export class HUDScene extends Phaser.Scene {
       ['M',             'Mapa do jardim'],
       ['H',             'Fechar ajuda'],
     ];
-    const contentH  = ph - padY * 2 - Math.round(ph * 0.12) - 30;
-    const lineH     = Math.round(contentH / rows.length);
-    const colLeft   = cx - pw / 2 + padX;
-    const colRight  = cx - pw / 2 + Math.round(pw * 0.42);
+    const contentH = ph - padY * 2 - Math.round(ph * 0.12) - 30;
+    const lineH    = Math.round(contentH / rows.length);
+    const colLeft  = cx - pw / 2 + padX;
+    const colRight = cx - pw / 2 + Math.round(pw * 0.44);
 
     rows.forEach(([key, action], i) => {
-      const iy = sepY + 10 + i * lineH;
+      const iy = sepY + 12 + i * lineH;
       grp.push(
         this.add.text(colLeft,  iy, key, {
-          fontSize: fs.md, fontFamily: 'monospace', color: C.accent,
+          fontSize: fs.md, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
         }).setOrigin(0, 0).setDepth(301).setVisible(false),
         this.add.text(colRight, iy, action, {
-          fontSize: fs.md, fontFamily: 'monospace', color: C.text,
+          fontSize: fs.md, fontFamily: FU, color: C.text,
         }).setOrigin(0, 0).setDepth(301).setVisible(false),
       );
     });
 
-    // Close hint at bottom
-    const close = this.add.text(cx, cy + ph / 2 - padY, 'Prima H ou ESC para fechar', {
-      fontSize: fs.sm, fontFamily: 'Georgia, serif', color: '#e8c96a', fontStyle: 'italic',
-    }).setOrigin(0.5, 1).setDepth(301).setVisible(false);
-    grp.push(close);
+    grp.push(
+      this.add.text(cx, cy + ph / 2 - padY, 'Prima H ou ESC para fechar', {
+        fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
+      }).setOrigin(0.5, 1).setDepth(301).setVisible(false)
+    );
 
     this._ctrlGroup = grp;
     this.input.keyboard.on('keydown-ESC', () => {
@@ -465,29 +533,25 @@ export class HUDScene extends Phaser.Scene {
 
   // ── Minimap internals ─────────────────────────────────────────────────────
   _worldToMinimap(zone, x, y) {
-    const mmX  = this._mmX, mmY = this._mmY;
-    const MMW  = this._mmW, MMH = this._mmH;
-    const ZW   = this.game.registry.get('debugZoneW')  ?? 1920;
-    const ZH   = this.game.registry.get('debugZoneH')  ?? 1080;
-    const TH   = this.game.registry.get('debugTransH')  ?? 400;
-    const PH   = this.game.registry.get('debugParedeH') ?? 700;
+    const mmX = this._mmX, mmY = this._mmY;
+    const MMW = this._mmW, MMH = this._mmH;
+    const ZW  = this.game.registry.get('debugZoneW')   ?? 1920;
+    const ZH  = this.game.registry.get('debugZoneH')   ?? 1080;
+    const TH  = this.game.registry.get('debugTransH')  ?? 400;
+    const PH  = this.game.registry.get('debugParedeH') ?? 700;
 
     let rx0, ry0, rx1, ry1;
 
     if (zone === 'Zone1' || !zone) {
       let subArea, lx, ly;
       if (x >= ZW) {
-        subArea = MAP_ZONE_REGIONS.Zone1.jardim;
-        lx = x - ZW; ly = y;
+        subArea = MAP_ZONE_REGIONS.Zone1.jardim; lx = x - ZW; ly = y;
       } else if (y < -(TH + PH)) {
-        subArea = MAP_ZONE_REGIONS.Zone1.limiar;
-        lx = x; ly = -(y + TH + PH);
+        subArea = MAP_ZONE_REGIONS.Zone1.limiar; lx = x; ly = -(y + TH + PH);
       } else if (y < 0) {
-        subArea = MAP_ZONE_REGIONS.Zone1.limiar;
-        lx = x; ly = Math.max(0, ZH - 20);
+        subArea = MAP_ZONE_REGIONS.Zone1.limiar; lx = x; ly = Math.max(0, ZH - 20);
       } else {
-        subArea = MAP_ZONE_REGIONS.Zone1.campo;
-        lx = x; ly = y;
+        subArea = MAP_ZONE_REGIONS.Zone1.campo; lx = x; ly = y;
       }
       [rx0, ry0, rx1, ry1] = subArea;
       return {
@@ -521,12 +585,13 @@ export class HUDScene extends Phaser.Scene {
     (GameState.plantSpawns || []).forEach(s => {
       const { dotX, dotY } = this._worldToMinimap(zone, s.x, s.y);
       const plant = PLANTS[s.id];
-      const ok  = GameState.collected.has(s.id);
-      const el  = plant ? ELEMENTS[plant.element] : null;
-      const col = ok ? (el?.color ?? 0x7DB98A) : 0x4a8060;
-      const r   = ok ? 3 : 2;
-      const dot = this.add.circle(dotX, dotY, r, col, ok ? 0.9 : 0.6).setDepth(61);
+      const ok    = GameState.collected.has(s.id);
+      const el    = plant ? ELEMENTS[plant.element] : null;
+      const col   = ok ? (el?.color ?? 0x7DB98A) : 0x4a8060;
+      const r     = ok ? 3 : 2;
+      const dot   = this.add.circle(dotX, dotY, r, col, ok ? 0.9 : 0.6).setDepth(61);
       if (ok) dot.setStrokeStyle(0.8, 0xffffff, 0.3);
+      if (this._mmMask) dot.setMask(this._mmMask);
       this._plantDots.push(dot);
     });
   }
@@ -544,11 +609,11 @@ export class HUDScene extends Phaser.Scene {
     if (!this._essentialDots?.length && !this.cauldronCount) return;
     const count = ESSENTIAL_IDS.filter(id => GameState.collected.has(id)).length;
     this._essentialDots?.forEach((d, i) => {
-      d.setFillStyle(i < count ? 0xE1A0B1 : 0x1a3a24, 1)
-       .setStrokeStyle(1, i < count ? 0xE1A0B1 : C.dim, i < count ? 0.8 : 0.5);
+      d.setFillStyle(i < count ? C.panelDk : 0xdddddd, 1)
+       .setStrokeStyle(1, i < count ? C.accent : C.border, i < count ? 0.8 : 0.3);
     });
     this.cauldronCount?.setText(`${count}/5`);
-    if (count >= 5) this.cauldronCount?.setColor('#E4EF6F');
+    if (count >= 5) this.cauldronCount?.setColor('#b42d27');
   }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
@@ -564,27 +629,26 @@ export class HUDScene extends Phaser.Scene {
     const el    = ELEMENTS[plant.element] || ELEMENTS.EARTH;
     const hex   = '#' + el.color.toString(16).padStart(6, '0');
     const W     = this.scale.width;
-    const TW    = Math.round(W * 0.136);
+    const TW    = Math.round(W * 0.142);
     const TH    = 68;
 
     const c = this.add.container(W + 10, 90).setDepth(150);
     c.add([
-      this.add.rectangle(0, 0, TW, TH, 0x0a1a10, 0.93)
-        .setOrigin(0, 0).setStrokeStyle(1, el.color, 0.8),
+      this.add.rectangle(0, 0, TW, TH, 0xffffff, 0.97)
+        .setOrigin(0, 0).setStrokeStyle(1.5, C.border, 0.8),
       this.add.rectangle(0, 0, 5, TH, el.color, 0.9).setOrigin(0, 0),
       this.add.text(14, 8, plant.name, {
         fontSize: `${Math.max(11, Math.round(W * 0.0068))}px`,
-        fontFamily: 'Georgia, serif', color: hex,
-        stroke: '#0a1a10', strokeThickness: 2,
+        fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
       }),
       this.add.text(14, 26, (plant.narrativeText || '').substring(0, 50) + '…', {
         fontSize: `${Math.max(9, Math.round(W * 0.0047))}px`,
-        fontFamily: 'monospace', color: C.text,
+        fontFamily: FU, color: '#333333',
         wordWrap: { width: TW - 22 },
       }),
       this.add.text(TW - 8, 8, '+ apanhada', {
         fontSize: `${Math.max(8, Math.round(W * 0.0047))}px`,
-        fontFamily: 'monospace', color: '#E4EF6F',
+        fontFamily: FU, color: '#b42d27',
       }).setOrigin(1, 0),
     ]);
     this.tweens.add({ targets: c, x: W - TW - 12, duration: 320, ease: 'Back.easeOut' });
@@ -608,28 +672,25 @@ export class HUDScene extends Phaser.Scene {
     const count = ZONE2_PLANTS.filter(id => GameState.collected.has(id)).length;
     this._objDots.forEach((dot, i) => {
       const filled = i < count;
-      dot.setFillStyle(filled ? C.plant : C.dim, 1);
-      dot.setStrokeStyle(1.2, filled ? C.plant : C.border, filled ? 0.9 : 0.5);
+      dot.setFillStyle(filled ? C.accent : 0xdddddd, 1);
+      dot.setStrokeStyle(1.2, filled ? C.accent : C.border, filled ? 0.9 : 0.3);
       if (filled) {
         this.tweens.add({ targets: dot, scale: { from: 1.5, to: 1 }, duration: 300 });
       }
     });
     if (count === 0) {
-      this._objLabel?.setText('objetivo: 3 plantas para o portal');
+      this.inventorySubtitle?.setText('para abrir o portal');
     } else if (count < 3) {
-      this._objLabel?.setText(`${count}/3 para abrir o portal`);
+      this.inventorySubtitle?.setText(`${count}/3 para abrir o portal`);
     } else {
-      this._objLabel?.setText('portal desbloqueado!').setColor(C.label);
+      this.inventorySubtitle?.setText('portal desbloqueado!').setStyle({ color: '#b42d27' });
     }
   }
 
   _refreshInventory() {
-    // Sort: combo plants (used in any spell) first
     const comboIds = _comboPlantIds();
-    const sorted = [...GameState.inventory].sort((a, b) => {
-      const ac = comboIds.has(a.id) ? 0 : 1;
-      const bc = comboIds.has(b.id) ? 0 : 1;
-      return ac - bc;
+    const sorted   = [...GameState.inventory].sort((a, b) => {
+      return (comboIds.has(a.id) ? 0 : 1) - (comboIds.has(b.id) ? 0 : 1);
     });
 
     this.inventoryCount?.setText(`${sorted.length}/12`);
@@ -641,14 +702,16 @@ export class HUDScene extends Phaser.Scene {
         const col = plant.isFake ? 0x886688 : el.color;
         const key = this.textures.exists(`plant_img_${plant.id}`) ? `plant_img_${plant.id}` :
                     this.textures.exists(`plant_${plant.id}`)     ? `plant_${plant.id}` : 'plant_missing';
-        s.icon.setTexture(key).setDisplaySize(s.iconS, s.iconS).setAlpha(0.98).setTint(0xffffff);
+        s.icon.setTexture(key).setDisplaySize(s.iconS, s.iconS).setAlpha(0.97).setTint(0xffffff);
         if (plant.isFake) s.icon.setTint(0xc8a6d4);
         s.fake.setAlpha(plant.isFake ? 1 : 0);
-        this._drawCircleSlot(s.slotGfx, s.sx, s.sy, s.slotR, col, 0.9);
+        this._drawCircleSlot(s.slotGfx, s.sx, s.sy, s.slotR, col, 0.85);
+        s.nameLabel?.setText(plant.name || '').setAlpha(1);
       } else {
         s.icon.setAlpha(0);
         s.fake.setAlpha(0);
-        this._drawCircleSlot(s.slotGfx, s.sx, s.sy, s.slotR, C.dim, 0.7);
+        this._drawCircleSlot(s.slotGfx, s.sx, s.sy, s.slotR, C.border, 0.18);
+        s.nameLabel?.setText('').setAlpha(0);
       }
     });
   }
@@ -656,11 +719,11 @@ export class HUDScene extends Phaser.Scene {
   _refreshSpell() {
     const spell = GameState.activeSpell ? SPELLS[GameState.activeSpell] : null;
     if (spell) {
-      this.spellGfx?.setTexture(spell.textureKey).setAlpha(0.9);
-      this.spellName?.setText(spell.name).setColor(C.magic);
+      this.spellGfx?.setTexture(spell.textureKey).setAlpha(0.92);
+      this.spellName?.setText(spell.name).setColor(C.text);
     } else {
-      this.spellGfx?.setAlpha(0.3);
-      this.spellName?.setText('nenhum').setColor(C.muted);
+      this.spellGfx?.setAlpha(0.35);
+      this.spellName?.setText('nenhum').setColor(C.label);
     }
     this._refreshPlantsActivas(spell);
   }
@@ -681,18 +744,18 @@ export class HUDScene extends Phaser.Scene {
         s.icon.setTexture(key).setDisplaySize(s.iconS, s.iconS)
           .setAlpha(collected ? 0.95 : 0.35).setTint(0xffffff);
         const el  = plant ? (ELEMENTS[plant.element] || ELEMENTS.EARTH) : ELEMENTS.EARTH;
-        const col = collected ? el.color : C.dim;
+        const col = collected ? el.color : 0xaaaaaa;
         s.slotGfx.clear();
-        s.slotGfx.fillStyle(C.panel, 0.85);
+        s.slotGfx.fillStyle(0xffffff, collected ? 0.65 : 0.28);
         s.slotGfx.fillCircle(s.sx, s.sy, s.slotR);
-        s.slotGfx.lineStyle(collected ? 2 : 1.4, col, collected ? 0.9 : 0.5);
+        s.slotGfx.lineStyle(collected ? 2 : 1.4, col, collected ? 0.9 : 0.4);
         s.slotGfx.strokeCircle(s.sx, s.sy, s.slotR);
       } else {
         s.icon.setAlpha(0);
         s.slotGfx.clear();
-        s.slotGfx.fillStyle(C.panel, 0.60);
+        s.slotGfx.fillStyle(0xffffff, 0.18);
         s.slotGfx.fillCircle(s.sx, s.sy, s.slotR);
-        s.slotGfx.lineStyle(1, C.dim, 0.3);
+        s.slotGfx.lineStyle(1, C.border, 0.18);
         s.slotGfx.strokeCircle(s.sx, s.sy, s.slotR);
       }
     });
@@ -714,8 +777,9 @@ export class HUDScene extends Phaser.Scene {
     }
   }
 
-  _onPlantStolen()  { this._refreshInventory(); this._updateCauldronDots(); this._rebuildPlantDots(); }
-  _onSpellCast()    {
+  _onPlantStolen() { this._refreshInventory(); this._updateCauldronDots(); this._rebuildPlantDots(); }
+
+  _onSpellCast() {
     this._refreshSpell();
     this.tweens.add({ targets: this.spellGfx, scale: { from: 1, to: 1.5 }, duration: 180, yoyo: true });
     SoundManager.castSpell();
@@ -747,110 +811,111 @@ export class HUDScene extends Phaser.Scene {
   }
 
   _updateArea(name) {
-    this.areaLabel?.setText(name);
-    this.tweens.killTweensOf(this.areaLabel);
+    this._drawAreaBadge(name);
+    const target = this._areaUseSvg ? this._areaBadgeImg : this._areaBadge;
+    const other  = this._areaUseSvg ? this._areaBadge : this._areaBadgeImg;
+    this.tweens.killTweensOf(target);
+    this.tweens.killTweensOf(other);
+    other.setAlpha(0);
+    target.setAlpha(0);
     this.tweens.add({
-      targets: this.areaLabel, alpha: 1, duration: 380, ease: 'Power2.easeOut',
+      targets: target, alpha: 1, duration: 380, ease: 'Power2.easeOut',
       onComplete: () => this.time.delayedCall(3000, () =>
-        this.tweens.add({ targets: this.areaLabel, alpha: 0, duration: 900 })
+        this.tweens.add({ targets: target, alpha: 0, duration: 900 })
       ),
     });
     SoundManager.areaChange();
   }
 
-  // ── HUD debug panel (Shift+D) — comprehensive inspector ──────────────────
+  // ── HUD debug panel (Shift+D) ─────────────────────────────────────────────
   _buildHUDDebugPanel(W, H, fs) {
     if (this._hudFontMult === undefined) this._hudFontMult = 1.0;
     if (this._wireframeOn === undefined) this._wireframeOn = false;
 
-    const PW = 310, PH = 520;
+    const PW  = 310, PH = 540;
     const px  = 10;
     const py  = Math.round(H * 0.06);
-    const INN = 10;  // inner padding
-
-    const grp = [];
+    const INN = 10;
     const dep = 500;
+    const grp = [];
 
-    const _txt = (x, y, str, style, depth = dep + 1) =>
-      grp.push(this.add.text(x, y, str, style).setDepth(depth).setScrollFactor(0)) && grp[grp.length - 1];
+    const _txt = (x, y, str, style, depth = dep + 1) => {
+      const t = this.add.text(x, y, str, style).setDepth(depth).setScrollFactor(0);
+      grp.push(t);
+      return t;
+    };
 
     const _btn = (x, y, label, onClick, w = 0) => {
       const b = this.add.text(x, y, label, {
-        fontSize: '10px', fontFamily: 'monospace', color: '#ffef7a',
-        backgroundColor: '#1a2e1a', padding: { x: 6, y: 3 },
+        fontSize: '10px', fontFamily: 'monospace', color: '#b42d27',
+        backgroundColor: '#fff0f2', padding: { x: 6, y: 3 },
       }).setDepth(dep + 2).setScrollFactor(0).setInteractive({ useHandCursor: true });
       if (w) b.setFixedSize(w, 0);
       b.on('pointerdown', onClick)
-       .on('pointerover', function() { this.setColor('#ffffff'); })
-       .on('pointerout',  function() { this.setColor('#ffef7a'); });
+       .on('pointerover', function() { this.setColor('#ffffff').setBackgroundColor('#b42d27'); })
+       .on('pointerout',  function() { this.setColor('#b42d27').setBackgroundColor('#fff0f2'); });
       grp.push(b);
       return b;
     };
 
-    // ── Panel background ──────────────────────────────────────────────────
     const bg = this.add.graphics().setDepth(dep).setScrollFactor(0);
-    bg.fillStyle(0x06080e, 0.96);
+    bg.fillStyle(0xffffff, 0.97);
     bg.fillRoundedRect(px, py, PW, PH, 10);
-    bg.lineStyle(1.5, 0x4a3d6e, 0.80);
+    bg.lineStyle(1.5, 0x000000, 0.80);
     bg.strokeRoundedRect(px, py, PW, PH, 10);
     grp.push(bg);
 
     let cy2 = py + INN;
 
-    // ── Header ────────────────────────────────────────────────────────────
     _txt(px + PW / 2, cy2, 'HUD DEBUG  [Shift+D]', {
-      fontSize: '12px', fontFamily: 'monospace', color: '#d4a8f0',
-      stroke: '#06080e', strokeThickness: 2,
+      fontSize: '12px', fontFamily: 'monospace', color: '#b42d27',
     }).setOrigin(0.5, 0);
     cy2 += 20;
 
-    // Resolution + zoom info (live, regenerated on each toggle)
     const zoom = this.cameras.main?.zoom ?? 1;
     _txt(px + INN, cy2, `Resolução: ${W}×${H}   Zoom: ${zoom}`, {
-      fontSize: '9px', fontFamily: 'monospace', color: '#7a9a7e',
+      fontSize: '9px', fontFamily: 'monospace', color: '#555555',
     });
     cy2 += 16;
 
-    // ── Section: ELEMENTOS ────────────────────────────────────────────────
+    // ELEMENTOS section
     this._dbSep(grp, px, cy2, PW, dep, 'ELEMENTOS');
     cy2 += 16;
 
-    const HIGHLIGHT_COLORS = [0xff6666, 0x66aaff, 0xffee66, 0x66ff99, 0xff88ee];
-    const bounds = this._hudBounds || {};
+    const HCOLS = [0xff6666, 0x66aaff, 0xffee66, 0x66ff99, 0xff88ee];
     const elemList = [
-      bounds.spell,
-      bounds.plantsActivas,
-      bounds.inventory,
-      bounds.minimap,
+      this._hudBounds.spell,
+      this._hudBounds.plantsActivas,
+      this._hudBounds.inventory,
+      this._hudBounds.minimap,
     ].filter(Boolean);
 
-    this._dbHighlightGfx = this._dbHighlightGfx || this.add.graphics().setDepth(dep + 10).setScrollFactor(0);
+    this._dbHighlightGfx = this._dbHighlightGfx ||
+      this.add.graphics().setDepth(dep + 10).setScrollFactor(0);
     this._dbHighlightGfx.setVisible(false);
     grp.push(this._dbHighlightGfx);
 
     elemList.forEach((b, i) => {
-      const col = HIGHLIGHT_COLORS[i % HIGHLIGHT_COLORS.length];
+      const col    = HCOLS[i % HCOLS.length];
       const hexStr = '#' + col.toString(16).padStart(6, '0');
-      _txt(px + INN, cy2,
-        `${b.label.padEnd(14)} x:${b.x} y:${b.y} ${b.w}×${b.h}px`, {
-          fontSize: '9px', fontFamily: 'monospace', color: hexStr,
-        });
+      _txt(px + INN, cy2, `${b.label.padEnd(14)} x:${b.x} y:${b.y} ${b.w}×${b.h}px`, {
+        fontSize: '9px', fontFamily: 'monospace', color: hexStr,
+      });
       _btn(px + PW - 54, cy2 - 1, '[◉]', () => this._dbHighlightElement(b, col));
       cy2 += 14;
     });
 
-    // Wireframe toggle
     this._dbWireBtn = _btn(px + INN, cy2, this._wireframeOn ? '[ WIREFRAME ON ]' : '[ WIREFRAME OFF ]',
       () => this._toggleWireframe());
     cy2 += 22;
 
-    // ── Section: TIPOGRAFIA ───────────────────────────────────────────────
+    // TIPOGRAFIA section
     this._dbSep(grp, px, cy2, PW, dep, 'TIPOGRAFIA');
     cy2 += 16;
 
     const fsMult = this.add.text(px + PW / 2, cy2,
       `FONT SCALE  ×${this._hudFontMult.toFixed(2)}`, {
-        fontSize: '10px', fontFamily: 'monospace', color: '#ffef7a',
+        fontSize: '10px', fontFamily: 'monospace', color: '#b42d27',
       }).setOrigin(0.5, 0).setDepth(dep + 1).setScrollFactor(0);
     grp.push(fsMult);
     this._dbFsMult = fsMult;
@@ -860,13 +925,13 @@ export class HUDScene extends Phaser.Scene {
     cy2 += 16;
 
     this._dbFsSizes = this.add.text(px + INN, cy2, '', {
-      fontSize: '9px', fontFamily: 'monospace', color: '#b8d8b0', lineSpacing: 3,
+      fontSize: '9px', fontFamily: 'monospace', color: '#555555', lineSpacing: 3,
     }).setDepth(dep + 1).setScrollFactor(0);
     grp.push(this._dbFsSizes);
     this._updateHUDDebugFsSizes(W);
     cy2 += 52;
 
-    // ── Section: CORES ────────────────────────────────────────────────────
+    // CORES section
     this._dbSep(grp, px, cy2, PW, dep, 'CORES  (clica swatch → editar · [📋] copiar)');
     cy2 += 16;
 
@@ -875,43 +940,34 @@ export class HUDScene extends Phaser.Scene {
       const numVal = isHex ? parseInt(val.replace('#', ''), 16) : val;
       const hexStr = isHex ? val : '#' + numVal.toString(16).padStart(6, '0');
 
-      // Wide clickable swatch — opens native colour picker
       const swatch = this.add.rectangle(px + INN, cy2 + 6, 28, 13, numVal, 1)
         .setOrigin(0, 0.5).setDepth(dep + 2).setScrollFactor(0)
         .setInteractive({ useHandCursor: true })
         .on('pointerdown', () => this._openColorPicker(name))
-        .on('pointerover', function() { this.setStrokeStyle(1.5, 0xffffff, 0.8); })
+        .on('pointerover', function() { this.setStrokeStyle(2, 0x000000, 0.9); })
         .on('pointerout',  function() { this.setStrokeStyle(0); });
       grp.push(swatch);
 
-      _txt(px + INN + 34, cy2, name, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#9a90b0',
-      });
+      _txt(px + INN + 34, cy2, name, { fontSize: '9px', fontFamily: 'monospace', color: '#555555' });
 
-      const safeHex = hexStr === '#f0e8ff' ? '#c0b8d0' : hexStr;
-      const hexLabel = _txt(px + INN + 86, cy2, hexStr, {
-        fontSize: '9px', fontFamily: 'monospace', color: safeHex,
-      });
-      grp.push(hexLabel);
+      // Avoid rendering near-white text on white bg
+      const safeHex = numVal > 0xd0d0d0 ? '#888888' : hexStr;
+      _txt(px + INN + 86, cy2, hexStr, { fontSize: '9px', fontFamily: 'monospace', color: safeHex });
 
-      // Copy icon button
       _btn(px + PW - 32, cy2 - 2, '[📋]', () => this._copyToClipboard(hexStr), 26);
-
       cy2 += 17;
     });
     cy2 += 4;
 
-    // ── Footer buttons ────────────────────────────────────────────────────
     this._dbSep(grp, px, cy2, PW, dep);
     cy2 += 8;
-    _btn(px + INN, cy2, '[ COPIAR CONFIG ]', () => this._copyHUDConfig(), 130);
+    _btn(px + INN,       cy2, '[ COPIAR CONFIG ]', () => this._copyHUDConfig(), 130);
     _btn(px + INN + 140, cy2, '[ RESET TUDO ]', () => {
       Object.assign(C, C_DEFAULTS);
       this._hudFontMult = 1.0;
       this._rebuildHUD();
     }, 120);
 
-    // ── Wireframe overlay (separate, persistent) ──────────────────────────
     if (!this._wireframeGfx) {
       this._wireframeGfx = this.add.graphics().setDepth(dep - 1).setScrollFactor(0);
     }
@@ -925,13 +981,13 @@ export class HUDScene extends Phaser.Scene {
 
   _dbSep(grp, px, y, PW, dep, label = '') {
     const sepGfx = this.add.graphics().setDepth(dep + 1).setScrollFactor(0);
-    sepGfx.lineStyle(1, 0x4a3d6e, 0.50);
+    sepGfx.lineStyle(1, 0x000000, 0.18);
     sepGfx.lineBetween(px + 10, y + 7, px + PW - 10, y + 7);
     grp.push(sepGfx);
     if (label) {
       grp.push(this.add.text(px + 14, y, label, {
-        fontSize: '9px', fontFamily: 'monospace', color: '#7b5ea7',
-        backgroundColor: '#06080e', padding: { x: 3, y: 0 },
+        fontSize: '9px', fontFamily: 'monospace', color: '#b42d27',
+        backgroundColor: '#ffffff', padding: { x: 3, y: 0 },
       }).setDepth(dep + 2).setScrollFactor(0));
     }
   }
@@ -952,12 +1008,13 @@ export class HUDScene extends Phaser.Scene {
     gfx.clear().setVisible(true);
     gfx.lineStyle(2, col, 0.95);
     gfx.strokeRect(b.x, b.y, b.w, b.h);
-    gfx.lineStyle(1, col, 0.3);
+    gfx.lineStyle(1, col, 0.30);
     gfx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
-    // Pulsing tween
     this.tweens.killTweensOf(gfx);
-    this.tweens.add({ targets: gfx, alpha: { from: 1, to: 0.2 }, duration: 600, yoyo: true, repeat: 3,
-      onComplete: () => gfx.setVisible(false).setAlpha(1) });
+    this.tweens.add({
+      targets: gfx, alpha: { from: 1, to: 0.2 }, duration: 600, yoyo: true, repeat: 3,
+      onComplete: () => gfx.setVisible(false).setAlpha(1),
+    });
   }
 
   _toggleWireframe() {
@@ -971,22 +1028,19 @@ export class HUDScene extends Phaser.Scene {
     const gfx = this._wireframeGfx;
     if (!gfx) return;
     gfx.clear().setVisible(true);
-    const HIGHLIGHT_COLORS = [0xff6666, 0x66aaff, 0xffee66, 0x66ff99, 0xff88ee];
-    const bounds = this._hudBounds || {};
-    Object.values(bounds).forEach((b, i) => {
-      const col = HIGHLIGHT_COLORS[i % HIGHLIGHT_COLORS.length];
+    const HCOLS = [0xff6666, 0x66aaff, 0xffee66, 0x66ff99, 0xff88ee];
+    Object.values(this._hudBounds || {}).forEach((b, i) => {
+      const col = HCOLS[i % HCOLS.length];
       gfx.lineStyle(1.5, col, 0.75);
       gfx.strokeRect(b.x, b.y, b.w, b.h);
       gfx.fillStyle(col, 0.06);
       gfx.fillRect(b.x, b.y, b.w, b.h);
-      // Corner label
       gfx.fillStyle(col, 0.9);
       gfx.fillRect(b.x, b.y, b.label.length * 5 + 4, 11);
     });
-    // Label text drawn separately (graphics can't do text)
     this._wireLabels?.forEach(t => t.destroy());
-    this._wireLabels = Object.values(bounds).map((b, i) => {
-      const col = HIGHLIGHT_COLORS[i % HIGHLIGHT_COLORS.length];
+    this._wireLabels = Object.values(this._hudBounds || {}).map((b, i) => {
+      const col = HCOLS[i % HCOLS.length];
       return this.add.text(b.x + 2, b.y, b.label, {
         fontSize: '8px', fontFamily: 'monospace',
         color: '#' + col.toString(16).padStart(6, '0'),
@@ -1007,16 +1061,14 @@ export class HUDScene extends Phaser.Scene {
   _updateHUDDebugFsSizes(W) {
     if (!this._dbFsSizes) return;
     const m = this._hudFontMult || 1;
-    const lines = [
-      `sm = max(12, W×0.010) × ${m.toFixed(2)} → ${Math.max(12, Math.round(W * 0.010 * m))}px`,
-      `md = max(14, W×0.012) × ${m.toFixed(2)} → ${Math.max(14, Math.round(W * 0.012 * m))}px`,
-      `lg = max(17, W×0.0135)× ${m.toFixed(2)} → ${Math.max(17, Math.round(W * 0.0135 * m))}px`,
-      `xl = max(21, W×0.0165)× ${m.toFixed(2)} → ${Math.max(21, Math.round(W * 0.0165 * m))}px`,
-    ];
-    this._dbFsSizes.setText(lines.join('\n'));
+    this._dbFsSizes.setText([
+      `sm = max(11, W×0.009) × ${m.toFixed(2)} → ${Math.max(11, Math.round(W * 0.009 * m))}px`,
+      `md = max(13, W×0.011) × ${m.toFixed(2)} → ${Math.max(13, Math.round(W * 0.011 * m))}px`,
+      `lg = max(15, W×0.013) × ${m.toFixed(2)} → ${Math.max(15, Math.round(W * 0.013 * m))}px`,
+      `xl = max(19, W×0.016) × ${m.toFixed(2)} → ${Math.max(19, Math.round(W * 0.016 * m))}px`,
+    ].join('\n'));
   }
 
-  // Opens the browser's native colour picker and applies the chosen value live
   _openColorPicker(key) {
     const val    = C[key];
     const isStr  = typeof val === 'string';
@@ -1025,7 +1077,6 @@ export class HUDScene extends Phaser.Scene {
     const inp = document.createElement('input');
     inp.type  = 'color';
     inp.value = curHex;
-    // Hidden but attached to DOM so the browser can open the native picker
     Object.assign(inp.style, {
       position: 'fixed', top: '0', left: '0',
       width: '0', height: '0', opacity: '0', pointerEvents: 'none',
@@ -1033,25 +1084,15 @@ export class HUDScene extends Phaser.Scene {
     document.body.appendChild(inp);
 
     const cleanup = () => { if (inp.parentNode) document.body.removeChild(inp); };
-
-    // Live preview while dragging the picker
-    inp.addEventListener('input', (e) => {
+    inp.addEventListener('input',  (e) => {
       const hex = e.target.value;
       C[key] = isStr ? hex : parseInt(hex.slice(1), 16);
     });
-
-    // Rebuild HUD when picker is closed/confirmed
-    inp.addEventListener('change', () => {
-      cleanup();
-      this._rebuildHUD();
-    });
-
+    inp.addEventListener('change', () => { cleanup(); this._rebuildHUD(); });
     inp.addEventListener('cancel', cleanup);
-
     inp.click();
   }
 
-  // Full HUD rebuild — preserves persistent state, applies any C palette changes
   _rebuildHUD() {
     if (!this.sys.isActive()) return;
     const W       = this.scale.width, H = this.scale.height;
@@ -1075,6 +1116,7 @@ export class HUDScene extends Phaser.Scene {
     this._narrativeTimer     = null;
     this._lastZone           = null;
     this._wireframeOn        = wireOn;
+    this._mmMask             = null;
 
     this._buildAll(W, H);
     if (ctrlVis) this._ctrlGroup?.forEach(e => e.setVisible(true));
@@ -1095,19 +1137,18 @@ export class HUDScene extends Phaser.Scene {
 
   _copyHUDConfig() {
     const m = this._hudFontMult || 1;
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = this.scale.width, H = this.scale.height;
     const lines = [
       `// HUD Config  —  ${W}×${H}  scale×${m.toFixed(2)}`,
-      `// Font sizes:`,
-      `sm: Math.max(12, Math.round(W * ${(0.010 * m).toFixed(4)}))`,
-      `md: Math.max(14, Math.round(W * ${(0.012 * m).toFixed(4)}))`,
-      `lg: Math.max(17, Math.round(W * ${(0.0135 * m).toFixed(4)}))`,
-      `xl: Math.max(21, Math.round(W * ${(0.0165 * m).toFixed(4)}))`,
+      '// Font sizes:',
+      `sm: Math.max(11, Math.round(W * ${(0.009 * m).toFixed(4)}))`,
+      `md: Math.max(13, Math.round(W * ${(0.011 * m).toFixed(4)}))`,
+      `lg: Math.max(15, Math.round(W * ${(0.013 * m).toFixed(4)}))`,
+      `xl: Math.max(19, Math.round(W * ${(0.016 * m).toFixed(4)}))`,
       '',
       '// Colors:',
       ...Object.entries(C).map(([k, v]) =>
-        `  ${k}: ${typeof v === 'string' ? `'${v}'` : `0x${v.toString(16).padStart(6,'0')}`},`
+        `  ${k}: ${typeof v === 'string' ? `'${v}'` : `0x${v.toString(16).padStart(6, '0')}`},`
       ),
       '',
       '// Panel bounds:',
