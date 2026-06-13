@@ -8,32 +8,12 @@ export class BootScene extends Phaser.Scene {
   preload() {
     this.load.crossOrigin = 'anonymous';
 
-    // Loading bar — light background, dark elements
-    this.cameras.main.setBackgroundColor('#f0f5f0');
-    this.add.rectangle(
-      this.cameras.main.centerX - 202, this.cameras.main.centerY,
-      404, 20, 0xd4e8d4
-    ).setOrigin(0, 0.5);
-    const bar = this.add.rectangle(
-      this.cameras.main.centerX - 200, this.cameras.main.centerY,
-      0, 16, 0x1a3a1e
-    ).setOrigin(0, 0.5);
-    this.add.text(
-      this.cameras.main.centerX, this.cameras.main.centerY - 30,
-      'Bruxa, Bruxinha', {
-        fontSize: '28px', fontFamily: 'Georgia, serif', color: '#1a3a1e',
-      }
-    ).setOrigin(0.5);
-    const loadTxt = this.add.text(
-      this.cameras.main.centerX, this.cameras.main.centerY + 30,
-      'A carregar o jardim mágico...', {
-        fontSize: '14px', fontFamily: 'Georgia, serif', color: '#355138',
-      }
-    ).setOrigin(0.5);
-
+    // Drive the DOM loading overlay (defined in index.html)
+    const barFill = document.getElementById('loading-bar-fill');
+    const loadTxt = document.getElementById('loading-text');
     this.load.on('progress', v => {
-      bar.width = 400 * v;
-      loadTxt.setText(`A carregar… ${Math.round(v * 100)}%`);
+      if (barFill) barFill.style.width = `${Math.round(v * 100)}%`;
+      if (loadTxt) loadTxt.textContent = `A carregar… ${Math.round(v * 100)}%`;
     });
 
     // ── Backgrounds (Unsplash removed — zones use local SVG backgrounds) ─
@@ -123,6 +103,14 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     this._generateTextures();
+
+    // Fade out and remove the DOM loading overlay
+    const overlay = document.getElementById('game-loading');
+    if (overlay) {
+      overlay.classList.add('fade-out');
+      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+    }
+
     this.scene.start('Opening');
   }
 
