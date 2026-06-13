@@ -1217,8 +1217,8 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     } else {
       // Sound waves (arcs on right side of horn)
       gfx.lineStyle(1.5, 0x000000, 0.72);
-      gfx.strokeArc(cx + s * 0.22, cy, s * 0.44, -0.55, 0.55);
-      gfx.strokeArc(cx + s * 0.22, cy, s * 0.72, -0.68, 0.68);
+      gfx.beginPath(); gfx.arc(cx + s * 0.22, cy, s * 0.44, -0.55, 0.55); gfx.strokePath();
+      gfx.beginPath(); gfx.arc(cx + s * 0.22, cy, s * 0.72, -0.68, 0.68); gfx.strokePath();
     }
   }
 
