@@ -347,12 +347,13 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     gfx.strokeCircle(sx, sy, r);
   }
 
-  // ── Minimap — circular viewport with geometry mask, bottom-right ──────────
+  // ── Minimap — circular panning viewport, player always centred ───────────
   _buildMinimap(W, H, fs) {
     const R       = Math.round(W * 0.065);
     const mmLabel = 26;
     const cx      = W - 10 - R;
     const cy      = H - 8 - mmLabel - R;
+    const K       = 2;  // zoom/pan factor — map rendered K× larger, pans with player
 
     this._mmCX = cx;
     this._mmCY = cy;
@@ -362,6 +363,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._mmW  = R * 2;
     this._mmH  = R * 2;
     this._mmPH = R * 2 + mmLabel + 16;
+    this._mmK  = K;
 
     // Geometry mask — filled circle at screen position
     const maskGfx = this.make.graphics({ add: false });
@@ -370,31 +372,28 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     const mask = maskGfx.createGeometryMask();
     this._mmMask = mask;
 
-    // Map backgrounds (inside mask)
-    if (this.textures.exists('map_fundo01')) {
-      this.add.image(cx, cy, 'map_fundo01')
-        .setDisplaySize(R * 2, R * 2).setDepth(58).setMask(mask);
-    } else {
-      this.add.circle(cx, cy, R, 0xe8f0ec, 1).setDepth(58).setMask(mask);
-    }
-    if (this.textures.exists('map_fundo02')) {
-      this.add.image(cx, cy, 'map_fundo02')
-        .setDisplaySize(R * 2, R * 2).setDepth(59).setMask(mask);
-    }
+    // Solid bg so SVG transparency gaps don't show through
+    this.add.circle(cx, cy, R, 0x1c3a1c, 1).setDepth(57).setMask(mask);
+
+    // Map backgrounds — K× larger than the circle so they can pan
+    const imgSize = Math.round(R * 2 * K);
+    this.mmImg1 = this.textures.exists('map_fundo01')
+      ? this.add.image(cx, cy, 'map_fundo01').setDisplaySize(imgSize, imgSize).setDepth(58).setMask(mask)
+      : null;
+    this.mmImg2 = this.textures.exists('map_fundo02')
+      ? this.add.image(cx, cy, 'map_fundo02').setDisplaySize(imgSize, imgSize).setDepth(59).setMask(mask)
+      : null;
 
     // Drawing layer for zones (inside mask)
     this.mmGfx = this.add.graphics().setDepth(60).setMask(mask);
 
-    // Player dot (inside mask)
-    this.mmDot = this.add.circle(cx, cy, Math.max(4, Math.round(W * 0.0044)), C.accent, 1)
-      .setDepth(62).setStrokeStyle(1.2, 0xffffff, 0.9).setMask(mask);
+    // Player marker — star SVG at centre, falls back to circle
+    const starSize = Math.max(12, Math.round(W * 0.014));
+    this.mmDot = this.textures.exists('mm_star')
+      ? this.add.image(cx, cy, 'mm_star').setDisplaySize(starSize, starSize).setDepth(63).setMask(mask)
+      : this.add.circle(cx, cy, Math.max(4, Math.round(W * 0.0044)), 0xffffff, 1).setDepth(63).setMask(mask);
 
-    // Border ring drawn on top — no mask, so it acts as frame
-    this.add.graphics().setDepth(64)
-      .lineStyle(3, C.border, 1)
-      .strokeCircle(cx, cy, R);
-
-    // Zone label below
+    // Zone label below — no border ring (removed)
     this.mmZoneLabel = this.add.text(cx, cy + R + 7, '', {
       fontSize: fs.sm, fontFamily: FU, color: C.text,
     }).setOrigin(0.5, 0).setDepth(62);
@@ -542,17 +541,18 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   _rebuildPlantDots() {
     this._plantDots.forEach(d => d.destroy());
     this._plantDots = [];
-    const zone = GameState.currentZone || 'Zone1';
+    const cx = this._mmCX ?? 0, cy = this._mmCY ?? 0;
     (GameState.plantSpawns || []).forEach(s => {
-      const { dotX, dotY } = this._worldToMinimap(zone, s.x, s.y);
       const plant = PLANTS[s.id];
       const ok    = GameState.collected.has(s.id);
       const el    = plant ? ELEMENTS[plant.element] : null;
       const col   = ok ? (el?.color ?? 0x7DB98A) : 0x4a8060;
       const r     = ok ? 3 : 2;
-      const dot   = this.add.circle(dotX, dotY, r, col, ok ? 0.9 : 0.6).setDepth(61);
+      const dot   = this.add.circle(cx, cy, r, col, ok ? 0.9 : 0.6).setDepth(61);
       if (ok) dot.setStrokeStyle(0.8, 0xffffff, 0.3);
       if (this._mmMask) dot.setMask(this._mmMask);
+      dot._worldX = s.x;
+      dot._worldY = s.y;
       this._plantDots.push(dot);
     });
   }
@@ -560,10 +560,31 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   _updateMinimap() {
     const zone = GameState.currentZone;
     if (zone !== this._lastZone) this._drawMinimapBg(zone || 'Zone1');
+
+    const K  = this._mmK ?? 2;
+    const cx = this._mmCX, cy = this._mmCY;
+
+    // Player position in base minimap coords
     const { dotX, dotY } = this._worldToMinimap(
       zone, GameState.playerX ?? 640, GameState.playerY ?? 360
     );
-    this.mmDot?.setPosition(dotX, dotY);
+
+    // Pan map images so the player's world position lands at the circle centre
+    // ix = cx - K*(dotX - cx)  ←  derived from: playerScreenX = ix + K*(dotX - cx) = cx
+    const ix = cx - K * (dotX - cx);
+    const iy = cy - K * (dotY - cy);
+    this.mmImg1?.setPosition(ix, iy);
+    this.mmImg2?.setPosition(ix, iy);
+
+    // Player star stays fixed at circle centre
+    this.mmDot?.setPosition(cx, cy);
+
+    // Plant dots pan relative to player
+    this._plantDots.forEach(d => {
+      if (d._worldX === undefined) return;
+      const { dotX: pdotX, dotY: pdotY } = this._worldToMinimap(zone, d._worldX, d._worldY);
+      d.setPosition(cx + K * (pdotX - dotX), cy + K * (pdotY - dotY));
+    });
   }
 
   _updateCauldronDots() {
