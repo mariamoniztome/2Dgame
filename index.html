@@ -79,6 +79,80 @@
       margin-top: 0.65rem;
       letter-spacing: 0.02em;
     }
+
+    /* ── Controls / help panel (H key) ────────────────────────────────── */
+    #controls-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    #controls-panel.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .ctrl-card {
+      position: relative;
+      background: #f6a3b3;
+      border-radius: 18px;
+      width: min(62vw, 820px);
+      overflow: hidden;
+    }
+    .ctrl-card .ctrl-corner {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: auto;
+      pointer-events: none;
+      user-select: none;
+    }
+    .ctrl-card .ctrl-corner-left  { left: 0; }
+    .ctrl-card .ctrl-corner-right { right: 0; }
+    .ctrl-content {
+      position: relative;
+      z-index: 1;
+      padding: 2.4rem 5.5rem 2rem;
+    }
+    .ctrl-title {
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: clamp(20px, 2.2vw, 30px);
+      font-weight: 700;
+      color: #000000;
+      text-align: center;
+      margin-bottom: 1.6rem;
+    }
+    .ctrl-rows {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 3rem;
+      row-gap: 0.55rem;
+    }
+    .ctrl-key {
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: clamp(13px, 1.4vw, 19px);
+      font-weight: 700;
+      color: #000000;
+      white-space: nowrap;
+    }
+    .ctrl-action {
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: clamp(13px, 1.4vw, 19px);
+      font-weight: 400;
+      color: #000000;
+    }
+    .ctrl-hint {
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: clamp(10px, 1vw, 13px);
+      color: #444444;
+      text-align: center;
+      margin-top: 1.6rem;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -92,6 +166,27 @@
       <div id="loading-bar-fill"></div>
     </div>
     <p id="loading-text">A carregar…</p>
+  </div>
+
+  <!-- Controls / help panel — toggled by H / ESC, driven by HUD scene -->
+  <div id="controls-panel">
+    <div class="ctrl-card">
+      <img class="ctrl-corner ctrl-corner-left"  src="/assets/loading/loading_left.svg"  alt="">
+      <img class="ctrl-corner ctrl-corner-right" src="/assets/loading/loading_right.svg" alt="">
+      <div class="ctrl-content">
+        <h2 class="ctrl-title">Controlos</h2>
+        <div class="ctrl-rows">
+          <span class="ctrl-key">WASD / Setas</span><span class="ctrl-action">Mover</span>
+          <span class="ctrl-key">Shift</span>        <span class="ctrl-action">Correr</span>
+          <span class="ctrl-key">C</span>            <span class="ctrl-action">Apanhar / Interagir</span>
+          <span class="ctrl-key">F</span>            <span class="ctrl-action">Lançar feitiço</span>
+          <span class="ctrl-key">Q</span>            <span class="ctrl-action">Mudar feitiço</span>
+          <span class="ctrl-key">M</span>            <span class="ctrl-action">Mapa do jardim</span>
+          <span class="ctrl-key">H</span>            <span class="ctrl-action">Ajuda</span>
+        </div>
+        <p class="ctrl-hint">Prima H ou ESC para fechar</p>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="/src/main.js"></script>

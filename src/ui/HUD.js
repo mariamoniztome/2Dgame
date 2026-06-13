@@ -82,7 +82,7 @@ export class HUDScene extends Phaser.Scene {
         this._lastZone           = null;
         this._mmMask             = null;
         this._buildAll(gameSize.width, gameSize.height);
-        if (ctrlVis) this._ctrlGroup?.forEach(e => e.setVisible(true));
+        if (ctrlVis) this._showControls();
         this._refresh();
         this._drawMinimapBg(GameState.currentZone || 'Zone1');
       }, 150);
@@ -456,79 +456,26 @@ export class HUDScene extends Phaser.Scene {
     }
   }
 
-  // ── Controls panel (H toggle) ─────────────────────────────────────────────
+  // ── Controls panel — DOM overlay in index.html, toggled here ─────────────
   _buildControlsPanel(W, H, fs) {
-    const cx   = W / 2, cy = H / 2;
-    const pw   = Math.round(W * 0.38), ph = Math.round(H * 0.50);
-    const r    = 16;
-    const padX = Math.round(pw * 0.08);
-    const padY = Math.round(ph * 0.07);
-
-    const gfx = this.add.graphics().setDepth(300).setVisible(false);
-    gfx.fillStyle(0xffffff, 0.98);
-    gfx.fillRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, r);
-    gfx.lineStyle(2, C.border, 1);
-    gfx.strokeRoundedRect(cx - pw / 2, cy - ph / 2, pw, ph, r);
-
-    const grp = [gfx];
-
-    const titleY = cy - ph / 2 + padY;
-    grp.push(
-      this.add.text(cx, titleY, 'Controlos', {
-        fontSize: fs.xl, fontFamily: FD, color: '#b42d27', fontStyle: 'bold',
-      }).setOrigin(0.5, 0).setDepth(301).setVisible(false)
-    );
-
-    const sepY   = titleY + Math.round(ph * 0.12);
-    const sepGfx = this.add.graphics().setDepth(301).setVisible(false);
-    sepGfx.lineStyle(1.5, C.border, 0.20);
-    sepGfx.lineBetween(cx - pw / 2 + padX, sepY, cx + pw / 2 - padX, sepY);
-    grp.push(sepGfx);
-
-    const rows = [
-      ['WASD / Setas',  'Mover'],
-      ['Shift',         'Correr'],
-      ['C',             'Apanhar / Interagir'],
-      ['F',             'Lançar feitiço'],
-      ['Q',             'Mudar feitiço'],
-      ['M',             'Mapa do jardim'],
-      ['H',             'Fechar ajuda'],
-    ];
-    const contentH = ph - padY * 2 - Math.round(ph * 0.12) - 30;
-    const lineH    = Math.round(contentH / rows.length);
-    const colLeft  = cx - pw / 2 + padX;
-    const colRight = cx - pw / 2 + Math.round(pw * 0.44);
-
-    rows.forEach(([key, action], i) => {
-      const iy = sepY + 12 + i * lineH;
-      grp.push(
-        this.add.text(colLeft,  iy, key, {
-          fontSize: fs.md, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
-        }).setOrigin(0, 0).setDepth(301).setVisible(false),
-        this.add.text(colRight, iy, action, {
-          fontSize: fs.md, fontFamily: FU, color: C.text,
-        }).setOrigin(0, 0).setDepth(301).setVisible(false),
-      );
-    });
-
-    grp.push(
-      this.add.text(cx, cy + ph / 2 - padY, 'Prima H ou ESC para fechar', {
-        fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
-      }).setOrigin(0.5, 1).setDepth(301).setVisible(false)
-    );
-
-    this._ctrlGroup = grp;
+    this._ctrlGroup = [];
     this.input.keyboard.on('keydown-ESC', () => {
-      if (this._controlsVisible) {
-        this._controlsVisible = false;
-        this._ctrlGroup.forEach(e => e.setVisible(false));
-      }
+      if (this._controlsVisible) this._hideControls();
     });
   }
 
   _toggleControls() {
-    this._controlsVisible = !this._controlsVisible;
-    this._ctrlGroup?.forEach(e => e.setVisible(this._controlsVisible));
+    this._controlsVisible ? this._hideControls() : this._showControls();
+  }
+
+  _showControls() {
+    this._controlsVisible = true;
+    document.getElementById('controls-panel')?.classList.add('visible');
+  }
+
+  _hideControls() {
+    this._controlsVisible = false;
+    document.getElementById('controls-panel')?.classList.remove('visible');
   }
 
   // ── Minimap internals ─────────────────────────────────────────────────────
@@ -1119,7 +1066,7 @@ export class HUDScene extends Phaser.Scene {
     this._mmMask             = null;
 
     this._buildAll(W, H);
-    if (ctrlVis) this._ctrlGroup?.forEach(e => e.setVisible(true));
+    if (ctrlVis) this._showControls(); else this._hideControls();
     if (dbgVis)  { this._hudDebugVisible = false; this._toggleHUDDebug(); }
     this._refresh();
     this._drawMinimapBg(GameState.currentZone || 'Zone1');
