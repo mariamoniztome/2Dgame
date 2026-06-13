@@ -110,7 +110,6 @@ export class HUDScene extends Phaser.Scene {
     this._hudBounds = {};
     const fs = this._fs(W);
     this._buildSpellPanel(W, H, fs);
-    this._buildPlantsActivas(W, H, fs);
     this._buildInventory(W, H, fs);
     this._buildMinimap(W, H, fs);
     this._buildAreaBadge(W, H, fs);
@@ -155,100 +154,49 @@ export class HUDScene extends Phaser.Scene {
 
   // ── Spell panel — top-right card ─────────────────────────────────────────
   _buildSpellPanel(W, H, fs) {
-    const ph    = Math.round(W * 0.076);
+    const footH = Math.max(20, Math.round(W * 0.022));
+    const bodyH = Math.max(42, Math.round(W * 0.052));
     const pw    = Math.round(W * 0.185);
+    const ph    = bodyH + footH;
     const rx    = W - 10;
     const ry    = 10;
     const r     = 10;
     const padX  = Math.max(8, Math.round(W * 0.010));
     const padY  = Math.max(6, Math.round(W * 0.008));
-    const iconR = Math.round(ph * 0.30);
 
-    // Panel — no border
     const gfx = this.add.graphics().setDepth(50);
-    gfx.fillStyle(C.panel, 1);
-    gfx.fillRoundedRect(rx - pw, ry, pw, ph, r);
 
-    // "Feitiço" italic label top-left
+    // Body — light pink, rounded top only
+    gfx.fillStyle(C.panel, 1);
+    gfx.fillRoundedRect(rx - pw, ry, pw, bodyH, { tl: r, tr: r, bl: 0, br: 0 });
+
+    // Footer — darker pink, rounded bottom only
+    gfx.fillStyle(C.panelDk, 1);
+    gfx.fillRoundedRect(rx - pw, ry + bodyH, pw, footH, { tl: 0, tr: 0, bl: r, br: r });
+
+    // "Feitiço" italic label
     this.add.text(rx - pw + padX, ry + padY, 'Feitiço', {
       fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
     }).setOrigin(0, 0).setDepth(55);
 
-    // Spell name bold — below label
-    const nameY = ry + padY + Math.round(ph * 0.34);
-    this.spellName = this.add.text(rx - pw + padX, nameY, 'nenhum', {
+    // Spell name bold
+    this.spellName = this.add.text(rx - pw + padX, ry + padY + Math.round(bodyH * 0.52), 'nenhum', {
       fontSize: fs.lg, fontFamily: FU, color: C.text, fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(55);
 
-    // Circular icon — right side
-    const iconX = rx - padX - iconR;
-    const iconY = ry + Math.round(ph * 0.42);
-    this.add.graphics().setDepth(54)
-      .fillStyle(C.panelDk, 1).fillCircle(iconX, iconY, iconR);
-    this.spellGfx = this.add.image(iconX, iconY, 'spell_brisa')
-      .setDisplaySize(iconR * 1.4, iconR * 1.4).setAlpha(0.85).setDepth(55);
+    // Key hints centred in footer
+    this.add.text(rx - pw / 2, ry + bodyH + footH / 2, '[Q] Mudar · [F] Lançar', {
+      fontSize: fs.sm, fontFamily: FU, color: C.text,
+    }).setOrigin(0.5, 0.5).setDepth(55);
 
-    // Key hints bottom-left
-    this.add.text(rx - pw + padX, ry + ph - padY, '[Q] Mudar · [F] Lançar', {
-      fontSize: fs.sm, fontFamily: FU, color: C.label,
-    }).setOrigin(0, 1).setDepth(55);
+    // spellGfx kept off-screen so _refreshSpell doesn't error
+    this.spellGfx = this.add.image(0, -9999, 'spell_brisa').setAlpha(0).setDepth(55);
 
     this._spellPanelBottom = ry + ph;
     this._spellPanelRight  = rx;
     this._hudBounds.spell  = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Feitiço' };
   }
 
-  // ── Plantas Activas — below spell pill ────────────────────────────────────
-  _buildPlantsActivas(W, H, fs) {
-    const MAX_PA = 2;
-    const slotR  = Math.max(13, Math.round(W * 0.019));
-    const iconS  = Math.round(slotR * 1.3);
-    const gap    = Math.max(6, Math.round(W * 0.009));
-    const labelH = Math.round(W * 0.018);
-    const padH   = Math.max(6, Math.round(W * 0.008));
-    const padW   = Math.max(8, Math.round(W * 0.010));
-    const pw     = MAX_PA * slotR * 2 + (MAX_PA - 1) * gap + padW * 2;
-    const ph     = slotR * 2 + labelH + padH * 2;
-    const rx     = this._spellPanelRight ?? W - 10;
-    const ry     = (this._spellPanelBottom ?? 72) + 6;
-
-    const grp = [];
-
-    const bg = this.add.graphics().setDepth(50);
-    bg.fillStyle(C.panel, 1);
-    bg.fillRoundedRect(rx - pw, ry, pw, ph, 8);
-    bg.lineStyle(1.5, C.border, 1);
-    bg.strokeRoundedRect(rx - pw, ry, pw, ph, 8);
-    grp.push(bg);
-
-    grp.push(
-      this.add.text(rx - pw / 2, ry + 5, 'Plantas activas', {
-        fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
-      }).setOrigin(0.5, 0).setDepth(55)
-    );
-
-    this._paSlots = [];
-    for (let i = 0; i < MAX_PA; i++) {
-      const sx = rx - pw + padW + slotR + i * (slotR * 2 + gap);
-      const sy = ry + labelH + padH + slotR;
-
-      const slotGfx = this.add.graphics().setDepth(51);
-      slotGfx.fillStyle(0xffffff, 0.55);
-      slotGfx.fillCircle(sx, sy, slotR);
-      slotGfx.lineStyle(1.4, C.border, 0.4);
-      slotGfx.strokeCircle(sx, sy, slotR);
-
-      const icon = this.add.image(sx, sy, 'plant_missing')
-        .setDisplaySize(iconS, iconS).setAlpha(0).setDepth(56);
-
-      grp.push(slotGfx, icon);
-      this._paSlots.push({ slotGfx, icon, sx, sy, slotR, iconS });
-    }
-
-    this._plantsActivasGroup = grp;
-    grp.forEach(o => o.setVisible(false));
-    this._hudBounds.plantsActivas = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Plantas Activas' };
-  }
 
   // ── Inventory — 3×4 circular slots with name labels below, bottom-left ────
   _buildInventory(W, H, fs) {
