@@ -133,7 +133,7 @@ export class MapScene extends Phaser.Scene {
     });
 
     // ── Portal icons ──────────────────────────────────────────────────────
-    // const portalLabels = ['Portal → Zona 2', 'Portal → Zona 3'];
+    const portalLabels = ['Portal → Zona 2', 'Portal → Zona 3'];
     if (this.textures.exists('map_portal')) {
       PORTAL_ICONS.forEach(({ xp, yp, sp }, pi) => {
         const s = Math.round(W * sp);
