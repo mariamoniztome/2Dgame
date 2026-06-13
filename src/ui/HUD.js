@@ -7,7 +7,7 @@ import { SoundManager } from '../SoundManager.js';
 
 const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
 
-const C = {
+const C_DEFAULTS = {
   bg:      0x100818,
   panel:   0x1a1028,
   border:  0x7b5ea7,
@@ -19,6 +19,9 @@ const C = {
   muted:   '#7a6a94',
   plant:   0x7bc67e,
 };
+
+// Mutable live palette — debug panel edits this, HUD rebuilds to apply changes
+const C = { ...C_DEFAULTS };
 
 const MAP_ZONE_REGIONS = {
   Zone1: {
@@ -864,36 +867,36 @@ export class HUDScene extends Phaser.Scene {
     cy2 += 52;
 
     // ── Section: CORES ────────────────────────────────────────────────────
-    this._dbSep(grp, px, cy2, PW, dep, 'CORES  (clica para copiar hex)');
+    this._dbSep(grp, px, cy2, PW, dep, 'CORES  (clica swatch → editar · [📋] copiar)');
     cy2 += 16;
 
-    const colorEntries = Object.entries(C);
-    colorEntries.forEach(([name, val]) => {
-      const isHex = typeof val === 'string';
+    Object.entries(C).forEach(([name, val]) => {
+      const isHex  = typeof val === 'string';
       const numVal = isHex ? parseInt(val.replace('#', ''), 16) : val;
       const hexStr = isHex ? val : '#' + numVal.toString(16).padStart(6, '0');
 
-      // Wider swatch
+      // Wide clickable swatch — opens native colour picker
       const swatch = this.add.rectangle(px + INN, cy2 + 6, 28, 13, numVal, 1)
         .setOrigin(0, 0.5).setDepth(dep + 2).setScrollFactor(0)
         .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => this._copyToClipboard(hexStr))
-        .on('pointerover', function() { this.setAlpha(0.6); })
-        .on('pointerout',  function() { this.setAlpha(1); });
+        .on('pointerdown', () => this._openColorPicker(name))
+        .on('pointerover', function() { this.setStrokeStyle(1.5, 0xffffff, 0.8); })
+        .on('pointerout',  function() { this.setStrokeStyle(0); });
       grp.push(swatch);
 
-      _txt(px + INN + 32, cy2, name, {
+      _txt(px + INN + 34, cy2, name, {
         fontSize: '9px', fontFamily: 'monospace', color: '#9a90b0',
       });
-      const hexLabel = _txt(px + INN + 80, cy2, hexStr, {
-        fontSize: '9px', fontFamily: 'monospace', color: hexStr === '#f0e8ff' ? '#c0b8d0' : hexStr,
-      });
-      hexLabel.setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => this._copyToClipboard(hexStr))
-        .on('pointerover', function() { this.setAlpha(0.6); })
-        .on('pointerout',  function() { this.setAlpha(1); });
 
-      // Live-preview: highlight all elements using this colour (future enhancement)
+      const safeHex = hexStr === '#f0e8ff' ? '#c0b8d0' : hexStr;
+      const hexLabel = _txt(px + INN + 86, cy2, hexStr, {
+        fontSize: '9px', fontFamily: 'monospace', color: safeHex,
+      });
+      grp.push(hexLabel);
+
+      // Copy icon button
+      _btn(px + PW - 32, cy2 - 2, '[📋]', () => this._copyToClipboard(hexStr), 26);
+
       cy2 += 17;
     });
     cy2 += 4;
@@ -902,7 +905,11 @@ export class HUDScene extends Phaser.Scene {
     this._dbSep(grp, px, cy2, PW, dep);
     cy2 += 8;
     _btn(px + INN, cy2, '[ COPIAR CONFIG ]', () => this._copyHUDConfig(), 130);
-    _btn(px + INN + 140, cy2, '[ RESET FONTS ]', () => { this._hudFontMult = 1.0; this._adjustHUDFont(0); }, 120);
+    _btn(px + INN + 140, cy2, '[ RESET TUDO ]', () => {
+      Object.assign(C, C_DEFAULTS);
+      this._hudFontMult = 1.0;
+      this._rebuildHUD();
+    }, 120);
 
     // ── Wireframe overlay (separate, persistent) ──────────────────────────
     if (!this._wireframeGfx) {
@@ -1007,6 +1014,73 @@ export class HUDScene extends Phaser.Scene {
       `xl = max(21, W×0.0165)× ${m.toFixed(2)} → ${Math.max(21, Math.round(W * 0.0165 * m))}px`,
     ];
     this._dbFsSizes.setText(lines.join('\n'));
+  }
+
+  // Opens the browser's native colour picker and applies the chosen value live
+  _openColorPicker(key) {
+    const val    = C[key];
+    const isStr  = typeof val === 'string';
+    const curHex = isStr ? val : '#' + val.toString(16).padStart(6, '0');
+
+    const inp = document.createElement('input');
+    inp.type  = 'color';
+    inp.value = curHex;
+    // Hidden but attached to DOM so the browser can open the native picker
+    Object.assign(inp.style, {
+      position: 'fixed', top: '0', left: '0',
+      width: '0', height: '0', opacity: '0', pointerEvents: 'none',
+    });
+    document.body.appendChild(inp);
+
+    const cleanup = () => { if (inp.parentNode) document.body.removeChild(inp); };
+
+    // Live preview while dragging the picker
+    inp.addEventListener('input', (e) => {
+      const hex = e.target.value;
+      C[key] = isStr ? hex : parseInt(hex.slice(1), 16);
+    });
+
+    // Rebuild HUD when picker is closed/confirmed
+    inp.addEventListener('change', () => {
+      cleanup();
+      this._rebuildHUD();
+    });
+
+    inp.addEventListener('cancel', cleanup);
+
+    inp.click();
+  }
+
+  // Full HUD rebuild — preserves persistent state, applies any C palette changes
+  _rebuildHUD() {
+    if (!this.sys.isActive()) return;
+    const W       = this.scale.width, H = this.scale.height;
+    const queue   = [...(this._toastQueue  || [])];
+    const ctrlVis = this._controlsVisible;
+    const dbgVis  = this._hudDebugVisible;
+    const wireOn  = this._wireframeOn;
+
+    this.children.removeAll(true);
+    this._slots              = [];
+    this._plantDots          = [];
+    this._ctrlGroup          = [];
+    this._paSlots            = [];
+    this._plantsActivasGroup = null;
+    this._dbHighlightGfx     = null;
+    this._wireframeGfx       = null;
+    this._wireLabels         = [];
+    this._toastQueue         = queue;
+    this._toastActive        = false;
+    this._controlsVisible    = ctrlVis;
+    this._narrativeTimer     = null;
+    this._lastZone           = null;
+    this._wireframeOn        = wireOn;
+
+    this._buildAll(W, H);
+    if (ctrlVis) this._ctrlGroup?.forEach(e => e.setVisible(true));
+    if (dbgVis)  { this._hudDebugVisible = false; this._toggleHUDDebug(); }
+    this._refresh();
+    this._drawMinimapBg(GameState.currentZone || 'Zone1');
   }
 
   _copyToClipboard(text) {

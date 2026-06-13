@@ -88,8 +88,8 @@ export class MapScene extends Phaser.Scene {
       const x    = W * area.xp;
       const y    = H * area.yp;
       const size = Math.round(W * area.size);
-      // Jardim is locked until the player has physically visited it
-      const jardimLocked = area.startArea === 'jardimInvertido' && !GameState.visitedJardim;
+      // Jardim is always accessible — no lock
+      const jardimLocked = false;
 
       if (this.textures.exists(area.icon)) {
         const img = this.add.image(x, y, area.icon)
@@ -137,7 +137,7 @@ export class MapScene extends Phaser.Scene {
     });
 
     // ── Portal icons ──────────────────────────────────────────────────────
-    // const portalLabels = ['Portal → Zona 2', 'Portal → Zona 3'];
+    const portalLabels = ['Portal → Zona 2', 'Portal → Zona 3'];
     if (this.textures.exists('map_portal')) {
       PORTAL_ICONS.forEach(({ xp, yp, sp }, pi) => {
         const s = Math.round(W * sp);
