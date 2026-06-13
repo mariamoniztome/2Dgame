@@ -8,15 +8,16 @@ import { SoundManager } from '../SoundManager.js';
 const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
 
 const C = {
-  bg:     0x0d2918,
-  panel:  0x142e1e,
-  border: 0x88c890,
-  dim:    0x4a7d5c,
-  accent: 0xffef7a,
-  magic:  0xffcb79,
-  text:   '#ecffe3',
-  label:  '#c8f2bf',
-  muted:  '#97ba9f',
+  bg:      0x100818,
+  panel:   0x1a1028,
+  border:  0x7b5ea7,
+  dim:     0x4a3d6e,
+  accent:  0xffef7a,
+  magic:   0xd4a8f0,
+  text:    '#f0e8ff',
+  label:   '#c9a8e8',
+  muted:   '#7a6a94',
+  plant:   0x7bc67e,
 };
 
 // Map-image regions (fractions 0–1) for each zone/sub-area
@@ -139,8 +140,8 @@ export class HUDScene extends Phaser.Scene {
   // Font sizes relative to W
   _fs(W) {
     return {
-      sm:  `${Math.max(11, Math.round(W * 0.0080))}px`,
-      md:  `${Math.max(13, Math.round(W * 0.0100))}px`,
+      sm:  `${Math.max(12, Math.round(W * 0.0100))}px`,
+      md:  `${Math.max(14, Math.round(W * 0.0120))}px`,
       lg:  `${Math.max(17, Math.round(W * 0.0135))}px`,
       xl:  `${Math.max(21, Math.round(W * 0.0165))}px`,
     };
@@ -148,14 +149,14 @@ export class HUDScene extends Phaser.Scene {
 
   // ── Spell panel (top-right) ───────────────────────────────────────────────
   _buildSpellPanel(W, H, fs) {
-    const pw   = Math.round(W * 0.172);
-    const ph   = Math.round(W * 0.065);
+    const pw   = Math.round(W * 0.155);
+    const ph   = Math.round(W * 0.070);
     const x    = W - 10, y = 10;
-    const iconS = Math.round(W * 0.030);
-    const icoX  = x - pw + Math.round(W * 0.025);
+    const iconS = Math.round(W * 0.038);
+    const icoX  = x - pw + Math.round(W * 0.028);
     const icoY  = y + Math.round(ph * 0.64);
 
-    this.add.rectangle(x, y, pw, ph, C.bg, 0.82)
+    this.add.rectangle(x, y, pw, ph, C.bg, 0.85)
       .setOrigin(1, 0).setStrokeStyle(1.5, C.border, 0.80).setDepth(50);
     this.add.text(x - pw + 14, y + Math.round(ph * 0.10), 'FEITIÇO', {
       fontSize: fs.sm, fontFamily: 'monospace', color: C.label,
@@ -170,24 +171,24 @@ export class HUDScene extends Phaser.Scene {
       .setDisplaySize(iconS, iconS).setAlpha(0.6).setDepth(55);
     this.spellName = this.add.text(icoX + iconS * 0.7, icoY, 'nenhum', {
       fontSize: fs.lg, fontFamily: 'Georgia, serif',
-      color: '#ffffff', fontStyle: 'italic',
+      color: C.muted, fontStyle: 'italic',
     }).setOrigin(0, 0.5).setDepth(55);
   }
 
   // ── Inventory (bottom-left) ───────────────────────────────────────────────
   _buildInventory(W, H, fs) {
-    const iw       = Math.round(W * 0.190);
-    const ih       = Math.round(W * 0.070);
-    const slotS    = Math.round(W * 0.024);
-    const iconS    = Math.round(W * 0.017);
-    const spacing  = Math.round(W * 0.0290);
+    const iw       = Math.round(W * 0.240);
+    const ih       = Math.round(W * 0.085);
+    const slotS    = Math.round(W * 0.038);
+    const iconS    = Math.round(W * 0.028);
+    const spacing  = Math.round(W * 0.0400);
     const firstX   = 10 + Math.round(spacing * 0.4);
     const slotY    = H - Math.round(ih * 0.40);
-    const r        = 6;  // border-radius
+    const r        = 7;
 
     // Panel rounded background
     const panelGfx = this.add.graphics().setDepth(50);
-    panelGfx.fillStyle(C.bg, 0.82);
+    panelGfx.fillStyle(C.bg, 0.85);
     panelGfx.fillRoundedRect(10, H - 10 - ih, iw, ih, r);
     panelGfx.lineStyle(1.5, C.border, 0.80);
     panelGfx.strokeRoundedRect(10, H - 10 - ih, iw, ih, r);
@@ -201,7 +202,6 @@ export class HUDScene extends Phaser.Scene {
 
     for (let i = 0; i < 6; i++) {
       const sx = firstX + i * spacing;
-      // Rounded slot background
       const bg = this.add.graphics().setDepth(51);
       this._drawSlotBg(bg, sx, slotY, slotS, r, C.dim, 0.7);
 
@@ -212,6 +212,20 @@ export class HUDScene extends Phaser.Scene {
       }).setOrigin(0.5).setAlpha(0).setDepth(57);
       this._slots.push({ bg, icon, fake, sx, slotY, slotS, r });
     }
+
+    // Objective bar — 3 progress dots for Zone2 unlock (farfalha, ventoinha, trepadeira)
+    const objY = H - ih - 20;
+    this._objDots = [];
+    this._objLabel = this.add.text(firstX + 3, objY, '', {
+      fontSize: `${Math.max(10, Math.round(W * 0.009))}px`,
+      fontFamily: 'Georgia, serif', color: C.muted, fontStyle: 'italic',
+    }).setOrigin(0, 0.5).setDepth(55);
+    const ZONE2_PLANTS = ['farfalha', 'ventoinha', 'trepadeira'];
+    ZONE2_PLANTS.forEach((id, i) => {
+      const dot = this.add.circle(iw - 14 - i * 14, objY, 4, C.dim, 1)
+        .setStrokeStyle(1, C.border, 0.6).setDepth(55);
+      this._objDots.unshift(dot); // keep order left-to-right
+    });
   }
 
   _drawSlotBg(gfx, sx, sy, s, r, strokeCol, strokeAlpha) {
@@ -269,7 +283,7 @@ export class HUDScene extends Phaser.Scene {
     // Player dot
     this.mmDot = this.add.circle(
       mmX + MMW / 2, mmY + MMH / 2,
-      Math.max(3, Math.round(W * 0.0025)), C.accent, 1
+      Math.max(4, Math.round(W * 0.0045)), C.accent, 1
     ).setDepth(62).setStrokeStyle(1.2, 0x0D351E, 0.9);
 
     // Border
@@ -458,7 +472,28 @@ export class HUDScene extends Phaser.Scene {
   update() { this._updateMinimap(); }
 
   // ── Refresh ───────────────────────────────────────────────────────────────
-  _refresh() { this._refreshInventory(); this._refreshSpell(); this._updateCauldronDots(); }
+  _refresh() { this._refreshInventory(); this._refreshSpell(); this._updateCauldronDots(); this._refreshObjective(); }
+
+  _refreshObjective() {
+    if (!this._objDots) return;
+    const ZONE2_PLANTS = ['farfalha', 'ventoinha', 'trepadeira'];
+    const count = ZONE2_PLANTS.filter(id => GameState.collected.has(id)).length;
+    this._objDots.forEach((dot, i) => {
+      const filled = i < count;
+      dot.setFillStyle(filled ? C.plant : C.dim, 1);
+      dot.setStrokeStyle(1.2, filled ? C.plant : C.border, filled ? 0.9 : 0.5);
+      if (filled) {
+        this.tweens.add({ targets: dot, scale: { from: 1.5, to: 1 }, duration: 300 });
+      }
+    });
+    if (count === 0) {
+      this._objLabel?.setText('objetivo: 3 plantas para o portal');
+    } else if (count < 3) {
+      this._objLabel?.setText(`${count}/3 para abrir o portal`);
+    } else {
+      this._objLabel?.setText('portal desbloqueado!').setColor(C.label);
+    }
+  }
 
   _refreshInventory() {
     this.inventoryCount?.setText(`${GameState.inventory.length}/6`);
@@ -486,16 +521,17 @@ export class HUDScene extends Phaser.Scene {
     const spell = GameState.activeSpell ? SPELLS[GameState.activeSpell] : null;
     if (spell) {
       this.spellGfx?.setTexture(spell.textureKey).setAlpha(0.9);
-      this.spellName?.setText(spell.name).setColor('#ffffff');
+      this.spellName?.setText(spell.name).setColor(C.magic);
     } else {
       this.spellGfx?.setAlpha(0.3);
-      this.spellName?.setText('nenhum').setColor('#a0b890');
+      this.spellName?.setText('nenhum').setColor(C.muted);
     }
   }
 
   // ── Event handlers ────────────────────────────────────────────────────────
   _onPlantCollected(plantData) {
     this._refresh();
+    this._refreshObjective();
     if (plantData) {
       this.showPlantToast(plantData);
       this._rebuildPlantDots();

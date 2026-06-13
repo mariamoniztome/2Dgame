@@ -20,6 +20,9 @@ export class Plant extends Phaser.GameObjects.Container {
     this._sombraVisible = false;
     this._sombraTimer = 0;
 
+    // First-visit method hint (shown once when player enters range)
+    this._methodHintShown = false;
+
     const el = ELEMENTS[data.element] || ELEMENTS.EARTH;
 
     // Glow background
@@ -79,8 +82,10 @@ export class Plant extends Phaser.GameObjects.Container {
 
   }
 
-  showHint(show) {
+  showHint(show, text) {
     if (!this.scene) return;
+    if (show && text) this.hint.setText(text);
+    else if (!show)   this.hint.setText('C');
     this.scene.tweens.add({
       targets: [this.hint, this.label],
       alpha: show ? 1 : 0,

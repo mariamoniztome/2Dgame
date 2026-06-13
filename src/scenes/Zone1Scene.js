@@ -180,15 +180,16 @@ export class Zone1Scene extends Phaser.Scene {
     this._jardimHintShown     = false;
     this._ladrao              = null;
     this._ladraoStole         = false;
+    this._tutorialShown       = false;   // show on first movement, not on timer
+    this._sprintTrailTimer    = 0;       // sprint particle trail throttle
     // First appearance: 35s in (player needs time to collect at least one plant)
     this.time.delayedCall(35000, () => this._scheduleLadrao());
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
 
     this.time.delayedCall(900, () => {
-      this._emitNarrative('Bem-vinda ao jardim, bruxinha. Explora. As plantas esperam por ti.');
+      this._emitNarrative('As plantas brilham de noite. Segue o brilho.');
     });
-    this.time.delayedCall(1400, () => { this._showTutorial(); });
 
     this.game.events.on('plantStolen', this._onPlantStolen, this);
 
@@ -645,6 +646,26 @@ export class Zone1Scene extends Phaser.Scene {
       this._tutorialDismiss();
       this._tutorialDismiss = null;
     }
+
+    // Show tutorial on first movement (not on a blind timer)
+    if (!this._tutorialShown && this.player.recentSpeed > 20) {
+      this._tutorialShown = true;
+      this.time.delayedCall(400, () => this._showTutorial());
+    }
+
+    // Sprint particle trail
+    if (this.keyShift.isDown && this.player.recentSpeed > 80) {
+      this._sprintTrailTimer += delta;
+      if (this._sprintTrailTimer > 75) {
+        this._sprintTrailTimer = 0;
+        const t = this.add.circle(this.player.x, this.player.y, 5, 0xd4a8f0, 0.40).setDepth(9);
+        this.tweens.add({ targets: t, alpha: 0, scaleX: 0.3, scaleY: 0.3, duration: 350,
+          onComplete: () => t.destroy() });
+      }
+    } else {
+      this._sprintTrailTimer = 0;
+    }
+
     this._checkAreaChange();
     this._checkPlantProximity(time, delta);
     this._checkPortalProximity();
@@ -698,6 +719,8 @@ export class Zone1Scene extends Phaser.Scene {
         });
       } else {
         this._applyCameraBounds(area);
+        // Subtle lavender flash on vertical zone crossings (not on first entry)
+        if (prev !== '') this._flashAreaTransition();
       }
 
       // Mark jardim as visited (unlocks it on the map)
@@ -732,9 +755,31 @@ export class Zone1Scene extends Phaser.Scene {
     }
   }
 
+  _flashAreaTransition() {
+    const cam = this.cameras.main;
+    const flash = this.add.rectangle(
+      cam.scrollX + cam.width  / 2,
+      cam.scrollY + cam.height / 2,
+      cam.width, cam.height,
+      0xd4a8f0, 0.10
+    ).setDepth(500).setScrollFactor(0);
+    this.tweens.add({ targets: flash, alpha: 0, duration: 500,
+      onComplete: () => flash.destroy() });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   //  Proximity
   // ─────────────────────────────────────────────────────────────────────────
+  // Per-method narrative hints shown once on first approach
+  static _METHOD_HINTS = {
+    fast:  'Esta planta foge dos lentos — corre para a apanhar!',
+    shake: 'Parece que está a tremer… carrega C várias vezes.',
+    slow:  'Esta planta prefere calma — anda mais devagar.',
+    brave: 'Uma presença intensa. Fica perto sem recuar.',
+    climb: 'A trepadeira leva-te mais alto. [C]',
+    spell: 'Esta planta está protegida por magia.',
+  };
+
   _checkPlantProximity(time, delta) {
     this._nearPlant = null;
     let foundNear = false;
@@ -745,8 +790,15 @@ export class Zone1Scene extends Phaser.Scene {
       const inRange = dist < PLAYER_INTERACTION_RADIUS;
       const method  = plant.plantData.collectMethod;
 
+      // First-approach method hint (fires once per plant)
+      if (inRange && !plant._methodHintShown && method !== 'interact') {
+        plant._methodHintShown = true;
+        const txt = Zone1Scene._METHOD_HINTS[method];
+        if (txt) this.time.delayedCall(350, () => this._emitNarrative(txt, 4000));
+      }
+
       if (inRange && method === 'fast') {
-        plant.showHint(this.player.recentSpeed >= 120 ? false : true, 'Corre para apanhar!');
+        plant.showHint(this.player.recentSpeed >= 120 ? false : true, 'Corre!');
       } else {
         plant.showHint(inRange);
       }
@@ -796,6 +848,9 @@ export class Zone1Scene extends Phaser.Scene {
     const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.portal.x, this.portal.y);
     this._nearPortal = dist < 65;
     this.portal.showHint(this._nearPortal);
+    // Glow pulse accelerates as player approaches (0=200px away, 1=contact)
+    const prox = Phaser.Math.Clamp(1 - (dist / 200), 0, 1);
+    this.portal.setProximity(prox);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -949,6 +1004,7 @@ export class Zone1Scene extends Phaser.Scene {
       return;
     }
     plant.collect();
+    this.cameras.main.shake(120, 0.003);
     this._showPlantPaper(data);
     this._checkSpellUnlock();
     this.plants = this.plants.filter(p => {
@@ -1688,6 +1744,87 @@ export class Zone1Scene extends Phaser.Scene {
     kDel.on('down', this._dbDeleteFn);
     kX.on('down',   this._dbDeleteFn);
     this._dbDeleteKeys = [kDel, kX];
+
+    // ── Overlay layers: grid, spawns, zone fills, portal ─────────────────
+    this._dbGrid      = this._drawDebugGrid();
+    this._dbSpawnObjs = this._drawDebugSpawns();
+    this._dbZoneFills = this._drawDebugZoneFills();
+    this.portal?.showDebug(true);
+
+    // G / S / Z toggle individual layers
+    const kG = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.G);
+    const kS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+    const kZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+    kG.on('down', () => { this._dbGrid?.setVisible(!this._dbGrid.visible); });
+    kS.on('down', () => {
+      const v = !(this._dbSpawnObjs?.[0]?.visible ?? true);
+      this._dbSpawnObjs?.forEach(o => o?.setVisible(v));
+    });
+    kZ.on('down', () => { this._dbZoneFills?.setVisible(!this._dbZoneFills.visible); });
+    this._dbDeleteKeys.push(kG, kS, kZ);
+  }
+
+  _drawDebugGrid() {
+    const ZW = this._zoneW, ZH = this._zoneH;
+    const TH = this._transH, PH = this._paredeH;
+    const TOTAL_H = ZH + TH + PH + ZH;
+    const step = 256;
+    const g = this.add.graphics().setDepth(996);
+    g.lineStyle(1, 0x334455, 0.35);
+    for (let x = 0; x <= ZW * 2; x += step) g.lineBetween(x, -TOTAL_H, x, ZH);
+    for (let y = -TOTAL_H; y <= ZH; y += step) g.lineBetween(0, y, ZW * 2, y);
+    // Ruler labels every 512px
+    const ts = { fontSize: '8px', fontFamily: 'monospace', color: '#445566',
+                 stroke: '#000000', strokeThickness: 1 };
+    for (let x = 0; x <= ZW; x += 512) {
+      this.add.text(x, ZH - 2, `${x}`, ts).setOrigin(0.5, 1).setDepth(997);
+    }
+    for (let y = 0; y >= -TOTAL_H; y -= 512) {
+      this.add.text(4, y, `${y}`, ts).setOrigin(0, 0.5).setDepth(997);
+    }
+    return g;
+  }
+
+  _drawDebugSpawns() {
+    const objs = [];
+    const allSpawns = [
+      ...PLANT_SPAWNS.map(s => ({ ...s, zone: 'campo' })),
+      ...TRANSICAO_PLANT_SPAWNS.map(s => ({ ...s, zone: 'trans' })),
+      ...LIMIAR_PLANT_SPAWNS.map(s => ({ ...s, zone: 'limiar' })),
+    ];
+    allSpawns.forEach(s => {
+      const tri = this.add.triangle(s.x, s.y - 14, 0, 0, -7, -14, 7, -14, 0x00ff88, 0.9).setDepth(999);
+      const lbl = this.add.text(s.x, s.y - 28, s.id, {
+        fontSize: '8px', fontFamily: 'monospace',
+        color: '#00ff88', stroke: '#000000', strokeThickness: 1,
+      }).setOrigin(0.5, 1).setDepth(999);
+      objs.push(tri, lbl);
+    });
+    // Player start marker
+    const dot = this.add.circle(this.player.x, this.player.y, 10, 0x00ffff, 0.4).setDepth(999);
+    const dotL = this.add.text(this.player.x, this.player.y - 14, 'START', {
+      fontSize: '8px', fontFamily: 'monospace', color: '#00ffff', stroke: '#000000', strokeThickness: 1,
+    }).setOrigin(0.5, 1).setDepth(999);
+    objs.push(dot, dotL);
+    return objs;
+  }
+
+  _drawDebugZoneFills() {
+    const ZW = this._zoneW, ZH = this._zoneH;
+    const TH = this._transH, PH = this._paredeH;
+    const g = this.add.graphics().setDepth(995);
+    const zones = [
+      { rect: [0,         0, ZW, ZH],         col: 0x7bc67e },  // campo
+      { rect: [0,       -TH, ZW, TH],         col: 0xffff00 },  // transição
+      { rect: [0,  -(TH+PH), ZW, PH],         col: 0xff8800 },  // parede
+      { rect: [0, -(ZH+TH+PH), ZW, ZH],       col: 0xff00cc },  // limiar
+      { rect: [ZW,        0, ZW, ZH],          col: 0x88ccff },  // jardim
+    ];
+    zones.forEach(({ rect: [x, y, w, h], col }) => {
+      g.fillStyle(col, 0.06);
+      g.fillRect(x, y, w, h);
+    });
+    return g;
   }
 
   _dbDeleteSelected() {
@@ -1778,6 +1915,13 @@ export class Zone1Scene extends Phaser.Scene {
     (this._dbDeleteKeys || []).forEach(k => k?.destroy());
     this._dbDeleteKeys = [];
     this._dbDeleteFn = null;
+
+    // Overlay layers
+    this._dbGrid?.destroy();      this._dbGrid = null;
+    this._dbZoneFills?.destroy(); this._dbZoneFills = null;
+    (this._dbSpawnObjs || []).forEach(o => o?.destroy());
+    this._dbSpawnObjs = [];
+    this.portal?.showDebug(false);
 
     (this._dbObjs || []).forEach(obj => {
       if (!obj?.active) return;

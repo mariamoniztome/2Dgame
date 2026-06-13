@@ -34,7 +34,7 @@ export class Portal extends Phaser.GameObjects.Container {
     this.setDepth(4);
 
     // Soft pulse on the glow only (no rotation)
-    scene.tweens.add({
+    this._glowTween = scene.tweens.add({
       targets: this.glow,
       scale: { from: 1, to: 1.5 },
       alpha: { from: 0.35, to: 0 },
@@ -64,5 +64,48 @@ export class Portal extends Phaser.GameObjects.Container {
       alpha: show ? 1 : 0,
       duration: 180,
     });
+  }
+
+  // t = 0 (far) to 1 (contact) — speeds up glow pulse proportionally
+  setProximity(t) {
+    if (this._glowTween) {
+      this._glowTween.timeScale = 1 + t * 2.5;
+    }
+    // Brighten ring slightly as player approaches
+    const alpha = this.isLocked ? 0.45 + t * 0.2 : 0.85 + t * 0.12;
+    this.ring.setAlpha(Math.min(1, alpha));
+  }
+
+  showDebug(show) {
+    if (show) {
+      if (this._dbGfx?.active) return;
+
+      this._dbGfx = this.scene.add.graphics().setDepth(999);
+      // Interaction radius circle (65px — matches Zone1Scene _checkPortalProximity)
+      this._dbGfx.lineStyle(1.5, 0x00ffff, 0.75);
+      this._dbGfx.strokeCircle(this.x, this.y, 65);
+      // Outer approach circle (200px — proximity glow starts here)
+      this._dbGfx.lineStyle(1, 0x00ffff, 0.25);
+      this._dbGfx.strokeCircle(this.x, this.y, 200);
+      // Origin cross
+      this._dbGfx.lineStyle(1, 0xffffff, 0.5);
+      this._dbGfx.lineBetween(this.x - 14, this.y, this.x + 14, this.y);
+      this._dbGfx.lineBetween(this.x, this.y - 14, this.x, this.y + 14);
+
+      const stateStr = this.isLocked ? '🔒 BLOQUEADO' : '✓ ATIVO';
+      const col      = this.isLocked ? '#ff5555' : '#55ff88';
+      this._dbLabel = this.scene.add.text(this.x, this.y - 108,
+        `${this.portalId}\n→ ${this.destination || 'indefinido'}\n${stateStr}`, {
+          fontSize: '11px', fontFamily: 'monospace',
+          color: col, stroke: '#000000', strokeThickness: 2,
+          align: 'center',
+          backgroundColor: '#00000099', padding: { x: 6, y: 3 },
+        }).setOrigin(0.5, 1).setDepth(1000);
+
+      console.log(`[Portal debug] id=${this.portalId}  dest=${this.destination}  locked=${this.isLocked}  pos=(${Math.round(this.x)}, ${Math.round(this.y)})`);
+    } else {
+      this._dbGfx?.destroy();  this._dbGfx   = null;
+      this._dbLabel?.destroy(); this._dbLabel = null;
+    }
   }
 }
