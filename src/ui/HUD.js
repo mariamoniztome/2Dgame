@@ -114,11 +114,13 @@ export class HUDScene extends Phaser.Scene {
     this._buildMinimap(W, H, fs);
     this._buildAreaBadge(W, H, fs);
 
+    // Rounded bg for narrative pill — redrawn each time text changes
+    this.narrativeBg = this.add.graphics().setDepth(99).setAlpha(0);
+
     this.narrativeText = this.add.text(W / 2, H - this._mmPH - Math.round(W * 0.009), '', {
       fontSize: fs.md, fontFamily: FU,
       color: '#000000', wordWrap: { width: W * 0.30 },
       align: 'center',
-      backgroundColor: 'rgba(246,163,179,0.94)',
       padding: { x: 18, y: 10 },
     }).setOrigin(0.5, 1).setAlpha(0).setDepth(100);
 
@@ -743,12 +745,23 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   _showNarrative(text, duration = 4000) {
     if (this._narrativeTimer) this._narrativeTimer.remove();
     this.tweens.killTweensOf(this.narrativeText);
+    this.tweens.killTweensOf(this.narrativeBg);
     this.narrativeText?.setText(text);
+
+    // Redraw rounded pill background to fit updated text bounds
+    if (this.narrativeBg && this.narrativeText) {
+      const b = this.narrativeText.getBounds();
+      this.narrativeBg.clear()
+        .fillStyle(0xf6a3b3, 0.94)
+        .fillRoundedRect(b.left, b.top, b.width, b.height, 14);
+    }
+
+    const targets = [this.narrativeText, this.narrativeBg].filter(Boolean);
     this.tweens.add({
-      targets: this.narrativeText, alpha: 1, duration: 280,
+      targets, alpha: 1, duration: 280,
       onComplete: () => {
         this._narrativeTimer = this.time.delayedCall(duration, () =>
-          this.tweens.add({ targets: this.narrativeText, alpha: 0, duration: 500 })
+          this.tweens.add({ targets, alpha: 0, duration: 500 })
         );
       },
     });
