@@ -130,8 +130,10 @@ export class HUDScene extends Phaser.Scene {
     }).setOrigin(0, 0).setDepth(55);
 
     this._buildControlsPanel(W, H, fs);
+    this._buildHUDDebugPanel(W, H, fs);
 
     this.input.keyboard.on('keydown-H', () => this._toggleControls());
+    this.input.keyboard.on('keydown-D', (e) => { if (e.shiftKey) this._toggleHUDDebug(); });
   }
 
   // Font sizes relative to W
@@ -548,5 +550,145 @@ export class HUDScene extends Phaser.Scene {
       ),
     });
     SoundManager.areaChange();
+  }
+
+  // ── HUD debug panel (Shift+D) — live font-scale + color inspector ─────────
+  _buildHUDDebugPanel(W, H, fs) {
+    // Font scale multiplier (persists across rebuilds)
+    if (this._hudFontMult === undefined) this._hudFontMult = 1.0;
+
+    const PW = 260, PH = 340;
+    const px = 10, py = Math.round(H * 0.10);
+
+    const grp = [];
+    const bg = this.add.graphics().setDepth(500).setScrollFactor(0);
+    bg.fillStyle(0x050e08, 0.94);
+    bg.fillRoundedRect(px, py, PW, PH, 8);
+    bg.lineStyle(1.5, 0x88c890, 0.65);
+    bg.strokeRoundedRect(px, py, PW, PH, 8);
+    grp.push(bg);
+
+    const title = this.add.text(px + PW / 2, py + 12, 'HUD DEBUG  [Shift+D]', {
+      fontSize: '11px', fontFamily: 'monospace', color: '#7bc67e',
+      stroke: '#050e08', strokeThickness: 2,
+    }).setOrigin(0.5, 0).setDepth(501).setScrollFactor(0);
+    grp.push(title);
+
+    // Font scale row
+    const fsy = py + 40;
+    grp.push(this.add.text(px + 10, fsy, 'FONT SCALE', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#c8f2bf',
+    }).setDepth(501).setScrollFactor(0));
+
+    const fsMult = this.add.text(px + PW / 2, fsy, `×${this._hudFontMult.toFixed(2)}`, {
+      fontSize: '12px', fontFamily: 'monospace', color: '#ffef7a',
+    }).setOrigin(0.5, 0).setDepth(501).setScrollFactor(0);
+    grp.push(fsMult);
+    this._dbFsMult = fsMult;
+
+    const btnStyle = { fontSize: '13px', fontFamily: 'monospace', color: '#7bc67e',
+      backgroundColor: '#0d2918', padding: { x: 7, y: 3 } };
+
+    const btnMinus = this.add.text(px + PW - 52, fsy - 1, '−', btnStyle)
+      .setDepth(502).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    const btnPlus  = this.add.text(px + PW - 24, fsy - 1, '+', btnStyle)
+      .setDepth(502).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    btnMinus.on('pointerdown', () => this._adjustHUDFont(-0.05));
+    btnPlus.on('pointerdown',  () => this._adjustHUDFont(+0.05));
+    grp.push(btnMinus, btnPlus);
+
+    // Current resolved font sizes
+    const fsLabelY = fsy + 28;
+    this._dbFsSizes = this.add.text(px + 10, fsLabelY, '', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#d4ecc8', lineSpacing: 3,
+    }).setDepth(501).setScrollFactor(0);
+    grp.push(this._dbFsSizes);
+    this._updateHUDDebugFsSizes(W);
+
+    // Color swatches
+    const colY = fsLabelY + 80;
+    grp.push(this.add.text(px + 10, colY, 'CORES', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#c8f2bf',
+    }).setDepth(501).setScrollFactor(0));
+
+    const colorEntries = Object.entries(C);
+    colorEntries.forEach(([name, val], idx) => {
+      const row = Math.floor(idx / 2);
+      const col = idx % 2;
+      const cx = px + 12 + col * 126;
+      const cy = colY + 18 + row * 22;
+      const isHex = typeof val === 'string';
+      const numVal = isHex ? parseInt(val.replace('#',''), 16) : val;
+      const hexStr = isHex ? val : '#' + numVal.toString(16).padStart(6,'0');
+
+      const swatch = this.add.rectangle(cx, cy + 6, 14, 14, numVal, 1)
+        .setOrigin(0, 0.5).setDepth(502).setScrollFactor(0);
+      const label = this.add.text(cx + 18, cy, `${name}: ${hexStr}`, {
+        fontSize: '9px', fontFamily: 'monospace', color: '#d4ecc8',
+      }).setDepth(502).setScrollFactor(0);
+      grp.push(swatch, label);
+    });
+
+    // Copy button
+    const copyY = py + PH - 22;
+    const copyBtn = this.add.text(px + PW / 2, copyY, '[ COPIAR CONFIG ]', {
+      fontSize: '10px', fontFamily: 'monospace', color: '#ffef7a',
+      backgroundColor: '#003300', padding: { x: 8, y: 3 },
+    }).setOrigin(0.5).setDepth(502).setScrollFactor(0)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this._copyHUDConfig())
+      .on('pointerover', function() { this.setColor('#ffffff'); })
+      .on('pointerout',  function() { this.setColor('#ffef7a'); });
+    grp.push(copyBtn);
+
+    this._hudDebugGroup = grp;
+    grp.forEach(o => o.setVisible(false));
+    this._hudDebugVisible = false;
+  }
+
+  _toggleHUDDebug() {
+    this._hudDebugVisible = !this._hudDebugVisible;
+    this._hudDebugGroup?.forEach(o => o.setVisible(this._hudDebugVisible));
+  }
+
+  _adjustHUDFont(delta) {
+    this._hudFontMult = Math.max(0.5, Math.min(2.0, (this._hudFontMult || 1) + delta));
+    this._dbFsMult?.setText(`×${this._hudFontMult.toFixed(2)}`);
+    this._updateHUDDebugFsSizes(this.scale.width);
+  }
+
+  _updateHUDDebugFsSizes(W) {
+    if (!this._dbFsSizes) return;
+    const m = this._hudFontMult || 1;
+    const lines = [
+      `sm  = max(11, W×0.0080) × ${m.toFixed(2)} = ${Math.max(11, Math.round(W * 0.0080 * m))}px`,
+      `md  = max(13, W×0.0100) × ${m.toFixed(2)} = ${Math.max(13, Math.round(W * 0.0100 * m))}px`,
+      `lg  = max(17, W×0.0135) × ${m.toFixed(2)} = ${Math.max(17, Math.round(W * 0.0135 * m))}px`,
+      `xl  = max(21, W×0.0165) × ${m.toFixed(2)} = ${Math.max(21, Math.round(W * 0.0165 * m))}px`,
+    ];
+    this._dbFsSizes.setText(lines.join('\n'));
+  }
+
+  _copyHUDConfig() {
+    const m = this._hudFontMult || 1;
+    const W = this.scale.width;
+    const lines = [
+      `// _fs() font sizes (scale ×${m.toFixed(2)}):`,
+      `sm: Math.max(11, Math.round(W * ${(0.0080 * m).toFixed(4)}))`,
+      `md: Math.max(13, Math.round(W * ${(0.0100 * m).toFixed(4)}))`,
+      `lg: Math.max(17, Math.round(W * ${(0.0135 * m).toFixed(4)}))`,
+      `xl: Math.max(21, Math.round(W * ${(0.0165 * m).toFixed(4)}))`,
+      '',
+      '// Colors (C object):',
+      ...Object.entries(C).map(([k, v]) => `${k}: ${typeof v === 'string' ? `'${v}'` : `0x${v.toString(16).padStart(6,'0')}`},`),
+    ];
+    const text = lines.join('\n');
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    Object.assign(ta.style, { position: 'fixed', top: '-9999px', opacity: '0' });
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch (_) {}
+    document.body.removeChild(ta);
   }
 }

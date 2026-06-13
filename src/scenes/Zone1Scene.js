@@ -98,6 +98,21 @@ export class Zone1Scene extends Phaser.Scene {
     }
     this.player = new Player(this, startX, startY);
 
+    // Register bruxinha directional animations (only if frames are loaded)
+    ['front','back','right','left'].forEach(dir => {
+      if (!this.anims.exists(`idle_${dir}`) &&
+          this.textures.exists(`player_${dir}_1`) &&
+          this.textures.exists(`player_${dir}_2`)) {
+        this.anims.create({
+          key: `idle_${dir}`,
+          frames: [{ key: `player_${dir}_1` }, { key: `player_${dir}_2` }],
+          frameRate: 4,
+          repeat: -1,
+        });
+      }
+    });
+    if (this.anims.exists('idle_front')) this.player.play('idle_front');
+
     this._buildPlants();
     GameState.plantSpawns = [
       ...PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y })),
@@ -1665,6 +1680,69 @@ export class Zone1Scene extends Phaser.Scene {
     // Selection outline updated every frame
     this._dbUpdateEvt = () => this._drawDebugSelection();
     this.events.on('postupdate', this._dbUpdateEvt);
+
+    // DELETE or X key → remove the currently selected object
+    this._dbDeleteFn = () => this._dbDeleteSelected();
+    const kDel = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DELETE);
+    const kX   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+    kDel.on('down', this._dbDeleteFn);
+    kX.on('down',   this._dbDeleteFn);
+    this._dbDeleteKeys = [kDel, kX];
+  }
+
+  _dbDeleteSelected() {
+    const obj = this._dbSelected;
+    if (!obj?.active) return;
+
+    // Plant
+    const pi = (this.plants || []).findIndex(p => p === obj);
+    if (pi >= 0) {
+      obj.destroy();
+      this.plants.splice(pi, 1);
+      this._dbSelected = null;
+      return;
+    }
+
+    // Campo deco
+    const ci = (this.campoDecos || []).findIndex(d => d.img === obj);
+    if (ci >= 0) {
+      obj.destroy();
+      this._campoPos?.splice(ci, 1);
+      this.campoDecos.splice(ci, 1);
+      this._dbSelected = null;
+      return;
+    }
+
+    // Transição deco
+    const ti = (this.transicaoDecos || []).findIndex(d => d.img === obj);
+    if (ti >= 0) {
+      obj.destroy();
+      this.transicaoDecos.splice(ti, 1);
+      this._dbSelected = null;
+      return;
+    }
+
+    // Limiar deco
+    const li = (this.limiarDecos || []).findIndex(d => d.img === obj);
+    if (li >= 0) {
+      obj.destroy();
+      this.limiarDecos.splice(li, 1);
+      this._dbSelected = null;
+      return;
+    }
+
+    // Jardim deco
+    const ji = (this.jardimDecos || []).findIndex(d => d.img === obj);
+    if (ji >= 0) {
+      obj.destroy();
+      this.jardimDecos.splice(ji, 1);
+      this._dbSelected = null;
+      return;
+    }
+
+    // Any other registered object — just hide it
+    obj.setVisible(false).setActive(false);
+    this._dbSelected = null;
   }
 
   _drawDebugSelection() {
@@ -1697,6 +1775,9 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._dbDragStartFn) { this.input.off('dragstart', this._dbDragStartFn); this._dbDragStartFn = null; }
     if (this._dbDragFn)      { this.input.off('drag',      this._dbDragFn);      this._dbDragFn      = null; }
     if (this._dbWheelFn)     { this.input.off('wheel',     this._dbWheelFn);     this._dbWheelFn     = null; }
+    (this._dbDeleteKeys || []).forEach(k => k?.destroy());
+    this._dbDeleteKeys = [];
+    this._dbDeleteFn = null;
 
     (this._dbObjs || []).forEach(obj => {
       if (!obj?.active) return;

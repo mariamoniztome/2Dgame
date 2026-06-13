@@ -40,6 +40,10 @@ export class BootScene extends Phaser.Scene {
 
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
     this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 1024, height: 1024 });
+    // Bruxinha directional sprite frames (idle 2-frame animations per direction)
+    ['front_1','front_2','back_1','back_2','right_1','right_2','left_1','left_2'].forEach(f =>
+      this.load.svg(`player_${f}`, `/assets/zone1/bruxinha/${f}.svg`, { width: 256, height: 256 })
+    );
     // Plant sprites
     this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',    { width: 256, height: 256 });
     this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });

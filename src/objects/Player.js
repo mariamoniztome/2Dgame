@@ -22,20 +22,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.isInvisible = false;
     this._invisTimer = 0;
 
-    // Facing direction for Sombravinha mechanic
+    // Facing direction for Sombravinha mechanic and sprite animation
     this.facingAngle = 0;
-
-    // Gentle ±4% scale pulse relative to the display size set above
-    const s = this.scaleX;
-    scene.tweens.add({
-      targets: this,
-      scaleX: s * 1.04,
-      scaleY: s * 1.04,
-      duration: 1000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    this._facing = 'front';
   }
 
   update(cursors, wasd, shiftKey, delta) {
@@ -60,9 +49,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.setVelocity(vx, vy);
 
-    // Track facing angle (for Sombravinha)
+    // Track facing angle (for Sombravinha) and animation direction
     if (vx !== 0 || vy !== 0) {
       this.facingAngle = Math.atan2(vy, vx);
+      let newFacing;
+      if (Math.abs(vx) >= Math.abs(vy)) {
+        newFacing = vx < 0 ? 'left' : 'right';
+      } else {
+        newFacing = vy < 0 ? 'back' : 'front';
+      }
+      if (newFacing !== this._facing) {
+        this._facing = newFacing;
+        const animKey = `idle_${this._facing}`;
+        if (this.scene.anims.exists(animKey)) this.play(animKey, true);
+      }
     }
 
     // Recent speed
