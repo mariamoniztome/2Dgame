@@ -6,7 +6,7 @@ export const SPELLS = {
     effect: 'capture_farfalha',
     description: 'Este feitiço diminui o fogo da Farfalha por algum tempo para que a consigas apanhar.',
     color: 0x4fc3f7,
-    textureKey: 'Feitiço Brisa',
+    textureKey: 'spell_brisa',
     unlockZone: 1,
   },
   flutueminem: {
@@ -16,7 +16,7 @@ export const SPELLS = {
     effect: 'fly',
     description: 'Este feitiço dá-te o poder de voar.',
     color: 0xd0e8f0,
-    textureKey: 'Feitiço Flutueminem',
+    textureKey: 'spell_brisa',
     unlockZone: 2,
   },
   fogo_controlado: {
@@ -26,7 +26,7 @@ export const SPELLS = {
     effect: 'repel_creature',
     description: 'Este feitiço permite-te lançar uma pequena chama que espanta o Sussurro-ladrão.',
     color: 0xff7043,
-    textureKey: 'Feitiço Fogo',
+    textureKey: 'spell_raiz',
     unlockZone: 2,
   },
   memoria_solo: {
@@ -36,7 +36,7 @@ export const SPELLS = {
     effect: 'reveal_path',
     description: 'Este feitiço guia-te até ao Pântano através de pegadas que vão aparecendo no chão.',
     color: 0x66bb6a,
-    textureKey: 'Feitiço Memória',
+    textureKey: 'spell_canto',
     unlockZone: 2,
   },
   raiz_ardente: {
@@ -46,7 +46,7 @@ export const SPELLS = {
     effect: 'clear_ground',
     description: 'Este feitiço faz com que uma raíz de fogo surja da terra durante 30 segundos, para te abrir caminho e proteger-te da Areia Movediça.',
     color: 0xff7043,
-    textureKey: 'Feitiço Raíz',
+    textureKey: 'spell_raiz',
     unlockZone: 3,
   },
   canto_jardim: {
@@ -56,7 +56,7 @@ export const SPELLS = {
     effect: 'reveal_plants',
     description: 'Este feitiço faz com que todas as plantas fiquem brevemente visíveis no mapa.',
     color: 0x66bb6a,
-    textureKey: 'Feitiço Canto',
+    textureKey: 'spell_canto',
     unlockZone: 2,
   },
   espelho_memoria: {
@@ -66,7 +66,7 @@ export const SPELLS = {
     effect: 'open_vale_espelhos',
     description: 'Este feitiço abre-te o caminho para o Vale dos Espelhos.',
     color: 0xa8e07e,
-    textureKey: 'Feitiço Espelho',
+    textureKey: 'spell_passo',
     unlockZone: 3,
   },
   ancestral: {
@@ -76,7 +76,7 @@ export const SPELLS = {
     effect: 'defeat_ecos',
     description: 'Este feitiço lança um feixe de luz de forma circular à tua volta, derrotando os Ecos.',
     color: 0xa8e07e,
-    textureKey: 'Feitiço Ancestral',
+    textureKey: 'spell_passo',
     unlockZone: 3,
   },
 };
