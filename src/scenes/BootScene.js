@@ -104,7 +104,7 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     this._generateTextures();
-    this.scene.start('Map');
+    this.scene.start('Opening');
   }
 
   _generateTextures() {

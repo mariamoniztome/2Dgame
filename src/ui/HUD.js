@@ -137,20 +137,20 @@ export class HUDScene extends Phaser.Scene {
   // Font sizes relative to W
   _fs(W) {
     return {
-      sm:  `${Math.max(9,  Math.round(W * 0.0057))}px`,
-      md:  `${Math.max(11, Math.round(W * 0.0073))}px`,
-      lg:  `${Math.max(15, Math.round(W * 0.0104))}px`,
-      xl:  `${Math.max(18, Math.round(W * 0.0130))}px`,
+      sm:  `${Math.max(11, Math.round(W * 0.0080))}px`,
+      md:  `${Math.max(13, Math.round(W * 0.0100))}px`,
+      lg:  `${Math.max(17, Math.round(W * 0.0135))}px`,
+      xl:  `${Math.max(21, Math.round(W * 0.0165))}px`,
     };
   }
 
   // ── Spell panel (top-right) ───────────────────────────────────────────────
   _buildSpellPanel(W, H, fs) {
-    const pw   = Math.round(W * 0.148);
-    const ph   = Math.round(W * 0.052);
+    const pw   = Math.round(W * 0.172);
+    const ph   = Math.round(W * 0.065);
     const x    = W - 10, y = 10;
-    const iconS = Math.round(W * 0.024);
-    const icoX  = x - pw + Math.round(W * 0.022);
+    const iconS = Math.round(W * 0.030);
+    const icoX  = x - pw + Math.round(W * 0.025);
     const icoY  = y + Math.round(ph * 0.64);
 
     this.add.rectangle(x, y, pw, ph, C.bg, 0.82)
@@ -174,16 +174,22 @@ export class HUDScene extends Phaser.Scene {
 
   // ── Inventory (bottom-left) ───────────────────────────────────────────────
   _buildInventory(W, H, fs) {
-    const iw       = Math.round(W * 0.158);
-    const ih       = Math.round(W * 0.056);
-    const slotS    = Math.round(W * 0.019);
-    const iconS    = Math.round(W * 0.013);
-    const spacing  = Math.round(W * 0.0237);
+    const iw       = Math.round(W * 0.190);
+    const ih       = Math.round(W * 0.070);
+    const slotS    = Math.round(W * 0.024);
+    const iconS    = Math.round(W * 0.017);
+    const spacing  = Math.round(W * 0.0290);
     const firstX   = 10 + Math.round(spacing * 0.4);
     const slotY    = H - Math.round(ih * 0.40);
+    const r        = 6;  // border-radius
 
-    this.add.rectangle(10, H - 10, iw, ih, C.bg, 0.82)
-      .setOrigin(0, 1).setStrokeStyle(1.5, C.border, 0.80).setDepth(50);
+    // Panel rounded background
+    const panelGfx = this.add.graphics().setDepth(50);
+    panelGfx.fillStyle(C.bg, 0.82);
+    panelGfx.fillRoundedRect(10, H - 10 - ih, iw, ih, r);
+    panelGfx.lineStyle(1.5, C.border, 0.80);
+    panelGfx.strokeRoundedRect(10, H - 10 - ih, iw, ih, r);
+
     this.add.text(firstX, H - ih - 2, 'PLANTAS', {
       fontSize: fs.sm, fontFamily: 'monospace', color: C.label,
     }).setDepth(55);
@@ -193,23 +199,33 @@ export class HUDScene extends Phaser.Scene {
 
     for (let i = 0; i < 6; i++) {
       const sx = firstX + i * spacing;
-      const bg   = this.add.rectangle(sx, slotY, slotS, slotS, C.panel, 0.85)
-        .setStrokeStyle(1.2, C.border, 0.55).setDepth(50);
+      // Rounded slot background
+      const bg = this.add.graphics().setDepth(51);
+      this._drawSlotBg(bg, sx, slotY, slotS, r, C.dim, 0.7);
+
       const icon = this.add.image(sx, slotY, 'plant_missing')
         .setDisplaySize(iconS, iconS).setAlpha(0).setDepth(56);
       const fake = this.add.text(sx, slotY, '?', {
         fontSize: fs.sm, fontFamily: 'monospace', color: '#b28cbf',
       }).setOrigin(0.5).setAlpha(0).setDepth(57);
-      this._slots.push({ bg, icon, fake });
+      this._slots.push({ bg, icon, fake, sx, slotY, slotS, r });
     }
+  }
+
+  _drawSlotBg(gfx, sx, sy, s, r, strokeCol, strokeAlpha) {
+    gfx.clear();
+    gfx.fillStyle(C.panel, 0.85);
+    gfx.fillRoundedRect(sx - s / 2, sy - s / 2, s, s, r);
+    gfx.lineStyle(1.4, strokeCol, strokeAlpha);
+    gfx.strokeRoundedRect(sx - s / 2, sy - s / 2, s, s, r);
   }
 
   // ── Minimap (bottom-right) ────────────────────────────────────────────────
   _buildMinimap(W, H, fs) {
-    const MMW  = Math.round(W * 0.096);
+    const MMW  = Math.round(W * 0.120);
     const MMH  = Math.round(MMW * 9 / 16);
-    const MMPW = MMW + Math.round(W * 0.013);
-    const MMPH = MMH + Math.round(W * 0.016);
+    const MMPW = MMW + Math.round(W * 0.016);
+    const MMPH = MMH + Math.round(W * 0.020);
     this._mmPH = MMPH;
 
     const px  = W - 10, py = H - 10;
@@ -449,15 +465,17 @@ export class HUDScene extends Phaser.Scene {
       if (plant) {
         const el  = ELEMENTS[plant.element] || ELEMENTS.EARTH;
         const col = plant.isFake ? 0x886688 : el.color;
-        const key = this.textures.exists(`plant_${plant.id}`) ? `plant_${plant.id}` : 'plant_missing';
+        // Prefer SVG sprite, fall back to generated texture
+        const key = this.textures.exists(`plant_img_${plant.id}`) ? `plant_img_${plant.id}` :
+                    this.textures.exists(`plant_${plant.id}`)     ? `plant_${plant.id}` : 'plant_missing';
         s.icon.setTexture(key).setAlpha(0.98).setTint(0xffffff).setScale(1);
         if (plant.isFake) s.icon.setTint(0xc8a6d4);
         s.fake.setAlpha(plant.isFake ? 1 : 0);
-        s.bg.setStrokeStyle(1.4, col, 0.9);
+        this._drawSlotBg(s.bg, s.sx, s.slotY, s.slotS, s.r, col, 0.9);
       } else {
         s.icon.setAlpha(0);
         s.fake.setAlpha(0);
-        s.bg.setStrokeStyle(1.2, C.dim, 0.7);
+        this._drawSlotBg(s.bg, s.sx, s.slotY, s.slotS, s.r, C.dim, 0.7);
       }
     });
   }

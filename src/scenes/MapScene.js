@@ -80,27 +80,41 @@ export class MapScene extends Phaser.Scene {
       this.add.image(0, 0, 'map_fundo02').setOrigin(0).setDisplaySize(W, H).setDepth(2);
     }
 
-    // ── Zone 1 circle icons (always accessible) ───────────────────────────
+    // ── Zone 1 circle icons ───────────────────────────────────────────────
     ZONE1_ICONS.forEach(area => {
       const x    = W * area.xp;
       const y    = H * area.yp;
       const size = Math.round(W * area.size);
+      // Jardim is locked until the player has physically visited it
+      const jardimLocked = area.startArea === 'jardimInvertido' && !GameState.visitedJardim;
 
       if (this.textures.exists(area.icon)) {
         const img = this.add.image(x, y, area.icon)
           .setDisplaySize(size, size)
           .setDepth(3)
-          .setInteractive({ useHandCursor: true });
-        img.on('pointerover', () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.08, duration: 120 }); });
-        img.on('pointerout',  () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.00, duration: 120 }); });
-        img.on('pointerdown', () => { if (!this._debugMode) this._enterZone('Zone1', area.startArea); });
+          .setAlpha(jardimLocked ? 0.4 : 1)
+          .setInteractive({ useHandCursor: !jardimLocked });
+        if (!jardimLocked) {
+          img.on('pointerover', () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.08, duration: 120 }); });
+          img.on('pointerout',  () => { if (!this._debugMode) this.tweens.add({ targets: img, scale: 1.00, duration: 120 }); });
+          img.on('pointerdown', () => { if (!this._debugMode) this._enterZone('Zone1', area.startArea); });
+        } else {
+          img.on('pointerdown', () => { if (!this._debugMode) this._showBlocked(); });
+        }
         this._debugObjs.push({ img, label: area.icon, group: 'zone1' });
+
+        // Lock overlay for jardim
+        if (jardimLocked && this.textures.exists('map_cadeado')) {
+          const ls = Math.round(size * 0.38);
+          this.add.image(x + size * 0.28, y - size * 0.28, 'map_cadeado')
+            .setDisplaySize(ls, ls).setDepth(6);
+        }
       }
 
       this.add.text(W * area.lxp, H * area.lyp, area.label, {
         fontSize: `${Math.round(W * 0.017)}px`,
         fontFamily: 'Georgia, serif',
-        color: '#e8f5e0',
+        color: jardimLocked ? '#708070' : '#e8f5e0',
         stroke: '#061006',
         strokeThickness: 3,
         align: 'center',
@@ -119,12 +133,19 @@ export class MapScene extends Phaser.Scene {
     });
 
     // ── Portal icons ──────────────────────────────────────────────────────
+    const portalLabels = ['Portal → Zona 2', 'Portal → Zona 3'];
     if (this.textures.exists('map_portal')) {
-      PORTAL_ICONS.forEach(({ xp, yp, sp }) => {
+      PORTAL_ICONS.forEach(({ xp, yp, sp }, pi) => {
         const s = Math.round(W * sp);
-        const img = this.add.image(W * xp, H * yp, 'map_portal')
+        const px = W * xp, py = H * yp;
+        const img = this.add.image(px, py, 'map_portal')
           .setDisplaySize(s, s).setDepth(4).setAlpha(0.85)
           .setInteractive({ useHandCursor: false });
+        this.add.text(px, py + s * 0.7, portalLabels[pi] || 'Portal', {
+          fontSize: `${Math.round(W * 0.012)}px`,
+          fontFamily: 'Georgia, serif', color: '#b8e8b8',
+          stroke: '#061006', strokeThickness: 2, fontStyle: 'italic',
+        }).setOrigin(0.5, 0).setDepth(5).setAlpha(0.75);
         this._debugObjs.push({ img, label: 'map_portal', group: 'portal' });
       });
     }
@@ -237,7 +258,8 @@ export class MapScene extends Phaser.Scene {
     this._debugObjs.forEach(entry => {
       const { img } = entry;
       if (!img.active) return;
-      img.setInteractive({ draggable: true, useHandCursor: true });
+      img.setInteractive({ useHandCursor: true });
+      this.input.setDraggable(img);
 
       // Position label
       const posText = this.add.text(img.x, img.y - img.displayHeight / 2 - 10,
