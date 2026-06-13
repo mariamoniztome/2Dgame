@@ -418,7 +418,7 @@ export class HUDScene extends Phaser.Scene {
 
     // Two-column rows
     const rows = [
-      ['WASD / Setas', 'Mover'],
+      ['WASD / Setas',  'Mover'],
       ['Shift',         'Correr'],
       ['C',             'Apanhar / Interagir'],
       ['F',             'Lançar feitiço'],

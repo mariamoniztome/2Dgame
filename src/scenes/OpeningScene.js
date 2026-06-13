@@ -10,12 +10,12 @@ const STORY_LINES = [
 ];
 
 const CONTROLS = [
-  { key: 'WASD / ←↑↓→', desc: 'mover' },
-  { key: 'Shift',         desc: 'correr' },
-  { key: 'C',             desc: 'apanhar planta / usar portal' },
-  { key: 'M',             desc: 'abrir mapa' },
-  { key: 'Q / F',         desc: 'mudar / lançar feitiço' },
-  { key: 'H',             desc: 'ajuda' },
+  { key: 'WASD / ←↑↓→', desc: 'Mover' },
+  { key: 'Shift',         desc: 'Correr' },
+  { key: 'C',             desc: 'Apanhar planta / usar portal' },
+  { key: 'M',             desc: 'Abrir mapa' },
+  { key: 'Q / F',         desc: 'Mudar / Lançar feitiço' },
+  { key: 'H',             desc: 'Ajuda' },
 ];
 
 export class OpeningScene extends Phaser.Scene {
