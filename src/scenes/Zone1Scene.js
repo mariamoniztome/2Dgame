@@ -140,12 +140,12 @@ export class Zone1Scene extends Phaser.Scene {
     // Note: rightward blocking when y<0 is handled by the soft guard in update()
     // so we do NOT place a _wallV here — it conflicts with the guard and traps the player.
 
-    // Camera — start bounded to the left column (campo + limiar only)
+    // Camera — start bounded to the area selected from the map
     this.cameras.main.setZoom(2.0);
     this.cameras.main.startFollow(this.player, true, 1, 1);
     this.time.delayedCall(50, () => {
       this.cameras.main.setLerp(0.12, 0.12);
-      this._applyCameraBounds('campoVagalumes');
+      this._applyCameraBounds(startArea);
     });
 
     // Input

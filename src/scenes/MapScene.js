@@ -94,14 +94,14 @@ export class MapScene extends Phaser.Scene {
       if (this.textures.exists(area.icon)) {
         const img = this.add.image(x, y, area.icon)
           .setDisplaySize(size, size)
-          .setDepth(3)
+          .setDepth(7)
           .setAlpha(jardimLocked ? 0.4 : 1)
           .setInteractive({ useHandCursor: !jardimLocked });
         if (!jardimLocked) {
           const baseScale = img.scaleX;
           img.on('pointerover', () => { if (!this._debugMode) this.tweens.add({ targets: img, scaleX: baseScale * 1.08, scaleY: baseScale * 1.08, duration: 120 }); });
           img.on('pointerout',  () => { if (!this._debugMode) this.tweens.add({ targets: img, scaleX: baseScale, scaleY: baseScale, duration: 120 }); });
-          img.on('pointerdown', () => { if (!this._debugMode) this._enterZone('Zone1', area.startArea); });
+          img.on('pointerdown', (_ptr, _lx, _ly, event) => { if (!this._debugMode) { event.stopPropagation(); this._enterZone('Zone1', area.startArea); } });
         } else {
           img.on('pointerdown', () => { if (!this._debugMode) this._showBlocked(); });
         }
