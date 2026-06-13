@@ -1144,13 +1144,13 @@ export class Zone1Scene extends Phaser.Scene {
 
     const goal = this.add.text(sx + 16, sy + 12,
       'Recolhe plantas mágicas para desbloquear novos caminhos.',
-      { fontSize: '12px', fontFamily: 'Georgia, serif', color: '#d4f0c0',
+      { fontSize: '12px', fontFamily: "'Red Hat Text', sans-serif", color: '#d4f0c0',
         wordWrap: { width: W - 32 } }
     ).setScrollFactor(0).setDepth(61);
 
     const hint = this.add.text(sx + 16, sy + 38,
       'Aproxima-te de uma planta brilhante e carrega  C  para a apanhar.',
-      { fontSize: '11px', fontFamily: 'Georgia, serif', color: '#a8d890',
+      { fontSize: '11px', fontFamily: "'Red Hat Text', sans-serif", color: '#a8d890',
         wordWrap: { width: W - 32 } }
     ).setScrollFactor(0).setDepth(61);
 
@@ -1166,7 +1166,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     const dismiss_hint = this.add.text(sx + W - 16, sy + H - 12,
       'move para fechar',
-      { fontSize: '9px', fontFamily: 'Georgia, serif', color: '#456a45' }
+      { fontSize: '9px', fontFamily: "'Red Hat Text', sans-serif", color: '#456a45' }
     ).setOrigin(1, 1).setScrollFactor(0).setDepth(61);
 
     const objs = [bg, goal, hint, div, keys, dismiss_hint];
@@ -1405,11 +1405,11 @@ export class Zone1Scene extends Phaser.Scene {
     bg.lineStyle(1, 0xc4a44a, 0.35);
     bg.lineBetween(sx + pad, sy + 28, sx + W - pad, sy + 28);
     const nameT = this.add.text(sx + W / 2, sy + 7, plantData.name, {
-      fontSize: '13px', fontFamily: 'Georgia, serif',
+      fontSize: '13px', fontFamily: "'Red Hat Text', sans-serif",
       color: '#3a2000', fontStyle: 'bold',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(71);
     const pistaT = this.add.text(sx + pad, sy + 33, plantData.narrativeText || '', {
-      fontSize: '10px', fontFamily: 'Georgia, serif',
+      fontSize: '10px', fontFamily: "'Red Hat Text', sans-serif",
       color: '#5a3200', wordWrap: { width: W - pad * 2 },
     }).setScrollFactor(0).setDepth(71);
     const objs = [bg, nameT, pistaT];
@@ -1974,7 +1974,7 @@ export class Zone1Scene extends Phaser.Scene {
     overlay.fillRect(0, 0, SW, SH);
 
     const label = this.add.text(SW / 2, SH / 2, `Nova área desbloqueada\n${zoneName}`, {
-      fontSize: '26px', fontFamily: 'Georgia, serif',
+      fontSize: '26px', fontFamily: "'Red Hat Text', sans-serif",
       color: '#f0f8e0', stroke: '#000000', strokeThickness: 4,
       align: 'center', lineSpacing: 6,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(501).setAlpha(0);

@@ -23,7 +23,7 @@ const C_DEFAULTS = {
 const C = { ...C_DEFAULTS };
 
 const FU = "'Red Hat Text', sans-serif";
-const FD = "'p22-ringwell', Georgia, serif";
+const FD = "'Red Hat Text', sans-serif";
 
 const MAP_ZONE_REGIONS = {
   Zone1: {

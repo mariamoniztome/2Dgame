@@ -39,7 +39,7 @@ export class Plant extends Phaser.GameObjects.Container {
     // Label
     this.label = scene.add.text(0, 30, data.name, {
       fontSize: '11px',
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 2,

@@ -21,7 +21,7 @@ export class Portal extends Phaser.GameObjects.Container {
     // Hint
     this.hintText = scene.add.text(0, 66, 'C — Abrir portal', {
       fontSize: '12px',
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#d8f5d0',
       stroke: '#061006',
       strokeThickness: 3,

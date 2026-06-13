@@ -48,13 +48,13 @@ export class CauldronScene extends Phaser.Scene {
 
     // Title
     this.add.text(GAME_WIDTH / 2, 40, 'Clareira do Caldeirão', {
-      fontSize: '26px', fontFamily: 'Georgia, serif',
+      fontSize: '26px', fontFamily: "'Red Hat Text', sans-serif",
       color: '#ce93d8', stroke: '#030508', strokeThickness: 3,
     }).setOrigin(0.5);
 
     // Instruction text
     this.instructText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 120, '', {
-      fontSize: '18px', fontFamily: 'Georgia, serif',
+      fontSize: '18px', fontFamily: "'Red Hat Text', sans-serif",
       color: '#f5e6c8', stroke: '#030508', strokeThickness: 3,
       align: 'center', wordWrap: { width: 700 },
     }).setOrigin(0.5);
@@ -279,7 +279,7 @@ export class CauldronScene extends Phaser.Scene {
         });
 
         const fim = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, 'Fim', {
-          fontSize: '38px', fontFamily: 'Georgia, serif',
+          fontSize: '38px', fontFamily: "'Red Hat Text', sans-serif",
           color: '#3e2723', fontStyle: 'italic',
         }).setOrigin(0.5).setAlpha(0).setDepth(102);
         this.time.delayedCall(1000, () => {
@@ -295,7 +295,7 @@ export class CauldronScene extends Phaser.Scene {
             'Clica para voltar ao início',
           ].join('\n');
           const creditText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, credits, {
-            fontSize: '14px', fontFamily: 'Georgia, serif',
+            fontSize: '14px', fontFamily: "'Red Hat Text', sans-serif",
             color: '#8d6e63', align: 'center',
           }).setOrigin(0.5).setAlpha(0).setDepth(102);
           this.tweens.add({ targets: creditText, alpha: 1, duration: 1500 });

@@ -44,7 +44,7 @@ export class OpeningScene extends Phaser.Scene {
     // Title
     this.add.text(W / 2, H * 0.06, 'Bruxa, Bruxinha', {
       fontSize: `${Math.round(W * 0.028)}px`,
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#ce93d8',
       stroke: '#1a1a2e',
       strokeThickness: 4,
@@ -52,7 +52,7 @@ export class OpeningScene extends Phaser.Scene {
 
     this.add.text(W / 2, H * 0.13, 'Um jardim de feitiços e segredos', {
       fontSize: `${Math.round(W * 0.011)}px`,
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#9575cd',
       fontStyle: 'italic',
     }).setOrigin(0.5);
@@ -61,7 +61,7 @@ export class OpeningScene extends Phaser.Scene {
     this._storyGroup = this.add.container(0, 0);
     this.narText = this.add.text(W / 2, H * 0.55, '', {
       fontSize: `${Math.round(W * 0.014)}px`,
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#f5e6c8',
       wordWrap: { width: W * 0.6 },
       lineSpacing: 8,
@@ -79,7 +79,7 @@ export class OpeningScene extends Phaser.Scene {
     this._objectiveBg.strokeRoundedRect(W * 0.3, H * 0.28, W * 0.4, H * 0.14, 12);
     this._objText = this.add.text(W / 2, H * 0.35, 'Objetivo: recolhe 3 plantas mágicas\npara abrir o caminho para o Limiar Secreto', {
       fontSize: `${Math.round(W * 0.012)}px`,
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#c8f0c0',
       align: 'center',
       lineSpacing: 6,
@@ -92,7 +92,7 @@ export class OpeningScene extends Phaser.Scene {
     // Click hint
     this.clickHint = this.add.text(W / 2, H * 0.92, 'clica para avançar', {
       fontSize: `${Math.round(W * 0.011)}px`,
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#6a5acd',
     }).setOrigin(0.5);
     this.tweens.add({ targets: this.clickHint, alpha: { from: 0.4, to: 1 }, duration: 900, yoyo: true, repeat: -1 });
@@ -100,7 +100,7 @@ export class OpeningScene extends Phaser.Scene {
     // Skip button
     const skipBtn = this.add.text(W - 16, 14, 'saltar →', {
       fontSize: `${Math.round(W * 0.010)}px`,
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#6a5acd',
       backgroundColor: '#0d1a1088',
       padding: { x: 8, y: 4 },
@@ -141,13 +141,13 @@ export class OpeningScene extends Phaser.Scene {
       }).setOrigin(0, 0.5));
       this._ctrlContainer.add(this.add.text(W * 0.52, y, desc, {
         fontSize: `${Math.round(W * 0.013)}px`,
-        fontFamily: 'Georgia, serif', color: '#d4ecc8', fontStyle: 'italic',
+        fontFamily: "'Red Hat Text', sans-serif", color: '#d4ecc8', fontStyle: 'italic',
       }).setOrigin(0, 0.5));
     });
 
     this._ctrlContainer.add(this.add.text(W / 2, H * 0.72, 'Clica para entrar no jardim', {
       fontSize: `${Math.round(W * 0.012)}px`,
-      fontFamily: 'Georgia, serif', color: '#9575cd', fontStyle: 'italic',
+      fontFamily: "'Red Hat Text', sans-serif", color: '#9575cd', fontStyle: 'italic',
     }).setOrigin(0.5));
   }
 

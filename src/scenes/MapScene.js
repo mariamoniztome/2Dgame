@@ -121,7 +121,7 @@ export class MapScene extends Phaser.Scene {
 
       this.add.text(W * area.lxp, H * area.lyp, area.label, {
         fontSize: `${Math.round(W * 0.017)}px`,
-        fontFamily: 'Georgia, serif',
+        fontFamily: "'Red Hat Text', sans-serif",
         color: jardimLocked ? '#708070' : '#e8f5e0',
         stroke: '#061006',
         strokeThickness: 3,
@@ -151,7 +151,7 @@ export class MapScene extends Phaser.Scene {
           .setInteractive({ useHandCursor: false });
         // this.add.text(px, py + s * 0.7, portalLabels[pi] || 'Portal', {
         //   fontSize: `${Math.round(W * 0.012)}px`,
-        //   fontFamily: 'Georgia, serif', color: '#b8e8b8',
+        //   fontFamily: "'Red Hat Text', sans-serif", color: '#b8e8b8',
         //   stroke: '#061006', strokeThickness: 2, fontStyle: 'italic',
         // }).setOrigin(0.5, 0).setDepth(5).setAlpha(0.75);
         this._debugObjs.push({ img, label: 'map_portal', group: 'portal' });
@@ -167,7 +167,7 @@ export class MapScene extends Phaser.Scene {
     // ── Blocked notice ────────────────────────────────────────────────────
     this._blockedText = this.add.text(W / 2, H - 52, 'Esta zona ainda está bloqueada.', {
       fontSize: `${Math.round(W * 0.016)}px`,
-      fontFamily: 'Georgia, serif',
+      fontFamily: "'Red Hat Text', sans-serif",
       color: '#ff8080',
       stroke: '#000000',
       strokeThickness: 3,
@@ -182,7 +182,7 @@ export class MapScene extends Phaser.Scene {
       ? 'Escolhe uma zona para explorar'
       : 'ESC ou M — voltar ao jogo';
     this.add.text(W / 2, H - 12, hintText, {
-      fontSize: '11px', fontFamily: 'Georgia, serif', color: '#6a9a6a',
+      fontSize: '11px', fontFamily: "'Red Hat Text', sans-serif", color: '#6a9a6a',
     }).setOrigin(0.5, 1).setDepth(5);
 
     this.keyEsc   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
@@ -200,7 +200,7 @@ export class MapScene extends Phaser.Scene {
       const label = key === 'Zone2' ? 'Zona 2' : 'Zona 3';
       const btn = this.add.text(hitX, hitY - hitH * 0.15, label, {
         fontSize: `${Math.round(W * 0.016)}px`,
-        fontFamily: 'Georgia, serif',
+        fontFamily: "'Red Hat Text', sans-serif",
         color: '#e8f5e0',
         stroke: '#061006',
         strokeThickness: 3,
