@@ -149,41 +149,45 @@ export class HUDScene extends Phaser.Scene {
     };
   }
 
-  // ── Spell panel — pink pill, top-right ────────────────────────────────────
+  // ── Spell panel — top-right card ─────────────────────────────────────────
   _buildSpellPanel(W, H, fs) {
-    const ph   = Math.round(W * 0.062);
-    const pw   = Math.round(W * 0.200);
-    const rx   = W - 10;
-    const ry   = 10;
-    const pill = Math.round(ph / 2);
-    const iconS = Math.round(ph * 0.55);
+    const ph    = Math.round(W * 0.076);
+    const pw    = Math.round(W * 0.185);
+    const rx    = W - 10;
+    const ry    = 10;
+    const r     = 10;
+    const padX  = Math.max(8, Math.round(W * 0.010));
+    const padY  = Math.max(6, Math.round(W * 0.008));
+    const iconR = Math.round(ph * 0.30);
 
+    // Panel — no border
     const gfx = this.add.graphics().setDepth(50);
     gfx.fillStyle(C.panel, 1);
-    gfx.fillRoundedRect(rx - pw, ry, pw, ph, pill);
-    gfx.lineStyle(1.5, C.border, 1);
-    gfx.strokeRoundedRect(rx - pw, ry, pw, ph, pill);
+    gfx.fillRoundedRect(rx - pw, ry, pw, ph, r);
 
-    // Small "Feitiço" label top-left inside pill
-    this.add.text(rx - pw + pill + 4, ry + Math.round(ph * 0.15), 'Feitiço', {
+    // "Feitiço" italic label top-left
+    this.add.text(rx - pw + padX, ry + padY, 'Feitiço', {
       fontSize: fs.sm, fontFamily: FU, color: C.label, fontStyle: 'italic',
     }).setOrigin(0, 0).setDepth(55);
 
-    // Spell icon (left of pill content area)
-    const iconX = rx - pw + pill;
-    const iconY = ry + Math.round(ph * 0.62);
-    this.spellGfx = this.add.image(iconX, iconY, 'spell_brisa')
-      .setDisplaySize(iconS, iconS).setAlpha(0.75).setDepth(55);
-
-    // Spell name — bold black
-    this.spellName = this.add.text(iconX + Math.round(iconS * 0.62), iconY, 'nenhum', {
+    // Spell name bold — below label
+    const nameY = ry + padY + Math.round(ph * 0.34);
+    this.spellName = this.add.text(rx - pw + padX, nameY, 'nenhum', {
       fontSize: fs.lg, fontFamily: FU, color: C.text, fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(55);
 
-    // Key hint bottom-right
-    this.add.text(rx - 10, ry + ph - 6, '[Q] Mudar · [F] Lançar', {
+    // Circular icon — right side
+    const iconX = rx - padX - iconR;
+    const iconY = ry + Math.round(ph * 0.42);
+    this.add.graphics().setDepth(54)
+      .fillStyle(C.panelDk, 1).fillCircle(iconX, iconY, iconR);
+    this.spellGfx = this.add.image(iconX, iconY, 'spell_brisa')
+      .setDisplaySize(iconR * 1.4, iconR * 1.4).setAlpha(0.85).setDepth(55);
+
+    // Key hints bottom-left
+    this.add.text(rx - pw + padX, ry + ph - padY, '[Q] Mudar · [F] Lançar', {
       fontSize: fs.sm, fontFamily: FU, color: C.label,
-    }).setOrigin(1, 1).setDepth(55);
+    }).setOrigin(0, 1).setDepth(55);
 
     this._spellPanelBottom = ry + ph;
     this._spellPanelRight  = rx;
