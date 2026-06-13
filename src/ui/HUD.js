@@ -128,9 +128,13 @@ export class HUDScene extends Phaser.Scene {
       color: '#b42d27', stroke: '#ffffff', strokeThickness: 4, align: 'center',
     }).setOrigin(0.5).setAlpha(0).setDepth(200);
 
-    this.add.text(12, 10, '[H] ajuda', {
-      fontSize: fs.sm, fontFamily: FU, color: '#000000',
-    }).setOrigin(0, 0).setDepth(55);
+    // Ajuda button — swap /assets/ui/ajuda_btn.svg to update the design
+    const ajudaH = Math.round(W * 0.034);
+    const ajudaW = Math.round(ajudaH * (220 / 56));
+    this.add.image(10 + ajudaW / 2, 10 + ajudaH / 2, 'hud_ajuda')
+      .setDisplaySize(ajudaW, ajudaH).setOrigin(0.5).setDepth(55)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this._toggleControls());
 
     this._buildControlsPanel(W, H, fs);
     this._buildHUDDebugPanel(W, H, fs);

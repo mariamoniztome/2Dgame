@@ -84,6 +84,8 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('badge_campo',  '/assets/ui/badge_campo.svg',  { width: 700, height: 127 });
     this.load.svg('badge_jardim', '/assets/ui/badge_jardim.svg', { width: 700, height: 127 });
     this.load.svg('badge_limiar', '/assets/ui/badge_limiar.svg', { width: 700, height: 127 });
+    // ── Ajuda button (top-left HUD) — replace SVG file to update design
+    this.load.svg('hud_ajuda', '/assets/ui/ajuda_btn.svg', { width: 440, height: 112 });
 
     // ── Audio ────────────────────────────────────────────────────────────────
     // Background music (per zone)
