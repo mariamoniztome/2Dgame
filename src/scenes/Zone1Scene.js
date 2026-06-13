@@ -761,13 +761,12 @@ export class Zone1Scene extends Phaser.Scene {
   // ─────────────────────────────────────────────────────────────────────────
   _applyCameraBounds(area) {
     const ZW = this._zoneW, ZH = this._zoneH;
+    const PAD = 50;
     if (area === 'jardimInvertido') {
-      // Right column only — no dead zone above, no campo to the left
-      this.cameras.main.setBounds(ZW, 0, ZW, ZH);
+      this.cameras.main.setBounds(ZW, -PAD, ZW, ZH + PAD * 2);
     } else {
-      // Left column: campo + transição + parede + limiar
       const TH = this._transH, PH = this._paredeH;
-      this.cameras.main.setBounds(0, -(ZH + TH + PH), ZW, ZH * 2 + TH + PH);
+      this.cameras.main.setBounds(0, -(ZH + TH + PH) - PAD, ZW, ZH * 2 + TH + PH + PAD * 2);
     }
   }
 
