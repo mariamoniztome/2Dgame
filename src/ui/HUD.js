@@ -244,64 +244,76 @@ export class HUDScene extends Phaser.Scene {
 
   // ── Inventory — 3×4 circular slots with name labels below, bottom-left ────
   _buildInventory(W, H, fs) {
-    const COLS      = 3;
+    const COLS      = 6;
     const MAX_SLOTS = 12;
-    const ROWS      = Math.ceil(MAX_SLOTS / COLS);
-    const slotR     = Math.max(14, Math.round(W * 0.019));
+    const slotR     = Math.max(12, Math.round(W * 0.016));
     const iconS     = Math.round(slotR * 1.25);
-    const gapX      = Math.max(5, Math.round(W * 0.007));
-    const gapY      = Math.max(4, Math.round(W * 0.005));
-    const nameLH    = Math.max(12, Math.round(W * 0.013));
+    const gapX      = Math.max(4, Math.round(W * 0.006));
+    const nameLH    = Math.max(10, Math.round(W * 0.011));
     const stepX     = slotR * 2 + gapX;
-    const stepY     = slotR * 2 + gapY + nameLH;
-    const padX      = Math.max(10, Math.round(W * 0.013));
-    const padTop    = Math.max(40, Math.round(W * 0.038));
-    const padBot    = Math.max(10, Math.round(W * 0.010));
+    const padX      = Math.max(8, Math.round(W * 0.010));
+    const padTop    = Math.max(32, Math.round(W * 0.034));
+    const padBot    = Math.max(6, Math.round(W * 0.007));
+    const rowH      = slotR * 2 + nameLH + Math.max(3, Math.round(W * 0.004));
     const iw        = COLS * stepX - gapX + padX * 2;
-    const ih        = padTop + slotR + (ROWS - 1) * stepY + slotR + nameLH + padBot;
+
+    // Collapsed height = title area + 1 row; expanded = + 1 more row
+    const ihCollapsed = padTop + rowH + padBot;
+    const ihExpanded  = padTop + rowH * 2 + padBot;
 
     const px0 = 10;
-    const py0 = H - 10 - ih;
+    const r   = 10;
 
-    const panelGfx = this.add.graphics().setDepth(50);
-    panelGfx.fillStyle(C.panel, 1);
-    panelGfx.fillRoundedRect(px0, py0, iw, ih, 12);
-    panelGfx.lineStyle(1.5, C.border, 1);
-    panelGfx.strokeRoundedRect(px0, py0, iw, ih, 12);
+    this._invCOLS      = COLS;
+    this._invSlotR     = slotR;
+    this._invIconS     = iconS;
+    this._invStepX     = stepX;
+    this._invRowH      = rowH;
+    this._invPadX      = padX;
+    this._invPadTop    = padTop;
+    this._invPadBot    = padBot;
+    this._invIW        = iw;
+    this._invIHc       = ihCollapsed;
+    this._invIHe       = ihExpanded;
+    this._invPX0       = px0;
+    this._invR         = r;
+    this._invH         = H;
+    this._inventoryExpanded = false;
 
-    // "Plantas" bold title
-    this.add.text(px0 + padX, py0 + 8, 'Plantas', {
-      fontSize: fs.lg, fontFamily: FU, color: C.text, fontStyle: 'bold',
+    // Panel background (redrawn on expand/collapse)
+    this._invGfx = this.add.graphics().setDepth(50);
+    this._drawInventoryPanel(H - 10 - ihCollapsed, ihCollapsed);
+
+    // Title row
+    const titleY = H - 10 - ihCollapsed + 6;
+    this._invTitleText = this.add.text(px0 + padX, titleY, 'Inventário', {
+      fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
     }).setOrigin(0, 0).setDepth(55);
 
-    // Count in red
-    this.inventoryCount = this.add.text(px0 + iw - padX, py0 + 8, '0/12', {
-      fontSize: fs.md, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
+    this.inventoryCount = this.add.text(px0 + iw - padX - 18, titleY, '0/12', {
+      fontSize: fs.sm, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(55);
 
-    // Subtitle
-    this.inventorySubtitle = this.add.text(px0 + padX, py0 + 10 + 18, 'para abrir o portal', {
+ 
+    // Expand toggle ▼/▲
+    this._invToggle = this.add.text(px0 + iw - padX, titleY + 8, '▼', {
       fontSize: fs.sm, fontFamily: FU, color: C.label,
-    }).setOrigin(0, 0).setDepth(55);
+    }).setOrigin(1, 0).setDepth(56).setInteractive({ useHandCursor: true });
+    this._invToggle.on('pointerdown', () => this._toggleInventory());
+    this._invToggle.on('pointerover', () => this._invToggle.setColor(C.text));
+    this._invToggle.on('pointerout',  () => this._invToggle.setColor(C.label));
 
-    // Objective dots top-right
-    const ZONE2_PLANTS = ['farfalha', 'ventoinha', 'trepadeira'];
-    this._objDots = [];
-    ZONE2_PLANTS.forEach((id, i) => {
-      const dot = this.add.circle(px0 + iw - padX - i * 14, py0 + 24, 4, 0xdddddd, 1)
-        .setStrokeStyle(1, C.border, 0.4).setDepth(55);
-      this._objDots.unshift(dot);
-    });
-
+    // All 12 slots (2 rows × 6); row 2 starts hidden
     const firstX = px0 + padX + slotR;
-    const firstY = py0 + padTop + slotR;
+    const row0Y  = H - 10 - ihCollapsed + padTop + slotR;
+    const row1Y  = row0Y + rowH;
 
     this._slots = [];
     for (let i = 0; i < MAX_SLOTS; i++) {
       const col = i % COLS;
       const row = Math.floor(i / COLS);
       const sx  = firstX + col * stepX;
-      const sy  = firstY + row * stepY;
+      const sy  = row === 0 ? row0Y : row1Y;
 
       const slotGfx = this.add.graphics().setDepth(51);
       this._drawCircleSlot(slotGfx, sx, sy, slotR, C.border, 0.20);
@@ -313,16 +325,62 @@ export class HUDScene extends Phaser.Scene {
         fontSize: fs.sm, fontFamily: FU, color: '#b42d27',
       }).setOrigin(0.5).setAlpha(0).setDepth(57);
 
-      const nameLabel = this.add.text(sx, sy + slotR + 3, '', {
-        fontSize: `${Math.max(8, Math.round(W * 0.0068))}px`,
+      const nameLabel = this.add.text(sx, sy + slotR + 2, '', {
+        fontSize: `${Math.max(7, Math.round(W * 0.0060))}px`,
         fontFamily: FU, color: C.label, align: 'center',
         wordWrap: { width: stepX },
       }).setOrigin(0.5, 0).setAlpha(0).setDepth(57);
 
-      this._slots.push({ slotGfx, icon, fake, nameLabel, sx, sy, slotR, iconS });
+      // Row 2 hidden by default
+      if (row === 1) {
+        slotGfx.setVisible(false);
+        icon.setVisible(false);
+        fake.setVisible(false);
+        nameLabel.setVisible(false);
+      }
+
+      this._slots.push({ slotGfx, icon, fake, nameLabel, sx, sy, slotR, iconS, row });
     }
 
-    this._hudBounds.inventory = { x: px0, y: py0, w: iw, h: ih, label: 'Inventário' };
+    this._hudBounds.inventory = { x: px0, y: H - 10 - ihCollapsed, w: iw, h: ihCollapsed, label: 'Inventário' };
+  }
+
+  _drawInventoryPanel(py0, ih) {
+    const gfx = this._invGfx;
+    gfx.clear();
+    gfx.fillStyle(C.panel, 1);
+    gfx.fillRoundedRect(this._invPX0, py0, this._invIW, ih, this._invR);
+    gfx.lineStyle(1.5, C.border, 1);
+    gfx.strokeRoundedRect(this._invPX0, py0, this._invIW, ih, this._invR);
+  }
+
+  _toggleInventory() {
+    this._inventoryExpanded = !this._inventoryExpanded;
+    const expanded = this._inventoryExpanded;
+    const H        = this._invH;
+    const ih       = expanded ? this._invIHe : this._invIHc;
+    const py0      = H - 10 - ih;
+    const deltaY   = this._invIHe - this._invIHc;
+
+    this._drawInventoryPanel(py0, ih);
+    this._invToggle.setText(expanded ? '▲' : '▼');
+
+    // Shift ALL content first (while row 1 is still hidden — no visual glitch)
+    const shift = expanded ? -deltaY : deltaY;
+    [
+      this._invTitleText, this.inventoryCount, this.inventorySubtitle, this._invToggle,
+      ...this._slots.flatMap(s => [s.slotGfx, s.icon, s.fake, s.nameLabel]),
+    ].forEach(obj => { if (obj?.active) obj.y += shift; });
+
+    // Show/hide row 1 AFTER shifting so it appears in the correct position
+    this._slots.forEach(s => {
+      if (s.row === 1) {
+        s.slotGfx.setVisible(expanded);
+        s.icon.setVisible(expanded);
+        s.fake.setVisible(expanded);
+        s.nameLabel.setVisible(expanded);
+      }
+    });
   }
 
   _drawCircleSlot(gfx, sx, sy, r, strokeCol, strokeAlpha) {
@@ -667,7 +725,7 @@ export class HUDScene extends Phaser.Scene {
   _refresh() { this._refreshInventory(); this._refreshSpell(); this._updateCauldronDots(); this._refreshObjective(); }
 
   _refreshObjective() {
-    if (!this._objDots) return;
+    if (!this._objDots?.length) return;
     const ZONE2_PLANTS = ['farfalha', 'ventoinha', 'trepadeira'];
     const count = ZONE2_PLANTS.filter(id => GameState.collected.has(id)).length;
     this._objDots.forEach((dot, i) => {
@@ -678,13 +736,6 @@ export class HUDScene extends Phaser.Scene {
         this.tweens.add({ targets: dot, scale: { from: 1.5, to: 1 }, duration: 300 });
       }
     });
-    if (count === 0) {
-      this.inventorySubtitle?.setText('para abrir o portal');
-    } else if (count < 3) {
-      this.inventorySubtitle?.setText(`${count}/3 para abrir o portal`);
-    } else {
-      this.inventorySubtitle?.setText('portal desbloqueado!').setStyle({ color: '#b42d27' });
-    }
   }
 
   _refreshInventory() {
