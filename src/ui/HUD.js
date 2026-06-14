@@ -50,8 +50,8 @@ const GDD_LORE = {
   ninfaria:       { tagline: 'Água · Leveza',              desc: 'Pula de Ninfária em Ninfária. Feitiço Flutueminem: voa e evita criaturas.' },
   sombravinha:    { tagline: 'Vira as costas e espera',    desc: 'MECÂNICA ESPECIAL: só aparece quando não a olhas directamente.' },
   sussurreira:    { tagline: 'Som · Comunicação',          desc: 'Dada por coelho se falares. Voz do Sonho — necessária para o final completo.' },
-  faisca_mato:    { tagline: 'Fogo · Coragem',             desc: 'Atrás de uma barreira. Precisas de Fogo Controlado para chegar. + Trepadeira → Raiz Ardente.' },
-  lunaria_negra:  { tagline: 'Lua · Transformação · Rara', desc: 'Surge após o 1º recomeço. Usa Memória do Solo + planta corrompida. VAI SEMPRE POR ÚLTIMO.' },
+  faisca_mato:    { tagline: 'Fogo · Coragem',             desc: 'Atrás de uma barreira. Precisas de Ignicura para chegar. + Trepadeira → Raiz Ardente.' },
+  lunaria_negra:  { tagline: 'Lua · Transformação · Rara', desc: 'Surge após o 1º recomeço. Usa Terramemoria + planta corrompida. VAI SEMPRE POR ÚLTIMO.' },
 };
 
 const MAP_ZONE_REGIONS = {
