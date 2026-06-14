@@ -124,7 +124,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildFireflies();
     this._buildGuideFireflies();
     this._buildVisionBlockers();
-    this._buildLimiarFog();
+    // this._buildLimiarFog();
 
     const ph1 = this.player.displayHeight;
     this.playerShadow = this.add.ellipse(
@@ -324,11 +324,11 @@ export class Zone1Scene extends Phaser.Scene {
     this._tw  = this._pz;  // alias for DebugPanel backward compat
 
     // ── 1. Background glow (Fundo_ParedãodePlantas) — viewBox 2077×1550 ──
-    if (this.textures.exists('z1_fundo_parede')) {
-      this._pz.fundoParede = this.add.image(887, -141, 'z1_fundo_parede')
-        .setOrigin(0.5, 1).setDisplaySize(2077, 1433)
-        .setDepth(1).setAlpha(0.55);
-    }
+    // if (this.textures.exists('z1_fundo_parede')) {
+    //   this._pz.fundoParede = this.add.image(887, -141, 'z1_fundo_parede')
+    //     .setOrigin(0.5, 1).setDisplaySize(2077, 1433)
+    //     .setDepth(1).setAlpha(0.55);
+    // }
 
     // ── 2. Main plant wall (ParedãodePlantas) — tiled 3× horizontally ───────
     // Each tile: w=ZW/3, h=(ZW/3)*(1735/1920). Three tiles fill the full width
@@ -694,7 +694,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._updateFootsteps(delta);
     this._checkZoneUnlocks();
     this._updateLadrao(delta);
-    this._updateLimiarFog();
+    // this._updateLimiarFog();
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
   }
@@ -940,7 +940,7 @@ export class Zone1Scene extends Phaser.Scene {
       if (GameState.activeSpell === 'brisa_molhada') {
         this._castSpellOnPlant(plant);
       } else if (GameState.availableSpells.includes('brisa_molhada')) {
-        this._emitNarrative('Activa a Brisa Molhada (Q + F) e depois usa C na Farfalha.');
+        this._emitNarrative('Activa a Humidaris (Q + F) e depois usa C na Farfalha.');
       } else {
         this._emitNarrative('Esta planta está protegida. Precisas de um feitiço especial…');
       }
@@ -1004,7 +1004,7 @@ export class Zone1Scene extends Phaser.Scene {
     this.game.events.emit('spellCast', GameState.activeSpell);
 
     if (GameState.activeSpell === 'brisa_molhada') {
-      this._emitNarrative('A Brisa Molhada envolve o ar…');
+      this._emitNarrative('A Humidaris envolve o ar…');
     }
     if (GameState.activeSpell === 'canto_jardim') this._revealAllPlants();
   }
@@ -1036,7 +1036,7 @@ export class Zone1Scene extends Phaser.Scene {
         }
       });
     });
-    this._emitNarrative('O Canto do Jardim revelou onde estão as plantas!');
+    this._emitNarrative('O Horticantus revelou onde estão as plantas!');
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1064,9 +1064,9 @@ export class Zone1Scene extends Phaser.Scene {
       this.time.delayedCall(600, () => {
         this._showZoneUnlockTransition('Zona 2 — Planície das Fendas');
       });
-      this.time.delayedCall(3500, () => {
-        this._emitNarrative('Um novo caminho abriu-se. A Zona 2 está acessível pelo portal!');
-      });
+      // this.time.delayedCall(3500, () => {
+      //   this._emitNarrative('Um novo caminho abriu-se. A Zona 2 está acessível pelo portal!');
+      // });
     }
   }
 
@@ -2031,50 +2031,50 @@ export class Zone1Scene extends Phaser.Scene {
   //  Uses a RenderTexture filled with dark color, with a circle erased around
   //  the player so only a small radius is visible.
   // ─────────────────────────────────────────────────────────────────────────
-  _buildLimiarFog() {
-    const TH = this._transH, PH = this._paredeH, ZW = this._zoneW, ZH = this._zoneH;
+  // _buildLimiarFog() {
+  //   const TH = this._transH, PH = this._paredeH, ZW = this._zoneW, ZH = this._zoneH;
 
-    // Pre-generate circle texture for erasing (white circle = hole in fog)
-    if (!this.textures.exists('fog_hole')) {
-      const cg = this.add.graphics();
-      cg.fillStyle(0xffffff, 1);
-      cg.fillCircle(90, 90, 90);
-      cg.generateTexture('fog_hole', 180, 180);
-      cg.destroy();
-    }
+  //   // Pre-generate circle texture for erasing (white circle = hole in fog)
+  //   if (!this.textures.exists('fog_hole')) {
+  //     const cg = this.add.graphics();
+  //     cg.fillStyle(0xffffff, 1);
+  //     cg.fillCircle(90, 90, 90);
+  //     cg.generateTexture('fog_hole', 180, 180);
+  //     cg.destroy();
+  //   }
 
-    // RenderTexture covers the full Limiar Secreto area in world space
-    this._limiarFog = this.add.renderTexture(0, -(ZH + TH + PH), ZW, ZH)
-      .setDepth(18)
-      .setVisible(false);
-  }
+  //   // RenderTexture covers the full Limiar Secreto area in world space
+  //   this._limiarFog = this.add.renderTexture(0, -(ZH + TH + PH), ZW, ZH)
+  //     .setDepth(18)
+  //     .setVisible(false);
+  // }
 
-  _updateLimiarFog() {
-    const inLimiar = this._currentArea === 'limiarSecreto';
+  // _updateLimiarFog() {
+  //   const inLimiar = this._currentArea === 'limiarSecreto';
 
-    if (inLimiar !== this._limiarFogActive) {
-      this._limiarFogActive = inLimiar;
-      this._limiarFog?.setVisible(inLimiar);
-      if (inLimiar) {
-        this.time.delayedCall(200, () => {
-          this._emitNarrative('As folhas cobrem tudo… só consegues ver o que está mesmo ao teu redor.', 4000);
-        });
-      }
-    }
+  //   if (inLimiar !== this._limiarFogActive) {
+  //     this._limiarFogActive = inLimiar;
+  //     this._limiarFog?.setVisible(inLimiar);
+  //     if (inLimiar) {
+  //       this.time.delayedCall(200, () => {
+  //         this._emitNarrative('As folhas cobrem tudo… só consegues ver o que está mesmo ao teu redor.', 4000);
+  //       });
+  //     }
+  //   }
 
-    if (!inLimiar || !this._limiarFog) return;
+  //   if (!inLimiar || !this._limiarFog) return;
 
-    const TH = this._transH, PH = this._paredeH, ZH = this._zoneH;
-    const fogOriginY = -(ZH + TH + PH);
+  //   const TH = this._transH, PH = this._paredeH, ZH = this._zoneH;
+  //   const fogOriginY = -(ZH + TH + PH);
 
-    // Redraw: fill dark, then erase circle around player
-    this._limiarFog.clear();
-    this._limiarFog.fill(0x1a120a, 0.88);
-    const holeR = 90; // radius of the fog hole texture
-    const rx = this.player.x - holeR;
-    const ry = this.player.y - fogOriginY - holeR;
-    this._limiarFog.erase('fog_hole', rx, ry);
-  }
+  //   // Redraw: fill dark, then erase circle around player
+  //   this._limiarFog.clear();
+  //   this._limiarFog.fill(0x1a120a, 0.88);
+  //   const holeR = 90; // radius of the fog hole texture
+  //   const rx = this.player.x - holeR;
+  //   const ry = this.player.y - fogOriginY - holeR;
+  //   this._limiarFog.erase('fog_hole', rx, ry);
+  // }
 
   shutdown() {
     this.game.events.off('plantStolen', this._onPlantStolen, this);
