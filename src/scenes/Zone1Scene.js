@@ -845,7 +845,11 @@ export class Zone1Scene extends Phaser.Scene {
       }
 
       if (inRange && method === 'fast') {
-        plant.showHint(this.player.recentSpeed >= 120 ? false : true, 'Corre!');
+        if (this.player.recentSpeed >= 120) {
+          plant.showHint(true, 'C');
+        } else {
+          plant.showHint(true, 'Corre!');
+        }
       } else {
         plant.showHint(inRange);
       }
@@ -857,7 +861,6 @@ export class Zone1Scene extends Phaser.Scene {
       if (method === 'fast') {
         if (this.player.recentSpeed >= 120) {
           this._ventoinhaSlowTimers.delete(plant);
-          this._collectPlant(plant);
         } else {
           const t = (this._ventoinhaSlowTimers.get(plant) || 0) + delta;
           this._ventoinhaSlowTimers.set(plant, t);
@@ -923,6 +926,15 @@ export class Zone1Scene extends Phaser.Scene {
 
     const plant  = this._nearPlant;
     const method = plant.plantData.collectMethod;
+
+    if (method === 'fast') {
+      if (this.player.recentSpeed >= 120) {
+        this._collectPlant(plant);
+      } else {
+        this._emitNarrative('Corre para apanhar a Ventoinha!');
+      }
+      return;
+    }
 
     if (method === 'shake') {
       SoundManager.shake();
