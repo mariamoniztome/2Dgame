@@ -124,6 +124,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._buildFireflies();
     this._buildGuideFireflies();
     this._buildVisionBlockers();
+    this._buildLimiarFog();
 
     const ph1 = this.player.displayHeight;
     this.playerShadow = this.add.ellipse(
@@ -164,12 +165,17 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
-    // First time entering a zone: show controls until the user dismisses them
+    // First time entering a zone: block input immediately, show controls as soon as HUD is ready
     if (this.game.registry.get('firstZoneEntry')) {
       this.game.registry.remove('firstZoneEntry');
-      this.time.delayedCall(1200, () => {
+      this._waitingForFirstControls = true;
+      const doShow = () => {
+        this._waitingForFirstControls = false;
         this.scene.get('HUD')?._showControls();
-      });
+      };
+      const hud = this.scene.get('HUD');
+      if (hud?.sys.isActive()) doShow();
+      else hud.events.once('create', doShow);
     }
 
     this._nearPlant      = null;
@@ -188,15 +194,14 @@ export class Zone1Scene extends Phaser.Scene {
     this._jardimHintShown     = false;
     this._ladrao              = null;
     this._ladraoStole         = false;
-    this._tutorialShown       = false;   // show on first movement, not on timer
-    this._sprintTrailTimer    = 0;       // sprint particle trail throttle
+    this._tutorialShown       = false;
+    this._sprintTrailTimer    = 0;
+    this._limiarFogActive     = false;
     // First appearance: 20s in (player needs time to collect at least one plant)
     this.time.delayedCall(20000, () => this._scheduleLadrao());
 
     MusicManager.init(this);
     this.time.delayedCall(200, () => MusicManager.playArea('campoVagalumes'));
-
-    this.cameras.main.fadeIn(800, 0, 0, 0);
 
     this.time.delayedCall(900, () => {
       this._emitNarrative('As plantas brilham de noite. Segue o brilho.');
@@ -629,8 +634,9 @@ export class Zone1Scene extends Phaser.Scene {
   //  Update
   // ─────────────────────────────────────────────────────────────────────────
   update(time, delta) {
-    if (this._dbFrozen) return;   // freeze everything while debug panel is open
-    if (this._cutscene) return;   // cinematic playing — freeze all input
+    if (this._dbFrozen) return;
+    if (this._cutscene) return;
+    if (this._waitingForFirstControls) return;
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
 
     // ── Hard boundary: cannot enter Parede/Limiar until vine is collected ─
@@ -688,6 +694,7 @@ export class Zone1Scene extends Phaser.Scene {
     this._updateFootsteps(delta);
     this._checkZoneUnlocks();
     this._updateLadrao(delta);
+    this._updateLimiarFog();
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
   }
@@ -746,6 +753,27 @@ export class Zone1Scene extends Phaser.Scene {
       // Mark jardim as visited (unlocks it on the map)
       if (area === 'jardimInvertido' && !GameState.visitedJardim) {
         GameState.visitedJardim = true;
+      }
+
+      // ── Jardim Invertido: random control inversion on each entry ─────────
+      if (area === 'jardimInvertido') {
+        // 3 possible modes: flip X only, flip Y only, flip both
+        const mode = Phaser.Math.Between(1, 3);
+        this.player.invertX = (mode === 1 || mode === 3);
+        this.player.invertY = (mode === 2 || mode === 3);
+        this.time.delayedCall(600, () => {
+          const desc = this.player.invertX && this.player.invertY
+            ? 'Esquerda é direita e cima é baixo!'
+            : this.player.invertX
+              ? 'Esquerda é direita aqui!'
+              : 'Cima é baixo aqui!';
+          this._emitNarrative(`O Jardim Invertido confunde os sentidos… ${desc}`, 4000);
+        });
+      }
+      // Reset inversion when leaving Jardim Invertido
+      if (prev === 'jardimInvertido') {
+        this.player.invertX = false;
+        this.player.invertY = false;
       }
 
       // First-time hint when entering Jardim without any plants
@@ -842,7 +870,7 @@ export class Zone1Scene extends Phaser.Scene {
         return;
       }
 
-      if (method === 'interact' || method === 'brave' || method === 'slow') {
+      if (method === 'brave' || method === 'slow') {
         const tooFast = method === 'slow' && this.player.recentSpeed > 50;
         if (tooFast) { this._timedPlant = null; this._proximityTimer = 0; return; }
         if (this._timedPlant !== plant) { this._timedPlant = plant; this._proximityTimer = 0; }
@@ -920,6 +948,8 @@ export class Zone1Scene extends Phaser.Scene {
     }
 
     if (method === 'climb') { this._climbVine(); this._collectPlant(plant); return; }
+
+    if (method === 'interact') { this._collectPlant(plant); return; }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1021,7 +1051,6 @@ export class Zone1Scene extends Phaser.Scene {
     }
     plant.collect();
     this.cameras.main.shake(120, 0.003);
-    this._showPlantPaper(data);
     this._checkSpellUnlock();
     this.plants = this.plants.filter(p => {
       if (p !== plant && p.plantData.id === data.id) { p.destroy(); return false; }
@@ -1995,6 +2024,56 @@ export class Zone1Scene extends Phaser.Scene {
         });
       },
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Limiar Secreto — fog of war (GDD: leaves cover floor, small vision radius)
+  //  Uses a RenderTexture filled with dark color, with a circle erased around
+  //  the player so only a small radius is visible.
+  // ─────────────────────────────────────────────────────────────────────────
+  _buildLimiarFog() {
+    const TH = this._transH, PH = this._paredeH, ZW = this._zoneW, ZH = this._zoneH;
+
+    // Pre-generate circle texture for erasing (white circle = hole in fog)
+    if (!this.textures.exists('fog_hole')) {
+      const cg = this.add.graphics();
+      cg.fillStyle(0xffffff, 1);
+      cg.fillCircle(90, 90, 90);
+      cg.generateTexture('fog_hole', 180, 180);
+      cg.destroy();
+    }
+
+    // RenderTexture covers the full Limiar Secreto area in world space
+    this._limiarFog = this.add.renderTexture(0, -(ZH + TH + PH), ZW, ZH)
+      .setDepth(18)
+      .setVisible(false);
+  }
+
+  _updateLimiarFog() {
+    const inLimiar = this._currentArea === 'limiarSecreto';
+
+    if (inLimiar !== this._limiarFogActive) {
+      this._limiarFogActive = inLimiar;
+      this._limiarFog?.setVisible(inLimiar);
+      if (inLimiar) {
+        this.time.delayedCall(200, () => {
+          this._emitNarrative('As folhas cobrem tudo… só consegues ver o que está mesmo ao teu redor.', 4000);
+        });
+      }
+    }
+
+    if (!inLimiar || !this._limiarFog) return;
+
+    const TH = this._transH, PH = this._paredeH, ZH = this._zoneH;
+    const fogOriginY = -(ZH + TH + PH);
+
+    // Redraw: fill dark, then erase circle around player
+    this._limiarFog.clear();
+    this._limiarFog.fill(0x1a120a, 0.88);
+    const holeR = 90; // radius of the fog hole texture
+    const rx = this.player.x - holeR;
+    const ry = this.player.y - fogOriginY - holeR;
+    this._limiarFog.erase('fog_hole', rx, ry);
   }
 
   shutdown() {

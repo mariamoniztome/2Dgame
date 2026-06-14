@@ -22,6 +22,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.isInvisible = false;
     this._invisTimer = 0;
 
+    // Flight state (Flutueminem spell)
+    this.isFlying = false;
+    this._flyTimer = 0;
+
+    // Control inversion (Jardim Invertido mechanic)
+    // invertX/invertY flip the respective axis
+    this.invertX = false;
+    this.invertY = false;
+
     // Facing direction for Sombravinha mechanic and sprite animation
     this.facingAngle = 0;
     this._facing = 'front';
@@ -43,6 +52,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (right) vx += spd;
     if (up)    vy -= spd;
     if (down)  vy += spd;
+
+    // Apply control inversion (Jardim Invertido mechanic)
+    if (this.invertX) vx = -vx;
+    if (this.invertY) vy = -vy;
 
     // Normalise diagonal
     if (vx !== 0 && vy !== 0) { vx *= 0.707; vy *= 0.707; }
@@ -89,6 +102,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.scene.game.events.emit('invisibilityEnd');
       }
     }
+
+    // Flight countdown (Flutueminem)
+    if (this._flyTimer > 0) {
+      this._flyTimer -= delta;
+      if (this._flyTimer <= 0) {
+        this.isFlying = false;
+        this._flyTimer = 0;
+        this.setTint(0xffffff);
+        this.scene.game.events.emit('flyEnd');
+      }
+    }
   }
 
   get recentSpeed() { return this._recentSpeed; }
@@ -99,5 +123,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this._invisTimer = durationMs;
     this.setAlpha(0.3);
     this.scene.game.events.emit('invisibilityStart', durationMs);
+  }
+
+  startFlying(durationMs = 9000) {
+    this.isFlying = true;
+    this._flyTimer = durationMs;
+    // Light cyan tint while flying
+    this.setTint(0xb0e8ff);
+    this.scene.game.events.emit('flyStart', durationMs);
+  }
+
+  stopFlying() {
+    this.isFlying = false;
+    this._flyTimer = 0;
+    this.setTint(0xffffff);
+    this.scene.game.events.emit('flyEnd');
   }
 }

@@ -7,6 +7,18 @@ import { SoundManager } from '../SoundManager.js';
 
 const ESSENTIAL_IDS = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
 
+const ELEM_PT = { AIR: 'Ar', WATER: 'Água', FIRE: 'Fogo', EARTH: 'Terra', SPECIAL: 'Especial' };
+const METHOD_PT = {
+  interact: 'Aproxima-te (C)',
+  shake:    'Sacode 3× (C)',
+  fast:     'Corre para ela!',
+  slow:     'Anda devagar (C)',
+  brave:    'Fica perto (C)',
+  climb:    'Trepa (C)',
+  spell:    'Usa feitiço (F)',
+  wait:     'Fica de costas',
+};
+
 const C_DEFAULTS = {
   bg:      0xffffff,
   panel:   0xf6a3b3,
@@ -24,6 +36,23 @@ const C = { ...C_DEFAULTS };
 
 const FU = "'Red Hat Text', sans-serif";
 const FD = "'Red Hat Text', sans-serif";
+
+const GDD_LORE = {
+  ventoinha:      { tagline: 'Vento · Mudança',           desc: 'Segue sem assustar. Se corres, foge. Se paras, espera.' },
+  gotateia:       { tagline: 'Água · Memória',             desc: 'Aparece numa poça depois de andares em círculos.' },
+  espinhosa_doce: { tagline: 'Dualidade · Perigo',         desc: 'Ao lado da Bocarra. Risco calculado.' },
+  farfalha:       { tagline: 'Troca · Esquecimento',       desc: 'Dás a Ventoinha voluntariamente → transforma-se em planta. Abre áreas escondidas.' },
+  trepadeira:     { tagline: 'Crescimento · Bloqueio',     desc: 'Cresce como resposta. Bloqueia caminhos no jardim degradado.' },
+  tezaluz:        { tagline: 'Terra · Raízes',             desc: 'Só aparece após visitar o Campo da Chuvária. O jardim responde ao que fizeste noutro sítio.' },
+  craveira:       { tagline: 'Terra · Memória',            desc: 'Guia o teu caminho através do jardim. Planta sábia da terra.' },
+  bocarra:        { tagline: 'Ar · Perigo',                desc: 'Flor carnívora. Adormecida no início, acorda conforme o jardim cresce. Guarda a Espinhosa-doce.' },
+  aurorabromelia: { tagline: 'Com Flutueminem',            desc: 'Só a apanhas com Flutueminem activo. Canta com a Sussurreira para revelar todas as plantas.' },
+  ninfaria:       { tagline: 'Água · Leveza',              desc: 'Pula de Ninfária em Ninfária. Feitiço Flutueminem: voa e evita criaturas.' },
+  sombravinha:    { tagline: 'Vira as costas e espera',    desc: 'MECÂNICA ESPECIAL: só aparece quando não a olhas directamente.' },
+  sussurreira:    { tagline: 'Som · Comunicação',          desc: 'Dada por coelho se falares. Voz do Sonho — necessária para o final completo.' },
+  faisca_mato:    { tagline: 'Fogo · Coragem',             desc: 'Atrás de uma barreira. Precisas de Fogo Controlado para chegar. + Trepadeira → Raiz Ardente.' },
+  lunaria_negra:  { tagline: 'Lua · Transformação · Rara', desc: 'Surge após o 1º recomeço. Usa Memória do Solo + planta corrompida. VAI SEMPRE POR ÚLTIMO.' },
+};
 
 const MAP_ZONE_REGIONS = {
   Zone1: {
@@ -70,6 +99,12 @@ export class HUDScene extends Phaser.Scene {
       clearTimeout(this._resizeTimeout);
       this._resizeTimeout = setTimeout(() => {
         if (!this.sys.isActive()) return;
+        if (this._plantModal) {
+          const { objs, escFn } = this._plantModal;
+          this._plantModal = null;
+          this.input.keyboard.off('keydown-ESC', escFn);
+          objs.forEach(o => o?.destroy());
+        }
         const queue   = [...(this._toastQueue  || [])];
         const ctrlVis = this._controlsVisible;
         this.children.removeAll(true);
@@ -85,6 +120,7 @@ export class HUDScene extends Phaser.Scene {
         this._lastZone           = null;
         this._mmMask             = null;
         this._pauseCount         = 0;
+        this._plantModal         = null;
         this._buildAll(gameSize.width, gameSize.height);
         if (ctrlVis) this._showControls();
         if (this._userPaused) this._showPauseOverlay();
@@ -296,15 +332,26 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
         wordWrap: { width: stepX },
       }).setOrigin(0.5, 0).setAlpha(0).setDepth(57);
 
+      const slotIdx = i;
+      const hitZone = this.add.zone(sx, sy, slotR * 2.2, slotR * 2.2)
+        .setInteractive({
+          hitArea: new Phaser.Geom.Circle(0, 0, slotR * 1.1),
+          hitAreaCallback: Phaser.Geom.Circle.Contains,
+          useHandCursor: true,
+        })
+        .setDepth(59)
+        .on('pointerdown', () => this._onInventorySlotClick(slotIdx));
+
       // Row 2 hidden by default
       if (row === 1) {
         slotGfx.setVisible(false);
         icon.setVisible(false);
         fake.setVisible(false);
         nameLabel.setVisible(false);
+        hitZone.setVisible(false);
       }
 
-      this._slots.push({ slotGfx, icon, fake, nameLabel, sx, sy, slotR, iconS, row });
+      this._slots.push({ slotGfx, icon, fake, nameLabel, hitZone, sx, sy, slotR, iconS, row });
     }
 
     this._hudBounds.inventory = { x: px0, y: H - 10 - ihCollapsed, w: iw, h: ihCollapsed, label: 'Inventário' };
@@ -332,7 +379,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     const shift = expanded ? -deltaY : deltaY;
     [
       this._invTitleText, this.inventoryCount, this.inventorySubtitle, this._invToggle,
-      ...this._slots.flatMap(s => [s.slotGfx, s.icon, s.fake, s.nameLabel]),
+      ...this._slots.flatMap(s => [s.slotGfx, s.icon, s.fake, s.nameLabel, s.hitZone]),
     ].forEach(obj => { if (obj?.active) obj.y += shift; });
 
     // Show/hide row 1 AFTER shifting so it appears in the correct position
@@ -342,6 +389,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
         s.icon.setVisible(expanded);
         s.fake.setVisible(expanded);
         s.nameLabel.setVisible(expanded);
+        s.hitZone?.setVisible(expanded);
       }
     });
   }
@@ -492,8 +540,9 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   _buildControlsPanel(W, H, fs) {
     this._ctrlGroup = [];
     this.input.keyboard.on('keydown-ESC', () => {
-      if (this._controlsVisible) this._hideControls();
-      else if (this._userPaused)  this._toggleSpacePause();
+      if (this._plantModal)      { this._closeInventoryModal(); return; }
+      if (this._controlsVisible)   this._hideControls();
+      else if (this._userPaused)   this._toggleSpacePause();
     });
   }
 
@@ -701,6 +750,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     const sorted   = [...GameState.inventory].sort((a, b) => {
       return (comboIds.has(a.id) ? 0 : 1) - (comboIds.has(b.id) ? 0 : 1);
     });
+    this._currentInventoryOrder = sorted;
 
     this.inventoryCount?.setText(`${sorted.length}/14`);
 
@@ -767,6 +817,142 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
         s.slotGfx.lineStyle(1, C.border, 0.18);
         s.slotGfx.strokeCircle(s.sx, s.sy, s.slotR);
       }
+    });
+  }
+
+  // ── Inventory slot click → plant info modal ───────────────────────────────
+  _onInventorySlotClick(slotIdx) {
+    const plant = this._currentInventoryOrder?.[slotIdx];
+    if (!plant) return;
+    this._showInventoryModal(plant);
+  }
+
+  _showInventoryModal(plantData) {
+    if (this._plantModal) {
+      const { objs, escFn } = this._plantModal;
+      this._plantModal = null;
+      this.input.keyboard.off('keydown-ESC', escFn);
+      objs.forEach(o => o?.destroy());
+    }
+
+    const W   = this.scale.width, H = this.scale.height;
+    const fs  = this._fs(W);
+    const lore        = GDD_LORE[plantData.id] || {};
+    const elemLabel   = ELEM_PT[plantData.element]          || plantData.element;
+    const methodLabel = METHOD_PT[plantData.collectMethod]  || plantData.collectMethod;
+    const plantSpells = Object.values(SPELLS).filter(s => (s.plants || []).includes(plantData.id));
+
+    const pad  = 16;
+    const mw   = Math.min(420, Math.round(W * 0.42));
+    const OX   = -9000; // off-screen X for height measurement
+    const DEEP = 203;
+
+    const all = []; // { obj, relX }
+    let dy = pad;
+
+    const addT = (text, style, relX = pad) => {
+      const o = this.add.text(OX, dy, text, {
+        ...style, wordWrap: { width: mw - relX - pad },
+      }).setDepth(DEEP).setOrigin(0, 0);
+      all.push({ obj: o, relX });
+      dy += o.height;
+      return o;
+    };
+    const gap = n => { dy += n; };
+
+    addT(plantData.name, { fontSize: fs.xl, fontFamily: FU, color: C.text, fontStyle: 'bold' });
+    gap(4);
+
+    if (lore.tagline) {
+      addT(lore.tagline, { fontSize: fs.sm, fontFamily: FU, color: C.text, fontStyle: 'italic' });
+      gap(4);
+    }
+
+    const div1Y = dy;
+    gap(12);
+
+    addT(`${elemLabel} · ${plantData.rarity} · Zona ${plantData.zone}`,
+      { fontSize: fs.sm, fontFamily: FU, color: C.text, fontStyle: 'bold' });
+    gap(6);
+
+    if (lore.desc) {
+      addT(lore.desc, { fontSize: fs.sm, fontFamily: FU, color: C.text });
+      gap(6);
+    }
+
+    const nar = plantData.narrativeText || '';
+    if (nar && !nar.startsWith('Apanha')) {
+      addT(`"${nar}"`, { fontSize: fs.sm, fontFamily: FU, color: C.text, fontStyle: 'italic' });
+      gap(6);
+    }
+
+    addT(`Como apanhar: ${methodLabel}`, { fontSize: fs.sm, fontFamily: FU, color: C.text });
+    gap(8);
+
+    let div2Y = -1;
+    if (plantSpells.length > 0) {
+      div2Y = dy;
+      gap(12);
+      addT('Feitiços', { fontSize: fs.sm, fontFamily: FU, color: C.text, fontStyle: 'bold' });
+      gap(4);
+      plantSpells.forEach(spell => {
+        addT(spell.name, { fontSize: fs.sm, fontFamily: FU, color: C.text, fontStyle: 'bold' }, pad + 12);
+        gap(1);
+        addT(spell.description, {
+          fontSize: `${Math.max(9, parseInt(fs.sm) - 1)}px`, fontFamily: FU, color: C.text,
+        }, pad + 12);
+        gap(5);
+      });
+    }
+
+    gap(pad);
+    const cardH = dy;
+    const cardX = Math.round((W - mw) / 2);
+    const cardY = Math.round(Math.max(30, Math.min(H - cardH - 30, (H - cardH) / 2)));
+
+    all.forEach(({ obj, relX }) => obj.setX(cardX + relX).setY(obj.y + cardY));
+
+    const bgGfx = this.add.graphics().setDepth(DEEP - 1);
+    bgGfx.fillStyle(C.panel, 1);
+    bgGfx.fillRoundedRect(cardX, cardY, mw, cardH, 12);
+    bgGfx.lineStyle(1.5, C.border, 0.30);
+    bgGfx.strokeRoundedRect(cardX, cardY, mw, cardH, 12);
+    bgGfx.lineStyle(1, C.panelDk, 0.9);
+    bgGfx.lineBetween(cardX + pad, cardY + div1Y + 5, cardX + mw - pad, cardY + div1Y + 5);
+    if (div2Y >= 0) bgGfx.lineBetween(cardX + pad, cardY + div2Y + 5, cardX + mw - pad, cardY + div2Y + 5);
+
+    // cardZone absorbs clicks inside the card so the overlay doesn't fire
+    const cardZone = this.add.zone(cardX + mw / 2, cardY + cardH / 2, mw, cardH)
+      .setDepth(DEEP - 0.5).setInteractive()
+      .on('pointerdown', () => {});
+
+    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.48)
+      .setDepth(DEEP - 2).setInteractive()
+      .on('pointerdown', () => this._closeInventoryModal());
+
+    const closeBtn = this.add.text(cardX + mw - 8, cardY + 8, '✕', {
+      fontSize: fs.lg, fontFamily: FU, color: C.text,
+    }).setDepth(DEEP + 1).setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this._closeInventoryModal());
+
+    const objs = [overlay, bgGfx, cardZone, closeBtn, ...all.map(a => a.obj)];
+    objs.forEach(o => o.setAlpha(0));
+    this.tweens.add({ targets: objs, alpha: 1, duration: 200 });
+
+    const escFn = () => this._closeInventoryModal();
+    this.input.keyboard.once('keydown-ESC', escFn);
+    this._plantModal = { objs, escFn };
+  }
+
+  _closeInventoryModal() {
+    if (!this._plantModal) return;
+    const { objs, escFn } = this._plantModal;
+    this._plantModal = null;
+    this.input.keyboard.off('keydown-ESC', escFn);
+    this.tweens.add({
+      targets: objs, alpha: 0, duration: 180,
+      onComplete: () => objs.forEach(o => o?.destroy()),
     });
   }
 
@@ -1120,6 +1306,12 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
 
   _rebuildHUD() {
     if (!this.sys.isActive()) return;
+    if (this._plantModal) {
+      const { objs, escFn } = this._plantModal;
+      this._plantModal = null;
+      this.input.keyboard.off('keydown-ESC', escFn);
+      objs.forEach(o => o?.destroy());
+    }
     const W       = this.scale.width, H = this.scale.height;
     const queue   = [...(this._toastQueue  || [])];
     const ctrlVis = this._controlsVisible;

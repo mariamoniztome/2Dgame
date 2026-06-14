@@ -188,12 +188,14 @@ export class MapScene extends Phaser.Scene {
   }
 
   _buildZone(key, lockPositions, W, H, hitX, hitY, hitW, hitH) {
-    // A zone is accessible on the map only after the player physically finds
-    // its entry portal in the game world (not just when the zone unlocks).
+    // Zone is accessible on the map only after the zone is unlocked AND the
+    // player has physically found the entry portal in the game world.
+    // (zone2_forward is only discovered while unlocked, so the zone-unlock
+    //  check is implicitly satisfied for Zone3.)
     const portalForKey = { Zone2: 'zone1_limiar', Zone3: 'zone2_forward' };
     const requiredPortal = portalForKey[key];
     const unlocked = requiredPortal
-      ? GameState.discoveredPortals.has(requiredPortal)
+      ? GameState.isZoneUnlocked(key) && GameState.discoveredPortals.has(requiredPortal)
       : GameState.isZoneUnlocked(key);
     const lockSize = Math.round(W * LOCK_SP);
 

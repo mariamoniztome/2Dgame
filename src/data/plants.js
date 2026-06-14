@@ -7,8 +7,8 @@ export const PLANTS = {
     zone: 1,
     rarity: 'comum',
     essential: false,
-    collectMethod: 'interact',
-    narrativeText: 'Apanha a Gotateia para desbloquear o feitiço.',
+    collectMethod: 'fast',
+    narrativeText: 'Sou ventania, redemoinho, furacão, tempestade. Nunca desamparo, combina-me com a planta de água para vencer o fogo.',
     unsplashId: 'photo-1490750967868-88df5691cc5f',
   },
   gotateia: {
@@ -19,7 +19,7 @@ export const PLANTS = {
     rarity: 'comum',
     essential: false,
     collectMethod: 'shake',
-    narrativeText: 'Apanha a Ventoinha-branca para desbloquear o feitiço.',
+    narrativeText: 'Sou água, que vence pela persistência. Combina-me com a planta de ar para vencer o fogo.',
     unsplashId: 'photo-1508193638397-1c4234db14d8',
   },
   farfalha: {
@@ -42,7 +42,7 @@ export const PLANTS = {
     rarity: 'comum',
     essential: false,
     collectMethod: 'climb',
-    narrativeText: 'Apanha a Tezaluz para desbloquear o feitiço.',
+    narrativeText: 'Aqui estou eu para te proteger. Encontra a planta da luz e combina-me com ela.',
     unsplashId: 'photo-1416879595882-3373a0480b5b',
   },
 
@@ -54,8 +54,9 @@ export const PLANTS = {
     zone: 2,
     rarity: 'incomum',
     essential: false,
-    collectMethod: 'interact',
-    narrativeText: 'Apanha a Trepadeira-viva para desbloquear o feitiço.',
+    // GDD: dar a Gotateia a esta planta para que arrefeça
+    collectMethod: 'cool',
+    narrativeText: 'Apanhaste-me e agora te protejo. Combina-me com a planta que tudo trepa.',
     unsplashId: 'photo-1515488764276-beab7607c1e6',
   },
   craveira: {
@@ -64,9 +65,9 @@ export const PLANTS = {
     element: 'EARTH',
     zone: 2,
     rarity: 'incomum',
-    essential: false,
-    collectMethod: 'interact',
-    narrativeText: 'Apanha a Espinhosa-doce para desbloquear o feitiço.',
+    // GDD: cavar nos buracos até encontrar; Texugo entrega
+    collectMethod: 'dig',
+    narrativeText: 'Eu guio-te pelos caminhos, combina-me com a flor cheia de espinhos.',
     unsplashId: 'photo-1533616688419-b7a585564566',
   },
   espinhosa_doce: {
@@ -77,7 +78,7 @@ export const PLANTS = {
     rarity: 'incomum',
     essential: false,
     collectMethod: 'slow',
-    narrativeText: 'Apanha a Craveira para desbloquear o feitiço.',
+    narrativeText: 'Os meus espinhos são avisos dos perigos que você enfrentará. Nos buracos encontrarás a minha combinação.',
     unsplashId: 'photo-1561828995-aa79a2db86dd',
   },
   bocarra: {
@@ -87,8 +88,9 @@ export const PLANTS = {
     zone: 2,
     rarity: 'incomum',
     essential: false,
-    collectMethod: 'interact',
-    narrativeText: 'Apanha a Ventoinha-branca para desbloquear o feitiço.',
+    // GDD: esperar o momento em que não está a soprar
+    collectMethod: 'timing',
+    narrativeText: 'Voa, bruxinha. Descobre os segredos que o ar tem para te contar combinando-me com a planta que faz o vento soprar.',
     unsplashId: 'photo-1563013544-824ae1b704d3',
   },
   aurorabromelia: {
@@ -98,7 +100,8 @@ export const PLANTS = {
     zone: 2,
     rarity: 'incomum',
     essential: true,
-    collectMethod: 'interact',
+    // GDD: usar o feitiço Flutueminem para voar e apanhar
+    collectMethod: 'fly_collect',
     narrativeText: 'Bruxinha corajosa, ainda tens muitos desafios pela frente. Mas, no final, quando os ultrapassares, ajudar-te-ei a ir para casa.',
     unsplashId: 'photo-1572197883814-f7eb9d1d2900',
   },
@@ -109,8 +112,9 @@ export const PLANTS = {
     zone: 2,
     rarity: 'incomum',
     essential: true,
-    collectMethod: 'interact',
-    narrativeText: 'Apanha a Sussurreira para desbloquear o feitiço.',
+    // GDD: nadar no lago do Pântano, surge das profundezas
+    collectMethod: 'swim',
+    narrativeText: 'Eu sou sua guia, te levarei mais longe, quem sabe até casa. Sozinha, consigo guiar-te até encontrares a planta que procuras.',
     unsplashId: 'photo-1558618666-fcd25c85cd64',
   },
 
@@ -122,7 +126,9 @@ export const PLANTS = {
     zone: 3,
     rarity: 'rara',
     essential: true,
-    collectMethod: 'wait',
+    // GDD: usar o feitiço Raíz Ardente na Areia Movediça para a Sombravinha aparecer
+    collectMethod: 'spell_reveal',
+    requiredSpell: 'raiz_ardente',
     narrativeText: 'Nunca estiveste tão perto de voltar para casa. Posso ajudar-te nessa tua última viagem.',
     unsplashId: 'photo-1516476892398-bdcab4c8dab8',
   },
@@ -133,8 +139,9 @@ export const PLANTS = {
     zone: 3,
     rarity: 'rara',
     essential: false,
-    collectMethod: 'interact',
-    narrativeText: 'Apanha a Ninfária para desbloquear o feitiço.',
+    // GDD: seguir os sussurros; foge 2x, na 3ª vez é apanhada
+    collectMethod: 'chase',
+    narrativeText: 'Eu sou o sussurro do bosque. Combinada com a ninfa do pântano, abro-te uma nova porta.',
     unsplashId: 'photo-1468327768560-75b778cbb551',
   },
   faisca_mato: {
@@ -144,7 +151,8 @@ export const PLANTS = {
     zone: 3,
     rarity: 'rara',
     essential: false,
-    collectMethod: 'brave',
+    // GDD: encontrar voando por cima da Areia Movediça com Flutueminem
+    collectMethod: 'fly_collect',
     narrativeText: 'Que surjam as minhas raízes flamejantes. Vamos, bruxinha, vamos para fora dessa areia.',
     unsplashId: 'photo-1559827291-72ee739d0d9a',
   },
@@ -155,7 +163,8 @@ export const PLANTS = {
     zone: 3,
     rarity: 'rara',
     essential: true,
-    collectMethod: 'interact',
+    // GDD: chegar ao fim do labirinto no Bosque da Confusão
+    collectMethod: 'maze_end',
     narrativeText: 'Eu vivi com a tua mãe, a tua avó e todas as mulheres poderosas da tua família. Estou aqui para te guiar para fora do jardim, bruxinha. Vamos enfrentar os Ecos — estás pronta?',
     unsplashId: 'photo-1541233349642-f1295df5d41e',
   },
