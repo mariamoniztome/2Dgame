@@ -31,12 +31,14 @@ const ZONE1_ICONS = [
   },
 ];
 
-// Decorative plant/creature icons — size as fraction of W
-const DECO_ICONS = [
-  { icon: 'map_icone_ventoinha',  xp: 0.1779, yp: 0.7676, sp: 0.0898 },
-  { icon: 'map_icone_farfalha',   xp: 0.1596, yp: 0.0698, sp: 0.0853 },
-  { icon: 'map_icone_gotateia',   xp: 0.5313, yp: 0.9068, sp: 0.0801 },
-  { icon: 'map_icone_trepadeira', xp: 0.0361, yp: 0.5501, sp: 0.0781 },
+// Decorative plant/creature icons — size as fraction of W.
+// Default positions match original spawn locations; xp/yp are overridden at runtime
+// from GameState.plantMapPositions when a plant has been stolen and respawned elsewhere.
+const DECO_ICONS_BASE = [
+  { icon: 'map_icone_ventoinha',  plantId: 'ventoinha',  sp: 0.0898, xp: 0.1779, yp: 0.7676 },
+  { icon: 'map_icone_farfalha',   plantId: 'farfalha',   sp: 0.0853, xp: 0.1596, yp: 0.0698 },
+  { icon: 'map_icone_gotateia',   plantId: 'gotateia',   sp: 0.0801, xp: 0.5313, yp: 0.9068 },
+  { icon: 'map_icone_trepadeira', plantId: 'trepadeira', sp: 0.0781, xp: 0.0361, yp: 0.5501 },
 ];
 
 // Portal icons — entry/exit points between zones
@@ -127,10 +129,14 @@ export class MapScene extends Phaser.Scene {
     });
 
     // ── Decorative plant icons ────────────────────────────────────────────
-    DECO_ICONS.forEach(({ icon, xp, yp, sp }) => {
+    // Positions come from GameState.plantMapPositions (updated when a plant is stolen/respawned)
+    // so the map always shows the current location of each plant.
+    DECO_ICONS_BASE.forEach(({ icon, plantId, sp, xp: defaultXp, yp: defaultYp }) => {
       if (!this.textures.exists(icon)) return;
+      if (GameState.collected.has(plantId)) return;
+      const pos = GameState.plantMapPositions?.[plantId] ?? { xp: defaultXp, yp: defaultYp };
       const s = Math.round(W * sp);
-      const img = this.add.image(W * xp, H * yp, icon).setDisplaySize(s, s).setDepth(4)
+      const img = this.add.image(W * pos.xp, H * pos.yp, icon).setDisplaySize(s, s).setDepth(4)
         .setInteractive({ useHandCursor: false });
       this._debugObjs.push({ img, label: icon, group: 'deco' });
     });

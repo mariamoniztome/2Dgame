@@ -48,12 +48,27 @@ const LIMIAR_PLANT_SPAWNS = [
   // { id: 'farfalha', x:  358, y: -2207 },
 ];
 
-// Alternative positions used when respawning a stolen plant (different from original spawn)
+// Alternative positions used when respawning a stolen plant (different from original spawn).
+// mapXp/mapYp are fractional coords on the MapScene image (matching DECO_ICONS format).
 const PLANT_RESPAWN_SPAWNS = {
-  ventoinha:  [{ x: 92, y: 1007 }, { x: 450, y: 620 }, { x: 1650, y: 310 }],
-  gotateia:   [{ x: 2220, y: 320 }, { x: 2700, y: 820 }, { x: 3150, y: 420 }],
-  trepadeira: [{ x: 900, y: -200 }, { x: 1380, y: -360 }],
-  farfalha:   [{ x: 400, y: -1820 }, { x: 1150, y: -1620 }],
+  ventoinha:  [
+    { x:   92, y: 1007, mapXp: 0.05, mapYp: 0.88 },
+    { x:  450, y:  620, mapXp: 0.08, mapYp: 0.80 },
+    { x: 1650, y:  310, mapXp: 0.16, mapYp: 0.72 },
+  ],
+  gotateia:   [
+    { x: 2220, y:  320, mapXp: 0.36, mapYp: 0.77 },
+    { x: 2700, y:  820, mapXp: 0.43, mapYp: 0.90 },
+    { x: 3150, y:  420, mapXp: 0.49, mapYp: 0.81 },
+  ],
+  trepadeira: [
+    { x:  900, y: -200, mapXp: 0.10, mapYp: 0.56 },
+    { x: 1380, y: -360, mapXp: 0.14, mapYp: 0.53 },
+  ],
+  farfalha:   [
+    { x:  400, y: -1820, mapXp: 0.07, mapYp: 0.16 },
+    { x: 1150, y: -1620, mapXp: 0.11, mapYp: 0.19 },
+  ],
 };
 
 export class Zone1Scene extends Phaser.Scene {
@@ -1218,10 +1233,31 @@ export class Zone1Scene extends Phaser.Scene {
     const plantData = PLANTS[plant.id];
     if (!plantData) return;
 
-    // Pick a random alternative spawn position so the plant reappears somewhere new
+    // Pick a random alternative spawn position so the plant reappears somewhere new.
+    // Filter out positions that overlap with decorative elements (min 80px clearance).
     const respawnOptions = PLANT_RESPAWN_SPAWNS[plant.id];
     if (!respawnOptions?.length) return;
-    const spawn = respawnOptions[Math.floor(Math.random() * respawnOptions.length)];
+
+    const decoPositions = [
+      ...this.campoDecos,
+      ...this.transicaoDecos,
+      ...this.jardimDecos,
+      ...this.limiarDecos,
+    ].map(d => ({ x: d.img.x, y: d.img.y }));
+
+    const MIN_DECO_DIST = 80;
+    const clearOptions = respawnOptions.filter(opt =>
+      !decoPositions.some(d =>
+        Phaser.Math.Distance.Between(opt.x, opt.y, d.x, d.y) < MIN_DECO_DIST
+      )
+    );
+    const pool = clearOptions.length > 0 ? clearOptions : respawnOptions;
+    const spawn = pool[Math.floor(Math.random() * pool.length)];
+
+    // Update map icon position so the MapScene shows the new location
+    if (spawn.mapXp !== undefined) {
+      GameState.plantMapPositions[plant.id] = { xp: spawn.mapXp, yp: spawn.mapYp };
+    }
 
     this.time.delayedCall(15000, () => {
       if (GameState.collected.has(plant.id)) return;

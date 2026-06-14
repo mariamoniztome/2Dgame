@@ -19,6 +19,13 @@ class GameStateManager {
     this.playerX = 420;
     this.playerY = 1200;
     this.plantSpawns = [];
+    // Current map icon positions for stolen/respawned plants (fractional coords matching MapScene)
+    this.plantMapPositions = {
+      ventoinha:  { xp: 0.1779, yp: 0.7676 },
+      farfalha:   { xp: 0.1596, yp: 0.0698 },
+      gotateia:   { xp: 0.5313, yp: 0.9068 },
+      trepadeira: { xp: 0.0361, yp: 0.5501 },
+    };
     this.visitedJardim  = false;
     this.shownIntro     = false;
     this.currentArea    = '';
