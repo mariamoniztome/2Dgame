@@ -34,7 +34,7 @@ export class BootScene extends Phaser.Scene {
     // Area backgrounds and transition zone assets — loaded at native SVG viewBox size
     this.load.svg('z1_bg_campo',    '/assets/zone1/campo/bg_campo.svg',         { width: 1920, height: 1080 });
     this.load.svg('z1_bg_trans',    '/assets/zone1/transicao/fundo.svg',        { width: 1920, height: 525  });
-    this.load.svg('z1_fundo_parede','/assets/zone1/transicao/fundo_parede.svg', { width: 2077, height: 1550 });
+    // this.load.svg('z1_fundo_parede','/assets/zone1/transicao/fundo_parede.svg', { width: 2077, height: 1550 });
     this.load.svg('z1_caminho',     '/assets/zone1/transicao/caminho.svg',      { width: 1920, height: 525  });
     this.load.svg('z1_parede',      '/assets/zone1/transicao/parede.svg',       { width: 1920, height: 1735 });
     // Location signs — 512px raster for crisp display at large sizes (up to zoom 2)
