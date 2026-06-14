@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
 
-// Video path — place the intro file at public/assets/cena_inicial/intro.mp4
-// (.webm is tried as fallback for browsers that prefer it)
 const VIDEO_SOURCES = [
-  '/assets/cena_inicial/intro.mp4',
-  '/assets/cena_inicial/intro.webm',
+  '/assets/cena_inicial/video.mp4',
+  '/assets/cena_inicial/video.webm',
 ];
 
 export class IntroVideoScene extends Phaser.Scene {
