@@ -48,6 +48,14 @@ const LIMIAR_PLANT_SPAWNS = [
   // { id: 'farfalha', x:  358, y: -2207 },
 ];
 
+// Alternative positions used when respawning a stolen plant (different from original spawn)
+const PLANT_RESPAWN_SPAWNS = {
+  ventoinha:  [{ x: 92, y: 1007 }, { x: 450, y: 620 }, { x: 1650, y: 310 }],
+  gotateia:   [{ x: 2220, y: 320 }, { x: 2700, y: 820 }, { x: 3150, y: 420 }],
+  trepadeira: [{ x: 900, y: -200 }, { x: 1380, y: -360 }],
+  farfalha:   [{ x: 400, y: -1820 }, { x: 1150, y: -1620 }],
+};
+
 export class Zone1Scene extends Phaser.Scene {
   constructor() { super('Zone1'); }
 
@@ -1156,18 +1164,13 @@ export class Zone1Scene extends Phaser.Scene {
   _onPlantStolen(plant) {
     this._emitNarrative(`O Sussurro-Ladrão levou a tua ${plant.name}! Volta ao Campo para procurar mais.`, 5000);
 
-    const allSpawns = [
-      ...PLANT_SPAWNS,
-      ...TRANSICAO_PLANT_SPAWNS,
-      ...LIMIAR_PLANT_SPAWNS,
-    ].filter(s => s.id === plant.id);
-    if (!allSpawns.length) return;
-
-    // Pick a random spawn; if multiple exist, avoid repeating position by shuffling
-    const shuffled = allSpawns.sort(() => Math.random() - 0.5);
-    const spawn = shuffled[0];
     const plantData = PLANTS[plant.id];
     if (!plantData) return;
+
+    // Pick a random alternative spawn position so the plant reappears somewhere new
+    const respawnOptions = PLANT_RESPAWN_SPAWNS[plant.id];
+    if (!respawnOptions?.length) return;
+    const spawn = respawnOptions[Math.floor(Math.random() * respawnOptions.length)];
 
     this.time.delayedCall(15000, () => {
       if (GameState.collected.has(plant.id)) return;
@@ -2005,6 +2008,12 @@ export class Zone1Scene extends Phaser.Scene {
       obj.disableInteractive();
     });
     this._dbObjs = [];
+
+    // Re-enable normal hover/click on plants after debug mode
+    (this.plants || []).forEach(p => {
+      if (!p?.active || p.isCollected) return;
+      p.setInteractive(new Phaser.Geom.Circle(0, 0, 50), Phaser.Geom.Circle.Contains, { useHandCursor: true });
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────

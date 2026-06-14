@@ -59,6 +59,29 @@ export class Plant extends Phaser.GameObjects.Container {
     scene.add.existing(this);
     this.setDepth(5);
 
+    this._hoverTween = null;
+    this.setInteractive(new Phaser.Geom.Circle(0, 0, 50), Phaser.Geom.Circle.Contains, { useHandCursor: true });
+
+    this.on('pointerover', () => {
+      if (this.isCollected) return;
+      this._hoverTween?.stop();
+      this._hoverTween = scene.tweens.add({
+        targets: this, scaleX: 1.18, scaleY: 1.18, duration: 160, ease: 'Back.easeOut',
+      });
+    });
+    this.on('pointerout', () => {
+      if (this.isCollected) return;
+      this._hoverTween?.stop();
+      this._hoverTween = scene.tweens.add({
+        targets: this, scaleX: 1, scaleY: 1, duration: 160, ease: 'Sine.easeInOut',
+      });
+    });
+    this.on('pointerup', (pointer) => {
+      if (this.isCollected) return;
+      if (Math.abs(pointer.upX - pointer.downX) > 6 || Math.abs(pointer.upY - pointer.downY) > 6) return;
+      scene.game.events.emit('plantInspect', this.plantData);
+    });
+
     // Floating animation
     scene.tweens.add({
       targets: this.sprite,
@@ -181,6 +204,10 @@ export class Plant extends Phaser.GameObjects.Container {
 
   collect() {
     this.isCollected = true;
+    this.disableInteractive();
+    this._hoverTween?.stop();
+    this._hoverTween = null;
+    this.setScale(1);
     this.showHint(false);
     const el = ELEMENTS[this.plantData.element] || ELEMENTS.EARTH;
 

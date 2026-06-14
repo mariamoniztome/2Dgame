@@ -131,18 +131,20 @@ export class HUDScene extends Phaser.Scene {
 
     SoundManager.init(this);
 
-    this.game.events.off('plantCollected', this._onPlantCollected, this);
-    this.game.events.off('plantStolen',    this._onPlantStolen,    this);
-    this.game.events.off('spellCast',      this._onSpellCast,      this);
-    this.game.events.off('showNarrative',  this._showNarrative,    this);
-    this.game.events.off('spellUnlocked',  this._showUnlock,       this);
-    this.game.events.off('areaChanged',    this._updateArea,       this);
-    this.game.events.on('plantCollected',  this._onPlantCollected, this);
-    this.game.events.on('plantStolen',     this._onPlantStolen,    this);
-    this.game.events.on('spellCast',       this._onSpellCast,      this);
-    this.game.events.on('showNarrative',   this._showNarrative,    this);
-    this.game.events.on('spellUnlocked',   this._showUnlock,       this);
-    this.game.events.on('areaChanged',     this._updateArea,       this);
+    this.game.events.off('plantCollected', this._onPlantCollected,  this);
+    this.game.events.off('plantStolen',    this._onPlantStolen,     this);
+    this.game.events.off('spellCast',      this._onSpellCast,       this);
+    this.game.events.off('showNarrative',  this._showNarrative,     this);
+    this.game.events.off('spellUnlocked',  this._showUnlock,        this);
+    this.game.events.off('areaChanged',    this._updateArea,        this);
+    this.game.events.off('plantInspect',   this._onPlantInspect,    this);
+    this.game.events.on('plantCollected',  this._onPlantCollected,  this);
+    this.game.events.on('plantStolen',     this._onPlantStolen,     this);
+    this.game.events.on('spellCast',       this._onSpellCast,       this);
+    this.game.events.on('showNarrative',   this._showNarrative,     this);
+    this.game.events.on('spellUnlocked',   this._showUnlock,        this);
+    this.game.events.on('areaChanged',     this._updateArea,        this);
+    this.game.events.on('plantInspect',    this._onPlantInspect,    this);
 
     this._refresh();
   }
@@ -957,6 +959,8 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   }
 
   // ── Event handlers ────────────────────────────────────────────────────────
+  _onPlantInspect(plantData) { this._showInventoryModal(plantData); }
+
   _onPlantCollected(plantData) {
     this._refresh();
     this._refreshObjective();
