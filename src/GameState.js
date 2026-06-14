@@ -19,9 +19,10 @@ class GameStateManager {
     this.playerX = 420;
     this.playerY = 1200;
     this.plantSpawns = [];
-    this.visitedJardim = false;
-    this.shownIntro    = false;
-    this.currentArea   = '';
+    this.visitedJardim  = false;
+    this.shownIntro     = false;
+    this.currentArea    = '';
+    this.spellJustLost  = null;
   }
 
   addPlant(plantData) {
@@ -43,9 +44,9 @@ class GameStateManager {
   }
 
   stealLastPlant() {
-    const real = this.inventory.filter(p => !p.isFake);
-    if (!real.length) return null;
-    const stolen = real[real.length - 1];
+    const nonEssential = this.inventory.filter(p => !p.isFake && !p.essential);
+    if (!nonEssential.length) return null;
+    const stolen = nonEssential[nonEssential.length - 1];
     this.removePlant(stolen.id);
     return stolen;
   }
@@ -76,6 +77,10 @@ class GameStateManager {
         break;
       }
     }
+
+    // Detect lost spell
+    const lost = prev.find(id => !this.availableSpells.includes(id));
+    if (lost) this.spellJustLost = lost;
 
     // Keep activeSpell only if still available
     if (this.activeSpell && !this.availableSpells.includes(this.activeSpell)) {

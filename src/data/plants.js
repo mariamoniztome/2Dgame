@@ -40,7 +40,7 @@ export const PLANTS = {
     element: 'EARTH',
     zone: 1,
     rarity: 'comum',
-    essential: false,
+    essential: true,
     collectMethod: 'climb',
     narrativeText: 'Aqui estou eu para te proteger. Encontra a planta da luz e combina-me com ela.',
     unsplashId: 'photo-1416879595882-3373a0480b5b',

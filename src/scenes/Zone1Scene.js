@@ -1164,6 +1164,16 @@ export class Zone1Scene extends Phaser.Scene {
   _onPlantStolen(plant) {
     this._emitNarrative(`O Sussurro-Ladrão levou a tua ${plant.name}! Volta ao Campo para procurar mais.`, 5000);
 
+    if (GameState.spellJustLost) {
+      const lostSpellName = SPELLS[GameState.spellJustLost]?.name;
+      GameState.spellJustLost = null;
+      if (lostSpellName) {
+        this.time.delayedCall(5500, () =>
+          this._emitNarrative(`O feitiço ${lostSpellName} já não está disponível.`, 3500)
+        );
+      }
+    }
+
     const plantData = PLANTS[plant.id];
     if (!plantData) return;
 
@@ -1352,7 +1362,8 @@ export class Zone1Scene extends Phaser.Scene {
   // ─────────────────────────────────────────────────────────────────────────
   _scheduleLadrao() {
     if (!this.scene.isActive('Zone1')) return;
-    if (GameState.inventory.length === 0) {
+    const stealable = GameState.inventory.filter(p => !p.isFake && !p.essential);
+    if (stealable.length === 0) {
       this.time.delayedCall(8000, () => this._scheduleLadrao());
       return;
     }
