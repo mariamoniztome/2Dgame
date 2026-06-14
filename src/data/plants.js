@@ -31,7 +31,7 @@ export const PLANTS = {
     essential: true,
     collectMethod: 'spell',
     requiredSpell: 'brisa_molhada',
-    narrativeText: 'Minha energia vai te levar para casa. Respira, bruxinha, você está no caminho.',
+    narrativeText: 'A minha chama ilumina o teu regresso a casa… mas ainda tens um longo caminho pela frente.',
     unsplashId: 'photo-1561615098504-2c1a2b0a6e19',
   },
   trepadeira: {
@@ -114,7 +114,7 @@ export const PLANTS = {
     essential: true,
     // GDD: nadar no lago do Pântano, surge das profundezas
     collectMethod: 'swim',
-    narrativeText: 'Eu sou sua guia, te levarei mais longe, quem sabe até casa. Sozinha, consigo guiar-te até encontrares a planta que procuras.',
+    narrativeText: 'Sou uma das tuas guias e levo-te um pouco mais longe no teu caminho para casa. Sozinha, consigo guiar-te até encontrares a planta que procuras. Para uma nova área desbloquear, com os sussurros tens que me juntar.',
     unsplashId: 'photo-1558618666-fcd25c85cd64',
   },
 
@@ -153,7 +153,7 @@ export const PLANTS = {
     essential: false,
     // GDD: encontrar voando por cima da Areia Movediça com Flutueminem
     collectMethod: 'fly_collect',
-    narrativeText: 'Que surjam as minhas raízes flamejantes. Vamos, bruxinha, vamos para fora dessa areia.',
+    narrativeText: 'Depois de me apanhares, sê rápida a activar o feitiço Radixignis antes de seres engolida pela Areia Movediça. Que surjam as minhas raízes flamejantes. Vamos, bruxinha, vamos para fora dessa areia.',
     unsplashId: 'photo-1559827291-72ee739d0d9a',
   },
   lunaria_negra: {
@@ -165,7 +165,7 @@ export const PLANTS = {
     essential: true,
     // GDD: chegar ao fim do labirinto no Bosque da Confusão
     collectMethod: 'maze_end',
-    narrativeText: 'Eu vivi com a tua mãe, a tua avó e todas as mulheres poderosas da tua família. Estou aqui para te guiar para fora do jardim, bruxinha. Vamos enfrentar os Ecos — estás pronta?',
+    narrativeText: 'Eu vivi com a tua avó e todas as mulheres poderosas da tua família. Estou aqui para te guiar para fora do jardim, bruxinha. Vamos enfrentar os Ecos, estás pronta?',
     unsplashId: 'photo-1541233349642-f1295df5d41e',
   },
 };

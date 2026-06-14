@@ -82,12 +82,12 @@ export const SPELLS = {
 };
 
 export const SPELL_ORDER = [
-  'brisa_molhada',
-  'flutueminem',
-  'fogo_controlado',
-  'memoria_solo',
-  'raiz_ardente',
-  'canto_jardim',
-  'espelho_memoria',
-  'Ancestria',
+  'brisa_molhada',    // 1. Humidaris       — ventoinha + gotateia (Zona 1)
+  'fogo_controlado',  // 2. Ignicura         — trepadeira + tezaluz (Zona 2 Planície)
+  'flutueminem',      // 3. Flutueminem      — ventoinha + bocarra  (Zona 2 Jardim)
+  'memoria_solo',     // 4. Terramemoria     — espinhosa + craveira (Zona 2 Jardim)
+  'canto_jardim',     // 5. Horticantus      — ninfaria alone       (Zona 2 Pântano)
+  'raiz_ardente',     // 6. Radixignis       — faisca_mato alone    (Zona 3)
+  'espelho_memoria',  // 7. Memoriaspeculum  — ninfaria + sussurreira (Zona 3)
+  'Ancestria',        // 8. Ancestria        — lunaria_negra alone  (Zona 3)
 ];
