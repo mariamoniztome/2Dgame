@@ -28,6 +28,11 @@ export class Plant extends Phaser.GameObjects.Container {
     // Glow background
     this.glow = scene.add.circle(0, 0, 26, el.color, 0.18);
 
+    // Hover ring (border — hidden until hover)
+    this.hoverRing = scene.add.arc(0, 0, 46, 0, 360, false, el.color, 0)
+      .setStrokeStyle(2.5, el.color, 1)
+      .setAlpha(0);
+
     // Main sprite: animated frames → SVG → element-circle fallback → red-X
     const imgKey      = `plant_img_${data.id}`;
     const circleKey   = `plant_${data.id}`;
@@ -71,33 +76,12 @@ export class Plant extends Phaser.GameObjects.Container {
       padding: { x: 4, y: 2 },
     }).setOrigin(0.5).setAlpha(0);
 
-    const children = [this.glow, this.sprite, this.label, this.hint];
+    const children = [this.glow, this.hoverRing, this.sprite, this.label, this.hint];
     this.add(children);
     scene.add.existing(this);
     this.setDepth(5);
 
     this._hoverTween = null;
-    this.setInteractive(new Phaser.Geom.Circle(0, 0, 50), Phaser.Geom.Circle.Contains, { useHandCursor: true });
-
-    this.on('pointerover', () => {
-      if (this.isCollected) return;
-      this._hoverTween?.stop();
-      this._hoverTween = scene.tweens.add({
-        targets: this, scaleX: 1.18, scaleY: 1.18, duration: 160, ease: 'Back.easeOut',
-      });
-    });
-    this.on('pointerout', () => {
-      if (this.isCollected) return;
-      this._hoverTween?.stop();
-      this._hoverTween = scene.tweens.add({
-        targets: this, scaleX: 1, scaleY: 1, duration: 160, ease: 'Sine.easeInOut',
-      });
-    });
-    this.on('pointerup', (pointer) => {
-      if (this.isCollected) return;
-      if (Math.abs(pointer.upX - pointer.downX) > 6 || Math.abs(pointer.upY - pointer.downY) > 6) return;
-      scene.game.events.emit('plantInspect', this.plantData);
-    });
 
     // Floating animation
     scene.tweens.add({
@@ -219,12 +203,22 @@ export class Plant extends Phaser.GameObjects.Container {
     }
   }
 
+  setHovered(on) {
+    if (!this.scene) return;
+    this._hoverTween?.stop();
+    this._hoverTween = this.scene.tweens.add({
+      targets: this.hoverRing,
+      alpha: on ? 0.9 : 0,
+      duration: on ? 160 : 200,
+      ease: 'Sine.easeInOut',
+    });
+  }
+
   collect() {
     this.isCollected = true;
-    this.disableInteractive();
     this._hoverTween?.stop();
     this._hoverTween = null;
-    this.setScale(1);
+    this.hoverRing.setAlpha(0);
     this.showHint(false);
     const el = ELEMENTS[this.plantData.element] || ELEMENTS.EARTH;
 

@@ -188,6 +188,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     this._nearPlant      = null;
     this._nearPortal     = false;
+    this._hoveredPlant   = null;
     this._vineClimbed    = GameState.collected.has('trepadeira');
     this._currentArea    = '';
     this._spellCooldown  = 0;
@@ -216,6 +217,7 @@ export class Zone1Scene extends Phaser.Scene {
     });
 
     this.game.events.on('plantStolen', this._onPlantStolen, this);
+    this.input.on('pointerup', this._onPointerUp, this);
 
     if (GameState.checkZone2Unlock() && !GameState.isZoneUnlocked('Zone2')) {
       GameState.unlockZone('Zone2');
@@ -696,6 +698,7 @@ export class Zone1Scene extends Phaser.Scene {
 
     this._checkAreaChange();
     this._checkPlantProximity(time, delta);
+    this._checkPlantHover();
     this._checkPortalProximity();
     this._handleKeys(time, delta);
     this._updateHints(delta);
@@ -705,6 +708,40 @@ export class Zone1Scene extends Phaser.Scene {
     // this._updateLimiarFog();
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  Mouse hover — show border ring on plant under pointer (world-coordinate based)
+  // ─────────────────────────────────────────────────────────────────────────
+  _checkPlantHover() {
+    if (this._dbFrozen || this._cutscene) return;
+    const ptr = this.input.activePointer;
+    const wx = ptr.worldX, wy = ptr.worldY;
+
+    let found = null;
+    for (const plant of this.plants) {
+      if (plant.isCollected || !plant.isVisible || !plant.active) continue;
+      if (Phaser.Math.Distance.Between(wx, wy, plant.x, plant.y) < 44) { found = plant; break; }
+    }
+
+    if (found !== this._hoveredPlant) {
+      if (this._hoveredPlant) this._hoveredPlant.setHovered(false);
+      if (found) found.setHovered(true);
+      this._hoveredPlant = found;
+      this.game.canvas.style.cursor = found ? 'pointer' : '';
+    }
+  }
+
+  _onPointerUp(pointer) {
+    if (this._dbFrozen || this._cutscene) return;
+    if (Math.abs(pointer.upX - pointer.downX) > 8 || Math.abs(pointer.upY - pointer.downY) > 8) return;
+    const hud = this.scene.get('HUD');
+    if (hud?._plantModal) return;
+    const plant = this.plants?.find(p =>
+      !p.isCollected && p.isVisible && p.active &&
+      Phaser.Math.Distance.Between(pointer.worldX, pointer.worldY, p.x, p.y) < 44
+    );
+    if (plant) this.game.events.emit('plantInspect', plant.plantData);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1064,6 +1101,10 @@ export class Zone1Scene extends Phaser.Scene {
   // ─────────────────────────────────────────────────────────────────────────
   _collectPlant(plant) {
     if (plant.isCollected) return;
+    if (this._hoveredPlant === plant) {
+      this._hoveredPlant = null;
+      this.game.canvas.style.cursor = '';
+    }
     const data = plant.plantData;
     if (!GameState.addPlant(data)) {
       this._emitNarrative('A mochila está cheia! Tens 14 plantas.');
@@ -2019,12 +2060,8 @@ export class Zone1Scene extends Phaser.Scene {
       obj.disableInteractive();
     });
     this._dbObjs = [];
-
-    // Re-enable normal hover/click on plants after debug mode
-    (this.plants || []).forEach(p => {
-      if (!p?.active || p.isCollected) return;
-      p.setInteractive(new Phaser.Geom.Circle(0, 0, 50), Phaser.Geom.Circle.Contains, { useHandCursor: true });
-    });
+    this._hoveredPlant = null;
+    this.game.canvas.style.cursor = '';
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -2112,5 +2149,6 @@ export class Zone1Scene extends Phaser.Scene {
     this.game.events.off('plantStolen', this._onPlantStolen, this);
     this._ladrao?.destroy();
     this._ladrao = null;
+    this.game.canvas.style.cursor = '';
   }
 }
