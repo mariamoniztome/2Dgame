@@ -117,7 +117,7 @@ export class IntroVideoScene extends Phaser.Scene {
     // Camera fades in from black (canvas was already black behind video)
     this.cameras.main.fadeIn(600, 0, 0, 0);
     this.cameras.main.once('camerafadeincomplete', () => {
-      this.scene.start('Map');
+      this.scene.start('Zone1');
     });
   }
 
