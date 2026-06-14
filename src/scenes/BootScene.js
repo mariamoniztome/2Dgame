@@ -126,7 +126,7 @@ export class BootScene extends Phaser.Scene {
     // Flag consumed by Zone1 to auto-show controls on first entry
     this.game.registry.set('firstZoneEntry', true);
 
-    this.scene.start('Zone1');
+    this.scene.start('IntroVideo');
   }
 
   _generateTextures() {
