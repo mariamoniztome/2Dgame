@@ -20,10 +20,19 @@ const AREAS = {
 };
 
 const PLANT_SPAWNS = [
-  { id: 'sombravinha',   x: 560, y: 380 },  // hidden in quicksand; Raíz Ardente reveals
-  { id: 'faisca_mato',   x: 820, y: 460 },  // in quicksand area; requires flying
-  { id: 'sussurreira',   x: 460, y: 1020 }, // Bosque; chase mechanic
-  { id: 'lunaria_negra', x: 820, y: 1300 }, // Bosque; maze end
+  // ── Vale do Asara (primary) ──
+  { id: 'sombravinha',   x: 560, y: 380  }, // hidden; Raíz Ardente reveals
+  { id: 'faisca_mato',   x: 820, y: 460  }, // quicksand area; requires flying
+  // ── Bosque da Confusão (primary) ──
+  { id: 'sussurreira',   x: 460, y: 1020 }, // chase mechanic
+  { id: 'lunaria_negra', x: 950, y: 1300 }, // maze end (past gap 3 at x≥890)
+  // ── Bosque da Confusão (backup spawns if missed earlier) ──
+  { id: 'espinhosa_doce', x: 250, y: 800  },
+  { id: 'gotateia',       x: 600, y: 820  },
+  { id: 'trepadeira',     x: 1100, y: 900 },
+  // ── Vale dos Espelhos (backup spawns) ──
+  { id: 'tezaluz',   x: 450, y: ZONE_H * 2 + 150 },
+  { id: 'ventoinha', x: 850, y: ZONE_H * 2 + 200 },
 ];
 
 // Quicksand ellipses in Vale do Asara
@@ -49,6 +58,7 @@ const MIRROR_CY   = ZONE_H * 2 + 390; // y = 1830
 const MIRROR_R    = 270;
 const NUM_MIRRORS = 12;
 const NUM_ECOS    = 11;
+const CAULDRON_MIRROR_INDEX = 3; // bottom mirror (angle π/2) — acts as cauldron exit
 
 export class Zone3Scene extends Phaser.Scene {
   constructor() { super('Zone3'); }
@@ -105,14 +115,15 @@ export class Zone3Scene extends Phaser.Scene {
 
     if (!this.scene.isActive('HUD')) this.scene.launch('HUD');
 
-    this._nearPlant        = null;
-    this._nearPortal       = null;
-    this._currentArea      = '';
-    this._spellCooldown    = 0;
-    this._proximityTimer   = 0;
-    this._timedPlant       = null;
-    this._footTimer        = 0;
-    this._spellUnlockShown = null;
+    this._nearPlant          = null;
+    this._nearPortal         = null;
+    this._nearCauldronMirror = false;
+    this._currentArea        = '';
+    this._spellCooldown      = 0;
+    this._proximityTimer     = 0;
+    this._timedPlant         = null;
+    this._footTimer          = 0;
+    this._spellUnlockShown   = null;
 
     // Quicksand state
     this._sinkTimer       = 0;
@@ -127,6 +138,9 @@ export class Zone3Scene extends Phaser.Scene {
     this._ladrao           = null;
     this._ladraoStole      = false;
     this._ladraoSpawnTimer = 25000;
+
+    // Cauldron mirror
+    this._cauldronMirrorActive = false;
 
     this.cameras.main.fadeIn(800, 0, 0, 0);
     this.game.events.on('plantStolen', this._onPlantStolen, this);
@@ -266,7 +280,9 @@ export class Zone3Scene extends Phaser.Scene {
   //  Mirror circle in Vale dos Espelhos
   // ──────────────────────────────────────────────────────────────────────────
   _buildMirrors() {
-    this._mirrorObjs = [];
+    this._mirrorObjs           = [];
+    this._cauldronMirrorShimmer = null;
+    this._cauldronMirrorPos     = null;
     const gfx = this.add.graphics().setDepth(6);
 
     for (let i = 0; i < NUM_MIRRORS; i++) {
@@ -274,27 +290,34 @@ export class Zone3Scene extends Phaser.Scene {
       const mx    = MIRROR_CX + Math.cos(angle) * MIRROR_R;
       const my    = MIRROR_CY + Math.sin(angle) * MIRROR_R;
       const mW = 18, mH = 80;
+      const isCauldron = (i === CAULDRON_MIRROR_INDEX);
 
       // Stand
-      gfx.fillStyle(0x3a2a0e, 0.9);
+      gfx.fillStyle(isCauldron ? 0x3a2a00 : 0x3a2a0e, 0.9);
       gfx.fillRect(mx - 4, my + mH / 2, 8, 20);
-      // Frame
-      gfx.lineStyle(3, 0x8060a0, 0.8);
+      // Frame — cauldron mirror has golden frame
+      gfx.lineStyle(3, isCauldron ? 0xb08840 : 0x8060a0, 0.8);
       gfx.strokeRect(mx - mW / 2, my - mH / 2, mW, mH);
       // Glass
-      gfx.fillStyle(0xa0b0ff, 0.15);
+      gfx.fillStyle(isCauldron ? 0xffe0a0 : 0xa0b0ff, 0.15);
       gfx.fillRect(mx - mW / 2 + 2, my - mH / 2 + 2, mW - 4, mH - 4);
       // Highlight
       gfx.fillStyle(0xffffff, 0.1);
       gfx.fillRect(mx - mW / 2 + 3, my - mH / 2 + 6, 4, mH - 16);
 
-      const shimmer = this.add.rectangle(mx, my, mW - 4, mH - 4, 0xa0b0ff, 0.12).setDepth(7);
+      const shimmer = this.add.rectangle(mx, my, mW - 4, mH - 4,
+        isCauldron ? 0xffe0a0 : 0xa0b0ff, 0.12).setDepth(7);
       this._mirrorObjs.push(shimmer);
       this.tweens.add({
         targets: shimmer,
         alpha: { from: 0.06, to: 0.22 },
         duration: 1600 + i * 120, yoyo: true, repeat: -1,
       });
+
+      if (isCauldron) {
+        this._cauldronMirrorShimmer = shimmer;
+        this._cauldronMirrorPos     = { x: mx, y: my };
+      }
     }
 
     // Ground rune circle
@@ -375,16 +398,30 @@ export class Zone3Scene extends Phaser.Scene {
   //  11 Ecos in Vale dos Espelhos
   // ──────────────────────────────────────────────────────────────────────────
   _buildEcos() {
-    this.ecos = [];
+    this.ecos             = [];
     this._ecosDefeated    = 0;
     this._ecosAllDefeated = false;
+    this._ecosSpawned     = false;
 
+    // Store positions only; Creatures are created lazily when player enters the circle
+    this._ecoPositions = [];
     for (let i = 0; i < NUM_ECOS; i++) {
       const angle = (i / NUM_ECOS) * Math.PI * 2;
       const r     = 140 + (i % 3) * 45;
-      const x     = MIRROR_CX + Math.cos(angle) * r;
-      const y     = MIRROR_CY + Math.sin(angle) * r;
-      const eco   = new Creature(this, x, y, 'creature_eco', {
+      this._ecoPositions.push({
+        x: MIRROR_CX + Math.cos(angle) * r,
+        y: MIRROR_CY + Math.sin(angle) * r,
+      });
+    }
+  }
+
+  _spawnEcos() {
+    if (this._ecosSpawned) return;
+    this._ecosSpawned = true;
+    this._emitNarrative('Os Ecos surgem das sombras… usa o Ancestria para os derrotar! (Q+F)', 5000);
+
+    this._ecoPositions.forEach(pos => {
+      const eco = new Creature(this, pos.x, pos.y, 'creature_eco', {
         type:           'eco',
         followRange:    340,
         stealThreshold: 3200,
@@ -392,18 +429,33 @@ export class Zone3Scene extends Phaser.Scene {
         onDefeat:       () => this._checkAllEcosDefeated(),
       });
       this.ecos.push(eco);
-    }
+    });
   }
 
   _checkAllEcosDefeated() {
     this._ecosDefeated++;
     if (this._ecosDefeated >= NUM_ECOS && !this._ecosAllDefeated) {
       this._ecosAllDefeated = true;
-      this._emitNarrative('Os Ecos foram derrotados! O caldeirão chama-te…', 5000);
-      if (GameState.checkCauldronUnlock()) {
-        GameState.unlockZone('Cauldron');
-        this.portalCauldron?.unlock();
+      this._emitNarrative('Os Ecos foram derrotados! O espelho do caldeirão brilha… aproxima-te!', 5500);
+
+      this._cauldronMirrorActive = true;
+      if (this._cauldronMirrorShimmer) {
+        this.tweens.killTweensOf(this._cauldronMirrorShimmer);
+        this.tweens.add({
+          targets: this._cauldronMirrorShimmer,
+          alpha: 0.9, duration: 600,
+          onComplete: () => {
+            this._cauldronMirrorShimmer.setTint(0xffd700);
+            this.tweens.add({
+              targets: this._cauldronMirrorShimmer,
+              alpha: { from: 0.6, to: 1.0 },
+              duration: 800, yoyo: true, repeat: -1,
+            });
+          },
+        });
       }
+
+      if (GameState.checkCauldronUnlock()) GameState.unlockZone('Cauldron');
     }
   }
 
@@ -414,25 +466,7 @@ export class Zone3Scene extends Phaser.Scene {
     this.portalBack = new Portal(this, 200, 200, {
       portalId: 'zone3_back', destination: 'Zone2', locked: false,
     });
-
-    this.portalCauldron = new Portal(this, 1050, WORLD_HEIGHT - 200, {
-      portalId:    'zone3_cauldron',
-      destination: 'Cauldron',
-      locked:      !GameState.checkCauldronUnlock(),
-    });
-
-    this.add.particles(0, 0, 'firefly', {
-      x: { min: 920, max: 1150 },
-      y: { min: WORLD_HEIGHT - 350, max: WORLD_HEIGHT - 100 },
-      lifespan: { min: 2000, max: 4000 },
-      speed: { min: 6, max: 22 },
-      scale: { start: 1, end: 0 },
-      alpha: { start: 0.9, end: 0 },
-      quantity: 2, frequency: 120,
-      blendMode: 'ADD',
-    }).setDepth(7);
-
-    this._portals = [this.portalBack, this.portalCauldron];
+    this._portals = [this.portalBack];
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -441,8 +475,14 @@ export class Zone3Scene extends Phaser.Scene {
   update(time, delta) {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
 
-    // Only tick Ecos when player is near Vale dos Espelhos
+    // Vale dos Espelhos — lazy-spawn Ecos when player enters circle centre
     if (this.player.y > ZONE_H * 2 - 200) {
+      if (!this._ecosSpawned) {
+        const distToCenter = Phaser.Math.Distance.Between(
+          this.player.x, this.player.y, MIRROR_CX, MIRROR_CY
+        );
+        if (distToCenter < 150) this._spawnEcos();
+      }
       this.ecos.forEach(e => { if (e?.active) e.update(this.player, delta, GameState); });
     }
 
@@ -710,13 +750,25 @@ export class Zone3Scene extends Phaser.Scene {
   }
 
   _checkPortalProximity() {
-    this._nearPortal = null;
+    this._nearPortal         = null;
+    this._nearCauldronMirror = false;
     this._portals.forEach(portal => {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, portal.x, portal.y);
       const near = dist < 65;
       portal.showHint(near);
       if (near) this._nearPortal = portal;
     });
+
+    if (this._cauldronMirrorActive && this._cauldronMirrorPos) {
+      const dist = Phaser.Math.Distance.Between(
+        this.player.x, this.player.y,
+        this._cauldronMirrorPos.x, this._cauldronMirrorPos.y
+      );
+      if (dist < 65) {
+        this._nearCauldronMirror = true;
+        this.game.events.emit('showHint', 'C — Caldeirão');
+      }
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -737,6 +789,7 @@ export class Zone3Scene extends Phaser.Scene {
   }
 
   _handleInteract(time) {
+    if (this._nearCauldronMirror) { this._useCauldronMirror(); return; }
     if (this._nearPortal) { this._usePortal(this._nearPortal); return; }
     if (!this._nearPlant) return;
 
@@ -804,7 +857,7 @@ export class Zone3Scene extends Phaser.Scene {
 
     if (spell === 'raiz_ardente') { this._castRaizArdente(); return; }
     if (spell === 'espelho_memoria') { this._castEspelhoMemoria(); return; }
-    if (spell === 'ancestral') { this._castAncestralWave(); return; }
+    if (spell === 'Ancestria') { this._castAncestralWave(); return; }
 
     if (spell === 'fogo_controlado') {
       if (this._ladrao?.active) {
@@ -954,17 +1007,33 @@ export class Zone3Scene extends Phaser.Scene {
   }
 
   _revealAllPlants() {
+    const cam = this.cameras.main;
+    cam.stopFollow();
+    this.tweens.add({
+      targets: cam, zoom: 0.33,
+      duration: 1200, ease: 'Sine.easeInOut',
+      onComplete: () => cam.pan(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 800, 'Sine.easeInOut'),
+    });
+
+    const markers = [];
     this.plants.forEach(p => {
       if (p.isCollected) return;
-      this.cameras.main.pan(p.x, p.y, 600, 'Sine.easeInOut', false, (cam, progress) => {
-        if (progress === 1) {
-          this.time.delayedCall(400, () =>
-            this.cameras.main.pan(this.player.x, this.player.y, 600, 'Sine.easeInOut')
-          );
-        }
+      const m = this.add.circle(p.x, p.y, 18, 0x66ff88, 0.8).setDepth(50);
+      this.tweens.add({ targets: m, alpha: { from: 0.4, to: 1.0 }, duration: 700, yoyo: true, repeat: -1 });
+      markers.push(m);
+    });
+
+    this.time.delayedCall(30000, () => {
+      if (!this.scene.isActive('Zone3')) return;
+      markers.forEach(m => m.destroy());
+      this.tweens.add({
+        targets: cam, zoom: 2.0,
+        duration: 1200, ease: 'Sine.easeInOut',
+        onComplete: () => cam.startFollow(this.player, true, 1, 1),
       });
     });
-    this._emitNarrative('O Canto do Jardim revelou onde estão as plantas!');
+
+    this._emitNarrative('O Horticantus revelou onde estão as plantas! (30 segundos)', 5000);
   }
 
   _checkSpellUnlock() {
@@ -1001,11 +1070,8 @@ export class Zone3Scene extends Phaser.Scene {
 
     if (GameState.checkCauldronUnlock() && !GameState.isZoneUnlocked('Cauldron')) {
       GameState.unlockZone('Cauldron');
-      this.portalCauldron?.unlock();
-      this.time.delayedCall(5500, () =>
-        this._emitNarrative(
-          'Tens todas as plantas! O caldeirão aguarda-te. Derrota os Ecos e segue os vagalumes!'
-        )
+      this.time.delayedCall(800, () =>
+        this._emitNarrative('Tens todas as plantas! Derrota os Ecos no Vale dos Espelhos para abrir o caminho.', 5000)
       );
     }
   }
@@ -1027,10 +1093,24 @@ export class Zone3Scene extends Phaser.Scene {
     });
   }
 
+  _useCauldronMirror() {
+    if (!GameState.checkCauldronUnlock()) {
+      this._emitNarrative('Precisas de todas as 5 plantas essenciais para atravessar o espelho do caldeirão.', 3500);
+      return;
+    }
+    SoundManager.portal();
+    MusicManager.stop();
+    this.cameras.main.flash(800, 200, 160, 255, false, null, 0.6);
+    this.cameras.main.fadeOut(1000, 200, 160, 255);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.game.events.off('plantStolen', this._onPlantStolen, this);
+      this.scene.start('Cauldron');
+    });
+  }
+
   _checkZoneUnlocks() {
     if (GameState.checkCauldronUnlock() && !GameState.isZoneUnlocked('Cauldron')) {
       GameState.unlockZone('Cauldron');
-      this.portalCauldron?.unlock();
     }
   }
 

@@ -30,12 +30,22 @@ const LILY_PADS = [
 ];
 
 const PLANT_SPAWNS = [
+  // ── Planície das Fendas ──
   { id: 'tezaluz',        x: 640,  y: 200  },
+  { id: 'farfalha',       x: 800,  y: 300  }, // backup if not yet collected
   { id: 'craveira',       x: 320,  y: 380  },
+  // ── Jardim Selvagem ──
   { id: 'espinhosa_doce', x: 900,  y: 750  },
+  { id: 'gotateia',       x: 300,  y: 700  }, // backup spawn
+  { id: 'trepadeira',     x: 600,  y: 800  }, // backup spawn
+  // ── Planalto dos Furacões ──
   { id: 'bocarra',        x: 420,  y: 920  },
-  { id: 'aurorabromelia', x: 750,  y: 1340 },  // Planalto — needs Flutueminem
-  { id: 'ninfaria',       x: 500,  y: ZONE_H * 3 + 380 },  // inside Pântano lake
+  { id: 'aurorabromelia', x: 750,  y: 1340 }, // needs Flutueminem
+  { id: 'ventoinha',      x: 1000, y: 1150 }, // backup spawn
+  // ── Pântano ──
+  { id: 'ninfaria',       x: 500,  y: ZONE_H * 3 + 380 }, // inside lake
+  { id: 'gotateia',       x: 300,  y: ZONE_H * 3 + 180 }, // backup spawn (edge of water)
+  { id: 'bocarra',        x: 900,  y: ZONE_H * 3 + 200 }, // backup spawn
 ];
 
 const TREE_COLORS = [0x1a3a2a, 0x0d3020, 0x2a1a08, 0x182a10];
@@ -61,6 +71,7 @@ export class Zone2Scene extends Phaser.Scene {
     this._buildCreatures();
     this._buildPortals();
     this._buildLilyPads();
+    this._buildPantanoGate();
 
     this.add.particles(0, 0, 'firefly', {
       x: { min: 0, max: WORLD_WIDTH },
@@ -265,6 +276,60 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  //  Pântano gate — opened by Terramemoria (memoria_solo) spell
+  // ──────────────────────────────────────────────────────────────────────────
+  _buildPantanoGate() {
+    const gateY = ZONE_H * 3;
+
+    if (GameState.pantanoOpen) {
+      this._pantanoGateOpen = true;
+      return;
+    }
+    this._pantanoGateOpen    = false;
+    this._pantanoGateHintShown = false;
+
+    this._pantanoGateGfx = this.add.graphics().setDepth(20);
+    this._pantanoGateGfx.fillStyle(0x2a5028, 0.55);
+    this._pantanoGateGfx.fillRect(0, gateY, WORLD_WIDTH, 20);
+    this._pantanoGateGfx.lineStyle(3, 0x6aff88, 0.85);
+    this._pantanoGateGfx.strokeRect(0, gateY, WORLD_WIDTH, 20);
+    this.tweens.add({
+      targets: this._pantanoGateGfx,
+      alpha: { from: 0.7, to: 1.0 },
+      duration: 1000, yoyo: true, repeat: -1,
+    });
+
+    const wallBody = this.add.rectangle(WORLD_WIDTH / 2, gateY + 10, WORLD_WIDTH, 20, 0, 0);
+    this.physics.add.existing(wallBody, true);
+    this._pantanoGateBody     = wallBody;
+    this._pantanoGateCollider = this.physics.add.collider(this.player, wallBody);
+  }
+
+  _openPantanoGate() {
+    if (this._pantanoGateOpen) return;
+    this._pantanoGateOpen = true;
+    GameState.pantanoOpen = true;
+
+    this.cameras.main.flash(400, 100, 200, 100, false, null, 0.4);
+
+    if (this._pantanoGateGfx) {
+      this.tweens.killTweensOf(this._pantanoGateGfx);
+      this.tweens.add({
+        targets: this._pantanoGateGfx, alpha: 0, scaleY: 0, duration: 1200,
+        onComplete: () => { this._pantanoGateGfx?.destroy(); this._pantanoGateGfx = null; },
+      });
+    }
+    if (this._pantanoGateCollider) {
+      this.physics.world.removeCollider(this._pantanoGateCollider);
+      this._pantanoGateCollider = null;
+    }
+    this._pantanoGateBody?.destroy();
+    this._pantanoGateBody = null;
+
+    this._emitNarrative('As pegadas abriram o caminho para o Pântano!', 3000);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   //  Plants
   // ──────────────────────────────────────────────────────────────────────────
   _buildPlants() {
@@ -322,6 +387,7 @@ export class Zone2Scene extends Phaser.Scene {
     this._updateAreaMechanics(time, delta);
     this._updateLadrao(delta);
     this._updateBocarra(delta);
+    this._checkPantanoGateHint();
 
     if (this._spellCooldown > 0) this._spellCooldown -= delta;
     if (this._ladraoSpawnTimer > 0) {
@@ -1005,6 +1071,7 @@ export class Zone2Scene extends Phaser.Scene {
       return;
     }
     this._memoriaSoloActive = true;
+    this._openPantanoGate();
     this._emitNarrative('As pegadas do solo guiam-te até ao Pântano…', 3500);
 
     // Draw footprints from current position to Pântano entrance (y = ZONE_H*3)
@@ -1034,17 +1101,33 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   _revealAllPlants() {
+    const cam = this.cameras.main;
+    cam.stopFollow();
+    this.tweens.add({
+      targets: cam, zoom: 0.33,
+      duration: 1200, ease: 'Sine.easeInOut',
+      onComplete: () => cam.pan(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 800, 'Sine.easeInOut'),
+    });
+
+    const markers = [];
     this.plants.forEach(p => {
       if (p.isCollected) return;
-      this.cameras.main.pan(p.x, p.y, 600, 'Sine.easeInOut', false, (cam, progress) => {
-        if (progress === 1) {
-          this.time.delayedCall(400, () =>
-            this.cameras.main.pan(this.player.x, this.player.y, 600, 'Sine.easeInOut')
-          );
-        }
+      const m = this.add.circle(p.x, p.y, 18, 0x66ff88, 0.8).setDepth(50);
+      this.tweens.add({ targets: m, alpha: { from: 0.4, to: 1.0 }, duration: 700, yoyo: true, repeat: -1 });
+      markers.push(m);
+    });
+
+    this.time.delayedCall(30000, () => {
+      if (!this.scene.isActive('Zone2')) return;
+      markers.forEach(m => m.destroy());
+      this.tweens.add({
+        targets: cam, zoom: 2.0,
+        duration: 1200, ease: 'Sine.easeInOut',
+        onComplete: () => cam.startFollow(this.player, true, 1, 1),
       });
     });
-    this._emitNarrative('O Horticantus revelou onde estão as plantas!');
+
+    this._emitNarrative('O Horticantus revelou onde estão as plantas! (30 segundos)', 5000);
   }
 
   _checkSpellUnlock() {
@@ -1133,6 +1216,14 @@ export class Zone2Scene extends Phaser.Scene {
       this.game.events.off('plantStolen', this._onPlantStolen, this);
       this.scene.start(dest);
     });
+  }
+
+  _checkPantanoGateHint() {
+    if (this._pantanoGateOpen || this._pantanoGateHintShown) return;
+    if (this.player.y > ZONE_H * 3 - 80) {
+      this._pantanoGateHintShown = true;
+      this._emitNarrative('Uma barreira de raízes bloqueia o Pântano… usa a Terramemoria! (Q+F)', 5000);
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
