@@ -28,13 +28,30 @@ export class Plant extends Phaser.GameObjects.Container {
     // Glow background
     this.glow = scene.add.circle(0, 0, 26, el.color, 0.18);
 
-    // Main sprite: SVG → element-circle fallback → red-X last resort
+    // Main sprite: animated frames → SVG → element-circle fallback → red-X
     const imgKey      = `plant_img_${data.id}`;
     const circleKey   = `plant_${data.id}`;
     const resolvedKey = scene.textures.exists(imgKey)    ? imgKey    :
                         scene.textures.exists(circleKey) ? circleKey :
                         'plant_missing';
-    this.sprite = scene.add.image(0, 0, resolvedKey).setDisplaySize(80, 80);
+
+    if (scene.textures.exists(`${data.id}_f1`)) {
+      this.sprite = scene.add.sprite(0, 0, `${data.id}_f1`).setDisplaySize(80, 80);
+      const animId = `anim_${data.id}`;
+      if (!scene.anims.exists(animId)) {
+        let fc = 0;
+        while (scene.textures.exists(`${data.id}_f${fc + 1}`)) fc++;
+        scene.anims.create({
+          key: animId,
+          frames: Array.from({ length: fc }, (_, i) => ({ key: `${data.id}_f${i + 1}` })),
+          frameRate: 6,
+          repeat: -1,
+        });
+      }
+      this.sprite.play(`anim_${data.id}`);
+    } else {
+      this.sprite = scene.add.image(0, 0, resolvedKey).setDisplaySize(80, 80);
+    }
 
     // Label
     this.label = scene.add.text(0, 30, data.name, {

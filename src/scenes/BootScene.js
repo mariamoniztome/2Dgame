@@ -29,6 +29,11 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });
     this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 256, height: 256 });
     this.load.svg('plant_img_gotateia',   '/assets/zone1/jardim/gotateia.svg',   { width: 256, height: 256 });
+    // Ventoinha animated sprite frames (8 frames)
+    for (let i = 1; i <= 8; i++) {
+      const n = String(i).padStart(2, '0');
+      this.load.svg(`ventoinha_f${i}`, `/assets/plants/ventoinha/SpriteSheet_Ventoinha-${n}.svg`, { width: 256, height: 256 });
+    }
     // Firefly sprite — load at 512 so scale ~0.59 downscales cleanly (no upscale blur)
     this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 512, height: 512 });
     // Area backgrounds and transition zone assets — loaded at native SVG viewBox size
