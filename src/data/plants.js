@@ -126,7 +126,7 @@ export const PLANTS = {
     zone: 3,
     rarity: 'rara',
     essential: true,
-    // GDD: usar o feitiço Raíz Ardente na Areia Movediça para a Sombravinha aparecer
+    // GDD: usar o feitiço Radixignis na Areia Movediça para a Sombravinha aparecer
     collectMethod: 'spell_reveal',
     requiredSpell: 'raiz_ardente',
     narrativeText: 'Nunca estiveste tão perto de voltar para casa. Posso ajudar-te nessa tua última viagem.',

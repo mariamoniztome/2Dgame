@@ -1,7 +1,7 @@
 export const SPELLS = {
   brisa_molhada: {
     id: 'brisa_molhada',
-    name: 'Brisa Molhada',
+    name: 'Humidaris',
     plants: ['ventoinha', 'gotateia'],
     effect: 'capture_farfalha',
     description: 'Este feitiço diminui o fogo da Farfalha por algum tempo para que a consigas apanhar.',
@@ -21,7 +21,7 @@ export const SPELLS = {
   },
   fogo_controlado: {
     id: 'fogo_controlado',
-    name: 'Fogo Controlado',
+    name: 'Ignicura',
     plants: ['trepadeira', 'tezaluz'],
     effect: 'repel_creature',
     description: 'Este feitiço permite-te lançar uma pequena chama que espanta o Sussurro-ladrão.',
@@ -31,7 +31,7 @@ export const SPELLS = {
   },
   memoria_solo: {
     id: 'memoria_solo',
-    name: 'Memória do Solo',
+    name: 'Terramemoria',
     plants: ['espinhosa_doce', 'craveira'],
     effect: 'reveal_path',
     description: 'Este feitiço guia-te até ao Pântano através de pegadas que vão aparecendo no chão.',
@@ -41,7 +41,7 @@ export const SPELLS = {
   },
   raiz_ardente: {
     id: 'raiz_ardente',
-    name: 'Raíz Ardente',
+    name: 'Radixignis',
     plants: ['faisca_mato'],
     effect: 'clear_ground',
     description: 'Este feitiço faz com que uma raíz de fogo surja da terra durante 30 segundos, para te abrir caminho e proteger-te da Areia Movediça.',
@@ -51,7 +51,7 @@ export const SPELLS = {
   },
   canto_jardim: {
     id: 'canto_jardim',
-    name: 'Canto do Jardim',
+    name: 'Horticantus',
     plants: ['ninfaria'],
     effect: 'reveal_plants',
     description: 'Este feitiço faz com que todas as plantas fiquem brevemente visíveis no mapa.',
@@ -61,7 +61,7 @@ export const SPELLS = {
   },
   espelho_memoria: {
     id: 'espelho_memoria',
-    name: 'Espelho de Memória',
+    name: 'Memoriaspeculum',
     plants: ['ninfaria', 'sussurreira'],
     effect: 'open_vale_espelhos',
     description: 'Este feitiço abre-te o caminho para o Vale dos Espelhos.',
@@ -69,9 +69,9 @@ export const SPELLS = {
     textureKey: 'spell_passo',
     unlockZone: 3,
   },
-  ancestral: {
-    id: 'ancestral',
-    name: 'Ancestral',
+  Ancestria: {
+    id: 'Ancestria',
+    name: 'Ancestria',
     plants: ['lunaria_negra'],
     effect: 'defeat_ecos',
     description: 'Este feitiço lança um feixe de luz de forma circular à tua volta, derrotando os Ecos.',
@@ -89,5 +89,5 @@ export const SPELL_ORDER = [
   'raiz_ardente',
   'canto_jardim',
   'espelho_memoria',
-  'ancestral',
+  'Ancestria',
 ];
