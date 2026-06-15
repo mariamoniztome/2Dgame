@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ELEMENTS, WORLD_WIDTH, WORLD_HEIGHT } from '../config.js';
-import { SPELLS } from '../data/spells.js';
+import { SPELLS, SPELL_ORDER } from '../data/spells.js';
 import { PLANTS } from '../data/plants.js';
 import { GameState } from '../GameState.js';
 import { SoundManager } from '../SoundManager.js';
@@ -105,6 +105,12 @@ export class HUDScene extends Phaser.Scene {
           this.input.keyboard.off('keydown-ESC', escFn);
           objs.forEach(o => o?.destroy());
         }
+        if (this._spellBookModal) {
+          const { objs, escFn } = this._spellBookModal;
+          this._spellBookModal = null;
+          this.input.keyboard.off('keydown-ESC', escFn);
+          objs.forEach(o => o?.destroy());
+        }
         const queue   = [...(this._toastQueue  || [])];
         const ctrlVis = this._controlsVisible;
         this.children.removeAll(true);
@@ -121,11 +127,17 @@ export class HUDScene extends Phaser.Scene {
         this._mmMask             = null;
         this._pauseCount         = 0;
         this._plantModal         = null;
+        this._ctrlBlocker        = null;
         this._buildAll(gameSize.width, gameSize.height);
         if (ctrlVis) this._showControls();
         if (this._userPaused) this._showPauseOverlay();
         this._refresh();
         this._drawMinimapBg(GameState.currentZone || 'Zone1');
+        // If nothing should be pausing, ensure zone is running
+        if (this._pauseCount === 0) {
+          const zk = GameState.currentZone;
+          if (zk && this.scene.isPaused(zk)) this.scene.resume(zk);
+        }
       }, 150);
     });
 
@@ -181,12 +193,15 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       .on('pointerdown', () => this._toggleControls());
 
     this._buildMuteButton(W, H, ajudaH, ajudaW);
+    this._buildSpellBookButton(W, H, ajudaH, ajudaW);
     this._buildControlsPanel(W, H, fs);
     this._buildHUDDebugPanel(W, H, fs);
     this._buildPauseOverlay(W, H);
 
     this.input.keyboard.off('keydown-H');
     this.input.keyboard.on('keydown-H', () => this._toggleControls());
+    this.input.keyboard.off('keydown-B');
+    this.input.keyboard.on('keydown-B', () => this._toggleSpellBook());
     this.input.keyboard.off('keydown-D');
     this.input.keyboard.on('keydown-D', (e) => { if (e.shiftKey) this._toggleHUDDebug(); });
   }
@@ -243,6 +258,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
 
     this._spellPanelBottom = ry + ph;
     this._spellPanelRight  = rx;
+    this._spellPanelLeft   = rx - pw;
     this._hudBounds.spell  = { x: rx - pw, y: ry, w: pw, h: ph, label: 'Feitiço' };
   }
 
@@ -546,6 +562,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this.input.keyboard.off('keydown-ESC');
     this.input.keyboard.on('keydown-ESC', () => {
       if (this._plantModal)      { this._closeInventoryModal(); return; }
+      if (this._spellBookModal)  { this._closeSpellBook(); return; }
       if (this._controlsVisible)   this._hideControls();
       else if (this._userPaused)   this._toggleSpacePause();
     });
@@ -559,12 +576,20 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._controlsVisible = true;
     document.getElementById('controls-panel')?.classList.add('visible');
     this._pauseZone();
+    if (!this._ctrlBlocker) {
+      const W = this.scale.width, H = this.scale.height;
+      this._ctrlBlocker = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.01)
+        .setDepth(280).setInteractive()
+        .on('pointerdown', () => this._hideControls());
+    }
   }
 
   _hideControls() {
     this._controlsVisible = false;
     document.getElementById('controls-panel')?.classList.remove('visible');
     this._resumeZone();
+    this._ctrlBlocker?.destroy();
+    this._ctrlBlocker = null;
   }
 
   _openMap() {
@@ -1319,6 +1344,12 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       this.input.keyboard.off('keydown-ESC', escFn);
       objs.forEach(o => o?.destroy());
     }
+    if (this._spellBookModal) {
+      const { objs, escFn } = this._spellBookModal;
+      this._spellBookModal = null;
+      this.input.keyboard.off('keydown-ESC', escFn);
+      objs.forEach(o => o?.destroy());
+    }
     const W       = this.scale.width, H = this.scale.height;
     const queue   = [...(this._toastQueue  || [])];
     const ctrlVis = this._controlsVisible;
@@ -1342,6 +1373,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._wireframeOn        = wireOn;
     this._mmMask             = null;
     this._pauseCount         = 0;
+    this._ctrlBlocker        = null;
 
     this._buildAll(W, H);
     if (ctrlVis) this._showControls(); else this._hideControls();
@@ -1349,6 +1381,10 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     if (this._userPaused) this._showPauseOverlay();
     this._refresh();
     this._drawMinimapBg(GameState.currentZone || 'Zone1');
+    if (this._pauseCount === 0) {
+      const zk = GameState.currentZone;
+      if (zk && this.scene.isPaused(zk)) this.scene.resume(zk);
+    }
   }
 
   _copyToClipboard(text) {
@@ -1396,6 +1432,148 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   _toggleMute() {
     SoundManager.toggleMute();
     this._drawMuteBtn();
+  }
+
+  // ── Spell book button — right side, just below the spell panel ───────────
+  _buildSpellBookButton(W, H, ajudaH, ajudaW) {
+    const btnS = ajudaH;
+    const panelLeft = this._spellPanelLeft ?? (W - 10 - Math.round(W * 0.185));
+    const bx = panelLeft - 6 - btnS / 2;
+    const by = 10 + btnS / 2;
+
+    const gfx = this.add.graphics().setDepth(55);
+    gfx.fillStyle(C.panel, 1);
+    gfx.fillRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
+    gfx.lineStyle(1.5, C.border, 0.4);
+    gfx.strokeRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
+
+    const iconS = Math.round(btnS * 0.68);
+    const icon  = this.textures.exists('hud_spellbook')
+      ? this.add.image(bx, by, 'hud_spellbook').setDisplaySize(iconS, iconS)
+      : this.add.image(bx, by, 'book').setDisplaySize(iconS, iconS);
+    icon.setDepth(56);
+
+    this.add.zone(bx, by, btnS, btnS)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(57)
+      .on('pointerdown', () => this._toggleSpellBook());
+  }
+
+  _toggleSpellBook() {
+    this._spellBookModal ? this._closeSpellBook() : this._showSpellBook();
+  }
+
+  // ── Spell book modal — lists all spells, locked ones at low opacity ────────
+  _showSpellBook() {
+    if (this._spellBookModal) return;
+    this._pauseZone();
+
+    const W    = this.scale.width, H = this.scale.height;
+    const fs   = this._fs(W);
+    const DEEP = 203;
+    const pad  = 16;
+    const mw   = Math.min(500, Math.round(W * 0.50));
+    const OX   = -9000;
+
+    const allItems = []; // { obj, targetAlpha }
+    const divLines = []; // raw dy values for divider lines
+    let dy = pad;
+
+    const addT = (text, style, relX = pad, targetAlpha = 1) => {
+      const o = this.add.text(OX, dy, text, {
+        ...style, wordWrap: { width: mw - relX - pad },
+      }).setDepth(DEEP).setOrigin(0, 0).setAlpha(0);
+      allItems.push({ obj: o, relX, targetAlpha });
+      dy += o.height;
+      return o;
+    };
+    const gap = n => { dy += n; };
+
+    addT('Livro de Feitiços', { fontSize: fs.xl, fontFamily: FU, color: C.text, fontStyle: 'bold' });
+    gap(6);
+    divLines.push(dy + 3);
+    gap(14);
+
+    SPELL_ORDER.forEach((id, i) => {
+      const spell = SPELLS[id];
+      if (!spell) return;
+      const unlocked = GameState.availableSpells.includes(id);
+      const a        = unlocked ? 1 : 0.40;
+
+      const ingredNames = (spell.plants || []).map(pid => PLANTS[pid]?.name || pid).join(' + ');
+
+      addT(spell.name, {
+        fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
+      }, pad, a);
+      gap(2);
+
+      addT(`Zona ${spell.unlockZone}  ·  ${ingredNames}`, {
+        fontSize: `${Math.max(9, parseInt(fs.sm) - 1)}px`, fontFamily: FU, color: C.text,
+      }, pad + 8, a * 0.80);
+      gap(3);
+
+      addT(spell.description, {
+        fontSize: fs.sm, fontFamily: FU, color: C.text,
+      }, pad + 8, a);
+      gap(8);
+
+      if (i < SPELL_ORDER.length - 1) {
+        divLines.push(dy - 2);
+        gap(10);
+      }
+    });
+
+    gap(pad);
+    const cardH = dy;
+    const cardX = Math.round((W - mw) / 2);
+    const cardY = Math.round(Math.max(10, Math.min(H - cardH - 10, (H - cardH) / 2)));
+
+    allItems.forEach(({ obj, relX }) => obj.setX(cardX + relX).setY(obj.y + cardY));
+
+    const bgGfx = this.add.graphics().setDepth(DEEP - 1).setAlpha(0);
+    bgGfx.fillStyle(C.panel, 1);
+    bgGfx.fillRoundedRect(cardX, cardY, mw, cardH, 12);
+    bgGfx.lineStyle(1.5, C.border, 0.30);
+    bgGfx.strokeRoundedRect(cardX, cardY, mw, cardH, 12);
+    bgGfx.lineStyle(1, C.panelDk, 0.75);
+    divLines.forEach(ly => bgGfx.lineBetween(cardX + pad, cardY + ly, cardX + mw - pad, cardY + ly));
+
+    const cardZone = this.add.zone(cardX + mw / 2, cardY + cardH / 2, mw, cardH)
+      .setDepth(DEEP - 0.5).setInteractive().on('pointerdown', () => {});
+
+    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.48)
+      .setDepth(DEEP - 2).setInteractive().setAlpha(0)
+      .on('pointerdown', () => this._closeSpellBook());
+
+    const closeBtn = this.add.text(cardX + mw - 8, cardY + 8, '✕', {
+      fontSize: fs.lg, fontFamily: FU, color: C.text,
+    }).setDepth(DEEP + 1).setOrigin(1, 0).setAlpha(0)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this._closeSpellBook());
+
+    const frameObjs = [overlay, bgGfx, closeBtn];
+    this.tweens.add({ targets: frameObjs, alpha: 1, duration: 200 });
+    allItems.forEach(({ obj, targetAlpha }) => {
+      this.tweens.add({ targets: obj, alpha: targetAlpha, duration: 200 });
+    });
+
+    const allObjs = [...frameObjs, cardZone, ...allItems.map(a => a.obj)];
+    const escFn = () => this._closeSpellBook();
+    this.input.keyboard.once('keydown-ESC', escFn);
+    this._spellBookModal = { objs: allObjs, escFn };
+  }
+
+  _closeSpellBook() {
+    if (!this._spellBookModal) return;
+    const { objs, escFn } = this._spellBookModal;
+    this._spellBookModal = null;
+    this.input.keyboard.off('keydown-ESC', escFn);
+    const fadeable = objs.filter(o => o?.setAlpha);
+    this.tweens.add({
+      targets: fadeable, alpha: 0, duration: 180,
+      onComplete: () => objs.forEach(o => o?.destroy()),
+    });
+    this._resumeZone();
   }
 
   // ── Pause overlay (Space key) ─────────────────────────────────────────────
