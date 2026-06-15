@@ -26,10 +26,12 @@ class GameStateManager {
       gotateia:   { xp: 0.5313, yp: 0.9068 },
       trepadeira: { xp: 0.0361, yp: 0.5501 },
     };
-    this.visitedJardim  = false;
-    this.shownIntro     = false;
-    this.currentArea    = '';
-    this.spellJustLost  = null;
+    this.visitedJardim    = false;
+    this.shownIntro       = false;
+    this.currentArea      = '';
+    this.spellJustLost    = null;
+    this.pantanoOpen      = false;
+    this.valeEspelhosOpen = false;
   }
 
   addPlant(plantData) {

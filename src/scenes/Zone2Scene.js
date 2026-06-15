@@ -42,6 +42,7 @@ const PLANT_SPAWNS = [
   { id: 'bocarra',        x: 420,  y: 920  },
   { id: 'aurorabromelia', x: 750,  y: 1340 }, // needs Flutueminem
   { id: 'ventoinha',      x: 1000, y: 1150 }, // backup spawn
+  { id: 'craveira',       x: 200,  y: 1200 }, // backup spawn
   // ── Pântano ──
   { id: 'ninfaria',       x: 500,  y: ZONE_H * 3 + 380 }, // inside lake
   { id: 'gotateia',       x: 300,  y: ZONE_H * 3 + 180 }, // backup spawn (edge of water)
@@ -116,6 +117,8 @@ export class Zone2Scene extends Phaser.Scene {
     this._proximityTimer = 0;
     this._timedPlant     = null;
     this._footTimer      = 0;
+    this._revealActive   = false;
+    this._spellUnlockShown = null;
 
     // ── Area-specific state ──────────────────────────────────────────────────
     // Planície das Fendas
@@ -695,27 +698,25 @@ export class Zone2Scene extends Phaser.Scene {
   //  Bocarra plant — wind-timing mechanic (wait for it to stop blowing)
   // ──────────────────────────────────────────────────────────────────────────
   _updateBocarra(delta) {
-    const bocarraPlant = this.plants.find(p => p.plantData.id === 'bocarra' && !p.isCollected);
-    if (!bocarraPlant) return;
+    const bocarras = this.plants.filter(p => p.plantData.id === 'bocarra' && !p.isCollected);
+    if (!bocarras.length) return;
 
     this._bocarraTimer += delta;
     if (this._bocarraBlowing) {
-      // Blowing phase: 2-4 seconds
       if (this._bocarraTimer > this._bocarraBlowDur) {
         this._bocarraBlowing = false;
-        this._bocarraTimer = 0;
+        this._bocarraTimer   = 0;
         this._bocarraBlowDur = 0;
-        bocarraPlant.setAlpha(1); // fully visible when quiet
+        bocarras.forEach(b => b.setAlpha(1));
       } else {
-        // Visual: plant pulses while blowing
-        bocarraPlant.setAlpha(0.5 + Math.sin(this._bocarraTimer * 0.01) * 0.4);
+        const a = 0.5 + Math.sin(this._bocarraTimer * 0.01) * 0.4;
+        bocarras.forEach(b => b.setAlpha(a));
       }
     } else {
-      // Quiet phase: 2-5 seconds
       const quietDur = Phaser.Math.Between(2000, 5000);
       if (this._bocarraTimer > quietDur) {
         this._bocarraBlowing = true;
-        this._bocarraTimer = 0;
+        this._bocarraTimer   = 0;
         this._bocarraBlowDur = Phaser.Math.Between(2000, 4000);
       }
     }
@@ -979,6 +980,9 @@ export class Zone2Scene extends Phaser.Scene {
     }
 
     if (method === 'interact') { this._collectPlant(plant); return; }
+
+    // Fallback for backup spawns with unhandled methods ('fast', 'climb', 'spell', etc.)
+    this._collectPlant(plant);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1101,6 +1105,9 @@ export class Zone2Scene extends Phaser.Scene {
   }
 
   _revealAllPlants() {
+    if (this._revealActive) { this._emitNarrative('A visão já está activa!', 1500); return; }
+    this._revealActive = true;
+
     const cam = this.cameras.main;
     cam.stopFollow();
     this.tweens.add({
@@ -1118,12 +1125,13 @@ export class Zone2Scene extends Phaser.Scene {
     });
 
     this.time.delayedCall(30000, () => {
+      this._revealActive = false;
       if (!this.scene.isActive('Zone2')) return;
       markers.forEach(m => m.destroy());
       this.tweens.add({
         targets: cam, zoom: 2.0,
         duration: 1200, ease: 'Sine.easeInOut',
-        onComplete: () => cam.startFollow(this.player, true, 1, 1),
+        onComplete: () => { cam.startFollow(this.player, true, 1, 1); cam.setLerp(0.12, 0.12); },
       });
     });
 

@@ -124,6 +124,7 @@ export class Zone3Scene extends Phaser.Scene {
     this._timedPlant         = null;
     this._footTimer          = 0;
     this._spellUnlockShown   = null;
+    this._revealActive       = false;
 
     // Quicksand state
     this._sinkTimer       = 0;
@@ -264,7 +265,7 @@ export class Zone3Scene extends Phaser.Scene {
     const path = [
       { x: 900, y: 840  }, { x: 950, y: 920 }, { x: 900, y: 975 },
       { x: 200, y: 1040 }, { x: 140, y: 1080 }, { x: 200, y: 1130 },
-      { x: 980, y: 1185 }, { x: 1050, y: 1240 }, { x: 900, y: 1300 },
+      { x: 980, y: 1185 }, { x: 1050, y: 1240 }, { x: 950, y: 1300 },
     ];
     path.forEach((pt, i) => {
       const dot = this.add.circle(pt.x, pt.y, 5, 0x3aff6a, 0.4).setDepth(4);
@@ -827,6 +828,9 @@ export class Zone3Scene extends Phaser.Scene {
       this._collectPlant(plant);
       return;
     }
+
+    // Fallback for backup spawns with unhandled methods ('shake', 'slow', 'fast', 'climb', 'cool', etc.)
+    this._collectPlant(plant);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1007,6 +1011,9 @@ export class Zone3Scene extends Phaser.Scene {
   }
 
   _revealAllPlants() {
+    if (this._revealActive) { this._emitNarrative('A visão já está activa!', 1500); return; }
+    this._revealActive = true;
+
     const cam = this.cameras.main;
     cam.stopFollow();
     this.tweens.add({
@@ -1024,12 +1031,13 @@ export class Zone3Scene extends Phaser.Scene {
     });
 
     this.time.delayedCall(30000, () => {
+      this._revealActive = false;
       if (!this.scene.isActive('Zone3')) return;
       markers.forEach(m => m.destroy());
       this.tweens.add({
         targets: cam, zoom: 2.0,
         duration: 1200, ease: 'Sine.easeInOut',
-        onComplete: () => cam.startFollow(this.player, true, 1, 1),
+        onComplete: () => { cam.startFollow(this.player, true, 1, 1); cam.setLerp(0.12, 0.12); },
       });
     });
 
