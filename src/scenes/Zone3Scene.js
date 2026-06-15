@@ -249,29 +249,20 @@ export class Zone3Scene extends Phaser.Scene {
   //  Maze walls in Bosque da Confusão
   // ──────────────────────────────────────────────────────────────────────────
   _buildMazeWalls() {
-    this._mazeWallGroup = this.physics.add.staticGroup();
     const gfx = this.add.graphics().setDepth(5);
     gfx.fillStyle(0x1a2a0e, 0.95);
     gfx.lineStyle(2, 0x2a4018, 0.9);
 
-    // Horizontal walls — physics + visual
+    // All maze walls are visual only — no physics blocking
     MAZE_WALL_DEFS.forEach(def => {
       gfx.fillRect(def.x, def.y, def.w, def.h);
       gfx.strokeRect(def.x, def.y, def.w, def.h);
-      const cx   = def.x + def.w / 2;
-      const cy   = def.y + def.h / 2;
-      const rect = this.add.rectangle(cx, cy, def.w, def.h, 0, 0).setDepth(5);
-      this.physics.add.existing(rect, true);
-      this._mazeWallGroup.add(rect);
     });
 
-    // Vertical connectors — visual only, no physics body
     MAZE_VISUAL_CONNECTORS.forEach(def => {
       gfx.fillRect(def.x, def.y, def.w, def.h);
       gfx.strokeRect(def.x, def.y, def.w, def.h);
     });
-
-    this.physics.add.collider(this.player, this._mazeWallGroup);
 
     // Subtle guide dots through the maze
     const path = [

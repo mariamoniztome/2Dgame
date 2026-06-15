@@ -818,14 +818,12 @@ export class Zone1Scene extends Phaser.Scene {
         GameState.visitedJardim = true;
       }
 
-      // ── Jardim Invertido: invert X axis only (left ↔ right) ─────────────
-      // invertY is intentionally excluded: pressing ↓ with invertY=true would
-      // move the player upward into the dead-zone wall at y=-2, blocking them.
+      // ── Jardim Invertido: invert Y axis only (up ↔ down) ────────────────
       if (area === 'jardimInvertido') {
-        this.player.invertX = true;
-        this.player.invertY = false;
+        this.player.invertX = false;
+        this.player.invertY = true;
         this.time.delayedCall(600, () => {
-          this._emitNarrative('O Jardim Invertido confunde os sentidos… Esquerda é direita aqui!', 4000);
+          this._emitNarrative('O Jardim Invertido confunde os sentidos… Cima é baixo aqui!', 4000);
         });
       }
       // Reset inversion when leaving Jardim Invertido
@@ -853,7 +851,7 @@ export class Zone1Scene extends Phaser.Scene {
     const ZW = this._zoneW, ZH = this._zoneH;
     const PAD = 50;
     if (area === 'jardimInvertido') {
-      this.cameras.main.setBounds(ZW, -PAD, ZW, ZH + PAD * 2);
+      this.cameras.main.setBounds(ZW, 0, ZW, ZH);
     } else {
       const TH = this._transH, PH = this._paredeH;
       this.cameras.main.setBounds(0, -(ZH + TH + PH) - PAD, ZW, ZH * 2 + TH + PH + PAD * 2);
