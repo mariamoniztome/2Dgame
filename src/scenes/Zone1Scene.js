@@ -362,7 +362,7 @@ export class Zone1Scene extends Phaser.Scene {
     // and keep height ≈ PH instead of one oversized image.
     this._pz.paredes = [];
     if (this.textures.exists('z1_parede')) {
-      [[285, -483, 864, 781], [962, -492, 864, 780], [1516, -498, 856, 773]].forEach(([tx, ty, tw, th]) => {
+      [[256, -463, 984, 817], [994, -460, 984, 816], [1882, -454, 912, 824]].forEach(([tx, ty, tw, th]) => {
         const p = this.add.image(tx, ty, 'z1_parede')
           .setOrigin(0.5, 1).setDisplaySize(tw, th)
           .setDepth(3).setAlpha(1.0);
@@ -522,9 +522,9 @@ export class Zone1Scene extends Phaser.Scene {
     if (tk.length > 0) {
       const TRANS_POS = [
         [ 556, -415, 168], [ 350, -102, 151], [ 707, -105, 100],
-        [ 235, -491,  45], [1876, -353,  54], [1430, -377, 286],
+        [ 235, -491,  45], [1876, -353,  54], [1436, -363, 286],
         [1424,  988,  83], [ 279, -262,  50], [ 999, -216,  47],
-        [ 672,  -48, 112], [1853, -406,  85], [ 865, -505,  57],
+        [ 672,  -48, 112], [1853, -406,  85], [ 819, -443,  57],
         [ 938, -443,  34], [1571, -224,  83], [1107, -344, 526],
         [ 750, -396, 551], [1043,  -57, 128], [1673, -387, 318],
       ];
