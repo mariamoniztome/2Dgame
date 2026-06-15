@@ -1,0 +1,20 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[headers]]
+  for = "*.mp4"
+  [headers.values]
+    Content-Type  = "video/mp4"
+    Accept-Ranges = "bytes"
+
+[[headers]]
+  for = "*.webm"
+  [headers.values]
+    Content-Type  = "video/webm"
+    Accept-Ranges = "bytes"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"

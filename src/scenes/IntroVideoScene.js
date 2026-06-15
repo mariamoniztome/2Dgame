@@ -42,6 +42,7 @@ export class IntroVideoScene extends Phaser.Scene {
       transition: 'opacity 0.85s ease',
     });
     v.playsInline = true;
+    v.muted       = true;   // required for autoplay on HTTPS (Netlify/browsers)
     document.body.appendChild(v);
 
     // ── Skip button ─────────────────────────────────────────────────────────
