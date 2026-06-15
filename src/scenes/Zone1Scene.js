@@ -787,6 +787,7 @@ export class Zone1Scene extends Phaser.Scene {
       // Canvas background matches the current area (jardim has its own colour)
       const BG = area === 'jardimInvertido' ? '#6d8469' : area === 'limiarSecreto' ? '#37533a' : '#afd6a8';
       this.cameras.main.setBackgroundColor(BG);
+      document.body.style.background = BG;
 
       // Vagalume emitter only active in campo
       if (area === 'campoVagalumes') {
@@ -817,19 +818,14 @@ export class Zone1Scene extends Phaser.Scene {
         GameState.visitedJardim = true;
       }
 
-      // ── Jardim Invertido: random control inversion on each entry ─────────
+      // ── Jardim Invertido: invert X axis only (left ↔ right) ─────────────
+      // invertY is intentionally excluded: pressing ↓ with invertY=true would
+      // move the player upward into the dead-zone wall at y=-2, blocking them.
       if (area === 'jardimInvertido') {
-        // 3 possible modes: flip X only, flip Y only, flip both
-        const mode = Phaser.Math.Between(1, 3);
-        this.player.invertX = (mode === 1 || mode === 3);
-        this.player.invertY = (mode === 2 || mode === 3);
+        this.player.invertX = true;
+        this.player.invertY = false;
         this.time.delayedCall(600, () => {
-          const desc = this.player.invertX && this.player.invertY
-            ? 'Esquerda é direita e cima é baixo!'
-            : this.player.invertX
-              ? 'Esquerda é direita aqui!'
-              : 'Cima é baixo aqui!';
-          this._emitNarrative(`O Jardim Invertido confunde os sentidos… ${desc}`, 4000);
+          this._emitNarrative('O Jardim Invertido confunde os sentidos… Esquerda é direita aqui!', 4000);
         });
       }
       // Reset inversion when leaving Jardim Invertido
