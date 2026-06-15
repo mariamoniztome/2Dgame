@@ -45,12 +45,17 @@ const QUICKSAND = [
 ];
 
 // Maze walls in Bosque da Confusão (world coords; x=left edge, y=top edge)
+// Only horizontal walls have physics — vertical connectors are visual only so the
+// player can cross left↔right freely while navigating the gap zigzag.
 const MAZE_WALL_DEFS = [
-  { x: 0,   y: 798,  w: 780, h: 16 },  // first horizontal; gap right 780-1280
-  { x: 300, y: 958,  w: 980, h: 16 },  // second horizontal; gap left 0-300
-  { x: 0,   y: 1118, w: 890, h: 16 },  // third horizontal; gap right 890-1280
-  { x: 784, y: 800,  w: 16,  h: 160 }, // vertical: joins 1st to 2nd
-  { x: 300, y: 960,  w: 16,  h: 160 }, // vertical: joins 2nd to 3rd
+  { x: 0,   y: 798,  w: 780, h: 16 },  // first horizontal;  gap right x=780-1280
+  { x: 300, y: 958,  w: 980, h: 16 },  // second horizontal; gap left  x=0-300
+  { x: 0,   y: 1118, w: 890, h: 16 },  // third horizontal;  gap right x=890-1280
+];
+// Visual-only connectors (drawn but no physics body)
+const MAZE_VISUAL_CONNECTORS = [
+  { x: 764, y: 800,  w: 16,  h: 160 }, // right side of wall 1 → wall 2
+  { x: 300, y: 960,  w: 16,  h: 160 }, // left  side of wall 2 → wall 3
 ];
 
 const MIRROR_CX   = 640;
@@ -249,6 +254,7 @@ export class Zone3Scene extends Phaser.Scene {
     gfx.fillStyle(0x1a2a0e, 0.95);
     gfx.lineStyle(2, 0x2a4018, 0.9);
 
+    // Horizontal walls — physics + visual
     MAZE_WALL_DEFS.forEach(def => {
       gfx.fillRect(def.x, def.y, def.w, def.h);
       gfx.strokeRect(def.x, def.y, def.w, def.h);
@@ -257,6 +263,12 @@ export class Zone3Scene extends Phaser.Scene {
       const rect = this.add.rectangle(cx, cy, def.w, def.h, 0, 0).setDepth(5);
       this.physics.add.existing(rect, true);
       this._mazeWallGroup.add(rect);
+    });
+
+    // Vertical connectors — visual only, no physics body
+    MAZE_VISUAL_CONNECTORS.forEach(def => {
+      gfx.fillRect(def.x, def.y, def.w, def.h);
+      gfx.strokeRect(def.x, def.y, def.w, def.h);
     });
 
     this.physics.add.collider(this.player, this._mazeWallGroup);
