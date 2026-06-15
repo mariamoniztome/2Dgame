@@ -1005,10 +1005,12 @@ export class Zone1Scene extends Phaser.Scene {
     }
 
     if (method === 'spell') {
-      if (GameState.activeSpell === 'brisa_molhada') {
-        this._castSpellOnPlant(plant);
+      if (plant._spellHit) {
+        this._collectPlant(plant);
+      } else if (GameState.activeSpell === 'brisa_molhada') {
+        this._emitNarrative('Lança a Humidaris primeiro! (F)');
       } else if (GameState.availableSpells.includes('brisa_molhada')) {
-        this._emitNarrative('Activa a Humidaris (Q + F) e depois usa C na Farfalha.');
+        this._emitNarrative('Activa a Humidaris (Q) e lança com F, depois apanha com C.');
       } else {
         this._emitNarrative('Esta planta está protegida. Precisas de um feitiço especial…');
       }
@@ -1072,7 +1074,12 @@ export class Zone1Scene extends Phaser.Scene {
     this.game.events.emit('spellCast', GameState.activeSpell);
 
     if (GameState.activeSpell === 'brisa_molhada') {
-      this._emitNarrative('A Humidaris envolve o ar…');
+      if (this._nearPlant?.plantData?.collectMethod === 'spell') {
+        this._nearPlant._spellHit = true;
+        this._emitNarrative('A Humidaris atingiu a Farfalha! Apanha-a com C.', 2500);
+      } else {
+        this._emitNarrative('A Humidaris envolve o ar…');
+      }
     }
     if (GameState.activeSpell === 'canto_jardim') { this._revealAllPlants(); return; }
 
