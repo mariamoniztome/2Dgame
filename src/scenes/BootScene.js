@@ -96,7 +96,6 @@ export class BootScene extends Phaser.Scene {
     // ── Mute button icons (Lucide-style)
     this.load.svg('hud_vol_on',  '/assets/ui/volume_on.svg',  { width: 64, height: 64 });
     this.load.svg('hud_vol_off', '/assets/ui/volume_off.svg', { width: 64, height: 64 });
-    this.load.svg('hud_spellbook', '/assets/ui/hud_spellbook.svg', { width: 64, height: 64 });
 
     // ── Audio ────────────────────────────────────────────────────────────────
     // Background music (per zone)
@@ -261,6 +260,24 @@ export class BootScene extends Phaser.Scene {
     for (let i = 0; i < 6; i++) g.lineBetween(14, 20 + i * 9, 52, 20 + i * 9);
     g.fillStyle(0x2e1503, 1); g.fillRect(0, 3, 10, 74);
     g.generateTexture('book', 64, 80);
+
+    // ── Spell book HUD icon — open book (Lucide-style, dark stroke) ───────
+    g.clear();
+    g.lineStyle(3, 0x1a1a1a, 1);
+    // Left page
+    g.strokePoints([{ x: 32, y: 13 }, { x: 6, y: 8 }, { x: 6, y: 52 }, { x: 32, y: 56 }], true);
+    // Right page
+    g.strokePoints([{ x: 32, y: 13 }, { x: 58, y: 8 }, { x: 58, y: 52 }, { x: 32, y: 56 }], true);
+    // Centre spine
+    g.lineBetween(32, 13, 32, 56);
+    // Text lines — left page
+    g.lineStyle(2, 0x1a1a1a, 0.55);
+    g.lineBetween(12, 23, 27, 21); g.lineBetween(12, 31, 27, 29);
+    g.lineBetween(12, 39, 27, 37); g.lineBetween(12, 47, 22, 45);
+    // Text lines — right page
+    g.lineBetween(37, 21, 52, 23); g.lineBetween(37, 29, 52, 31);
+    g.lineBetween(37, 37, 52, 39); g.lineBetween(37, 45, 48, 47);
+    g.generateTexture('hud_spellbook', 64, 64);
 
     // ── Spell effects ─────────────────────────────────────────────────────
     const spellDefs = [
