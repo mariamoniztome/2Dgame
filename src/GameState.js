@@ -60,6 +60,16 @@ class GameStateManager {
     return stolen;
   }
 
+  stealMostValuablePlant() {
+    const RARITY_RANK = { comum: 0, incomum: 1, rara: 2 };
+    const nonEssential = this.inventory.filter(p => !p.isFake && !p.essential);
+    if (!nonEssential.length) return null;
+    nonEssential.sort((a, b) => (RARITY_RANK[b.rarity] ?? 0) - (RARITY_RANK[a.rarity] ?? 0));
+    const stolen = nonEssential[0];
+    this.removePlant(stolen.id);
+    return stolen;
+  }
+
   replacePlantWithFake(plantId) {
     const p = this.inventory.find(p => p.id === plantId);
     if (p) p.isFake = true;
