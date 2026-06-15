@@ -449,7 +449,7 @@ export class Zone3Scene extends Phaser.Scene {
           targets: this._cauldronMirrorShimmer,
           alpha: 0.9, duration: 600,
           onComplete: () => {
-            this._cauldronMirrorShimmer.setTint(0xffd700);
+            this._cauldronMirrorShimmer.setFillStyle(0xffd700, 0.9);
             this.tweens.add({
               targets: this._cauldronMirrorShimmer,
               alpha: { from: 0.6, to: 1.0 },
