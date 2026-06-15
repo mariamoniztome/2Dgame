@@ -214,10 +214,12 @@ export class Zone1Scene extends Phaser.Scene {
     this._ventoinhaSlowTimers = new Map();
     this._debugVisible        = false;
     this._spellUnlockShown    = null;
+    this._revealActive        = false;
     this._tutorialDismiss     = null;
     this._jardimHintShown     = false;
     this._ladrao              = null;
     this._ladraoStole         = false;
+    this._ladraoChaseTimer    = 0;
     this._tutorialShown       = false;
     this._sprintTrailTimer    = 0;
     this._limiarFogActive     = false;
@@ -1078,7 +1080,26 @@ export class Zone1Scene extends Phaser.Scene {
     if (GameState.activeSpell === 'brisa_molhada') {
       this._emitNarrative('A Humidaris envolve o ar…');
     }
-    if (GameState.activeSpell === 'canto_jardim') this._revealAllPlants();
+    if (GameState.activeSpell === 'canto_jardim') { this._revealAllPlants(); return; }
+
+    if (GameState.activeSpell === 'fogo_controlado' && this._ladrao?.active) {
+      const dist = Phaser.Math.Distance.Between(
+        this.player.x, this.player.y, this._ladrao.x, this._ladrao.y
+      );
+      if (dist < 380) {
+        const ang = Math.atan2(this._ladrao.y - this.player.y, this._ladrao.x - this.player.x);
+        this.tweens.add({
+          targets: this._ladrao,
+          x: this._ladrao.x + Math.cos(ang) * 500,
+          y: this._ladrao.y + Math.sin(ang) * 200,
+          alpha: 0, duration: 1200,
+          onComplete: () => this._despawnLadrao(false),
+        });
+        this._emitNarrative('O Ignicura afugentou o Sussurro!', 2500);
+        return;
+      }
+      this._emitNarrative('O Sussurro está longe demais para o Ignicura alcançar!', 2000);
+    }
   }
 
   _castSpellOnPlant(plant) {
@@ -1098,17 +1119,37 @@ export class Zone1Scene extends Phaser.Scene {
   }
 
   _revealAllPlants() {
+    if (this._revealActive) { this._emitNarrative('A visão já está activa!', 1500); return; }
+    this._revealActive = true;
+
+    const cam = this.cameras.main;
+    cam.stopFollow();
+    this.tweens.add({
+      targets: cam, zoom: 0.33,
+      duration: 1200, ease: 'Sine.easeInOut',
+      onComplete: () => cam.pan(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 800, 'Sine.easeInOut'),
+    });
+
+    const markers = [];
     this.plants.forEach(p => {
       if (p.isCollected) return;
-      this.cameras.main.pan(p.x, p.y, 600, 'Sine.easeInOut', false, (cam, progress) => {
-        if (progress === 1) {
-          this.time.delayedCall(400, () =>
-            this.cameras.main.pan(this.player.x, this.player.y, 600, 'Sine.easeInOut')
-          );
-        }
+      const m = this.add.circle(p.x, p.y, 18, 0x66ff88, 0.8).setDepth(50);
+      this.tweens.add({ targets: m, alpha: { from: 0.4, to: 1.0 }, duration: 700, yoyo: true, repeat: -1 });
+      markers.push(m);
+    });
+
+    this.time.delayedCall(30000, () => {
+      this._revealActive = false;
+      if (!this.scene.isActive('Zone1')) return;
+      markers.forEach(m => m.destroy());
+      this.tweens.add({
+        targets: cam, zoom: 2.0,
+        duration: 1200, ease: 'Sine.easeInOut',
+        onComplete: () => { cam.startFollow(this.player, true, 1, 1); cam.setLerp(0.12, 0.12); },
       });
     });
-    this._emitNarrative('O Horticantus revelou onde estão as plantas!');
+
+    this._emitNarrative('O Horticantus revelou onde estão as plantas! (30 segundos)', 5000);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1474,17 +1515,30 @@ export class Zone1Scene extends Phaser.Scene {
   _updateLadrao(delta) {
     if (!this._ladrao?.active || this._ladraoStole) return;
 
-    // Dismiss if player has nothing left to steal
-    if (GameState.inventory.length === 0) {
-      this._despawnLadrao(false); return;
-    }
+    if (GameState.inventory.length === 0) { this._despawnLadrao(false); return; }
 
     const dist = Phaser.Math.Distance.Between(
       this._ladrao.x, this._ladrao.y, this.player.x, this.player.y
     );
 
-    // Speed ramps up as it closes in
-    const spd = dist < 180 ? 68 : 38;
+    // Give-up: if the player stays >280px away for 10s, the Sussurro retreats and returns soon
+    if (dist > 280) {
+      this._ladraoChaseTimer += delta;
+      if (this._ladraoChaseTimer >= 10000) {
+        this._emitNarrative('O Sussurro recuou… mas voltará.', 2000);
+        this.tweens.add({
+          targets: this._ladrao, alpha: 0, duration: 800,
+          onComplete: () => this._despawnLadrao(false),
+        });
+        this._ladraoChaseTimer = 0;
+        return;
+      }
+    } else {
+      this._ladraoChaseTimer = 0;
+    }
+
+    // Speed: faster base so running doesn't trivially outpace it
+    const spd = dist < 180 ? 90 : 62;
     const ang = Math.atan2(
       this.player.y - this._ladrao.y,
       this.player.x - this._ladrao.x
@@ -1493,12 +1547,10 @@ export class Zone1Scene extends Phaser.Scene {
     this._ladrao.y += Math.sin(ang) * spd * (delta / 1000);
     this._ladrao.setFlipX(Math.cos(ang) < 0);
 
-    // Pulse alpha when close — visual warning
     if (dist < 180) {
       this._ladrao.setAlpha(0.65 + Math.sin(Date.now() * 0.01) * 0.3);
     }
 
-    // Steal range
     if (dist < 50) {
       this._ladraoStole = true;
       const stolen = GameState.stealLastPlant();
@@ -1509,9 +1561,7 @@ export class Zone1Scene extends Phaser.Scene {
         targets: this._ladrao,
         x: this._ladrao.x + Math.cos(fleeAng) * 480,
         y: this._ladrao.y + Math.sin(fleeAng) * 200,
-        alpha: 0,
-        duration: 1800,
-        ease: 'Power2.easeIn',
+        alpha: 0, duration: 1800, ease: 'Power2.easeIn',
         onComplete: () => this._despawnLadrao(true),
       });
     }
@@ -1520,9 +1570,11 @@ export class Zone1Scene extends Phaser.Scene {
   _despawnLadrao(stole) {
     this._ladrao?.destroy();
     this._ladrao = null;
+    this._ladraoChaseTimer = 0;
+    // Gave up → returns sooner (8-14s); stole → longer cooldown (35-55s)
     const delay = stole
       ? Phaser.Math.Between(35000, 55000)
-      : Phaser.Math.Between(15000, 28000);
+      : Phaser.Math.Between(8000, 14000);
     this.time.delayedCall(delay, () => this._scheduleLadrao());
   }
 

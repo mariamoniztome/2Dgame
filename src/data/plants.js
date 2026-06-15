@@ -78,7 +78,7 @@ export const PLANTS = {
     rarity: 'incomum',
     essential: false,
     collectMethod: 'slow',
-    narrativeText: 'Os meus espinhos são avisos dos perigos que você enfrentará. Nos buracos encontrarás a minha combinação.',
+    narrativeText: 'Os meus espinhos são avisos dos perigos que enfrentarás. Nos buracos encontrarás a minha combinação.',
     unsplashId: 'photo-1561828995-aa79a2db86dd',
   },
   bocarra: {
