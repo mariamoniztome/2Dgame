@@ -471,7 +471,7 @@ export class Zone1Scene extends Phaser.Scene {
     const CAMPO_POS = [
       [76,   111,  190],
       [1730, 652,  235],
-      [484,  98,   175],
+      [858,  114,  175],
       [1800, 975,  324],
       [839,  131,  175],
       [1741, 151,  190],
@@ -967,7 +967,7 @@ export class Zone1Scene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keyF) && this._spellCooldown <= 0) this._castSpell();
     if (Phaser.Input.Keyboard.JustDown(this.keyQ)) {
       GameState.cycleSpell();
-      this.game.events.emit('spellCast', GameState.activeSpell);
+      this.game.events.emit('spellChanged', GameState.activeSpell);
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
       SoundManager.mapToggle(true);

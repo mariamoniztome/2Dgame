@@ -146,17 +146,21 @@ export class HUDScene extends Phaser.Scene {
     this.game.events.off('plantCollected', this._onPlantCollected,  this);
     this.game.events.off('plantStolen',    this._onPlantStolen,     this);
     this.game.events.off('spellCast',      this._onSpellCast,       this);
+    this.game.events.off('spellChanged',   this._onSpellChanged,    this);
     this.game.events.off('showNarrative',  this._showNarrative,     this);
     this.game.events.off('spellUnlocked',  this._showUnlock,        this);
     this.game.events.off('areaChanged',    this._updateArea,        this);
     this.game.events.off('plantInspect',   this._onPlantInspect,    this);
+    this.game.events.off('showHint',       this._onShowHint,        this);
     this.game.events.on('plantCollected',  this._onPlantCollected,  this);
     this.game.events.on('plantStolen',     this._onPlantStolen,     this);
     this.game.events.on('spellCast',       this._onSpellCast,       this);
+    this.game.events.on('spellChanged',    this._onSpellChanged,    this);
     this.game.events.on('showNarrative',   this._showNarrative,     this);
     this.game.events.on('spellUnlocked',   this._showUnlock,        this);
     this.game.events.on('areaChanged',     this._updateArea,        this);
     this.game.events.on('plantInspect',    this._onPlantInspect,    this);
+    this.game.events.on('showHint',        this._onShowHint,        this);
 
     this._refresh();
   }
@@ -183,6 +187,14 @@ export class HUDScene extends Phaser.Scene {
       fontSize: fs.xl, fontFamily: FD,
       color: '#b42d27', stroke: '#ffffff', strokeThickness: 4, align: 'center',
     }).setOrigin(0.5).setAlpha(0).setDepth(200);
+
+    // Key hint (e.g. "C — Caldeirão") — emitted every frame while near object
+    this._hintBg   = this.add.graphics().setDepth(98).setAlpha(0);
+    this._hintText = this.add.text(W / 2, H - this._mmPH - Math.round(W * 0.009) - 32, '', {
+      fontSize: fs.sm, fontFamily: FU,
+      color: '#ffffff', padding: { x: 14, y: 7 },
+    }).setOrigin(0.5, 1).setAlpha(0).setDepth(99);
+    this._hintHideTimer = null;
 
     // Ajuda button — swap /assets/ui/ajuda_btn.svg to update the design
 const ajudaH = Math.round(W * 0.034 * 0.5);
@@ -1022,6 +1034,10 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     SoundManager.castSpell();
   }
 
+  _onSpellChanged() {
+    this._refreshSpell();
+  }
+
   _showNarrative(text, duration = 4000) {
     if (this._narrativeTimer) this._narrativeTimer.remove();
     this.tweens.killTweensOf(this.narrativeText);
@@ -1044,6 +1060,32 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
           this.tweens.add({ targets, alpha: 0, duration: 500 })
         );
       },
+    });
+  }
+
+  _onShowHint(text) {
+    if (!this._hintText || !this._hintBg) return;
+
+    // If text changed, update label and redraw pill
+    if (this._hintText.text !== text) {
+      this._hintText.setText(text);
+      const b = this._hintText.getBounds();
+      this._hintBg.clear()
+        .fillStyle(0x000000, 0.68)
+        .fillRoundedRect(b.left, b.top, b.width, b.height, 10);
+    }
+
+    // Make visible if currently hidden
+    if (this._hintText.alpha === 0) {
+      this.tweens.killTweensOf(this._hintText);
+      this.tweens.killTweensOf(this._hintBg);
+      this.tweens.add({ targets: [this._hintText, this._hintBg], alpha: 1, duration: 180 });
+    }
+
+    // Reset hide-timer — hint hides 600 ms after the last emission
+    if (this._hintHideTimer) this._hintHideTimer.remove();
+    this._hintHideTimer = this.time.delayedCall(600, () => {
+      this.tweens.add({ targets: [this._hintText, this._hintBg], alpha: 0, duration: 300 });
     });
   }
 
@@ -1379,6 +1421,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._toastActive        = false;
     this._controlsVisible    = ctrlVis;
     this._narrativeTimer     = null;
+    this._hintHideTimer      = null;
     this._lastZone           = null;
     this._wireframeOn        = wireOn;
     this._mmMask             = null;

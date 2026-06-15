@@ -896,7 +896,7 @@ export class Zone2Scene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keyF) && this._spellCooldown <= 0) this._castSpell();
     if (Phaser.Input.Keyboard.JustDown(this.keyQ)) {
       GameState.cycleSpell();
-      this.game.events.emit('spellCast', GameState.activeSpell);
+      this.game.events.emit('spellChanged', GameState.activeSpell);
     }
     if (Phaser.Input.Keyboard.JustDown(this.keyM)) {
       SoundManager.mapToggle(true);

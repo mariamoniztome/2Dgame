@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, ELEMENTS } from '../config.js';
+import { ELEMENTS } from '../config.js';
 import { GameState } from '../GameState.js';
 
 const ESSENTIAL_ORDER = ['ninfaria', 'aurorabromelia', 'farfalha', 'sombravinha', 'lunaria_negra'];
@@ -19,14 +19,23 @@ export class CauldronScene extends Phaser.Scene {
     this._phase = 0;
     this._plantsAdded = 0;
 
+    // Reset camera to neutral state (Zone3 leaves behind scroll/zoom)
+    this.cameras.main.setScroll(0, 0);
+    this.cameras.main.setZoom(1);
+
+    const W = this.scale.width;
+    const H = this.scale.height;
+    this._W = W;
+    this._H = H;
+
     // Dark background
-    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x030508).setOrigin(0);
+    this.add.rectangle(0, 0, W, H, 0x030508).setOrigin(0);
 
     // Stars
     for (let i = 0; i < 120; i++) {
       this.add.circle(
-        Phaser.Math.Between(0, GAME_WIDTH),
-        Phaser.Math.Between(0, GAME_HEIGHT * 0.6),
+        Phaser.Math.Between(0, W),
+        Phaser.Math.Between(0, H * 0.6),
         Phaser.Math.Between(1, 2),
         0xffffff,
         Phaser.Math.FloatBetween(0.15, 0.7)
@@ -34,36 +43,36 @@ export class CauldronScene extends Phaser.Scene {
     }
 
     // Cauldron (large)
-    this.cauldron = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50, 'cauldron')
+    this.cauldron = this.add.image(W / 2, H / 2 + 50, 'cauldron')
       .setDisplaySize(200, 200).setAlpha(0);
 
     // Liquid (circle inside cauldron)
-    this.liquid = this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30, 55, 0x1b5e20, 0.85).setAlpha(0);
-    this.liquidRipple = this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30, 55, 0x4caf50, 0).setAlpha(0);
+    this.liquid = this.add.circle(W / 2, H / 2 + 30, 55, 0x1b5e20, 0.85).setAlpha(0);
+    this.liquidRipple = this.add.circle(W / 2, H / 2 + 30, 55, 0x4caf50, 0).setAlpha(0);
 
     // Reflection (grandmother)
-    this.reflection = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30, '👵', {
+    this.reflection = this.add.text(W / 2, H / 2 + 30, '👵', {
       fontSize: '40px',
     }).setOrigin(0.5).setAlpha(0);
 
     // Title
-    this.add.text(GAME_WIDTH / 2, 40, 'Clareira do Caldeirão', {
+    this.add.text(W / 2, 40, 'Clareira do Caldeirão', {
       fontSize: '26px', fontFamily: "'Red Hat Text', sans-serif",
       color: '#ce93d8', stroke: '#030508', strokeThickness: 3,
     }).setOrigin(0.5);
 
     // Instruction text
-    this.instructText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 120, '', {
+    this.instructText = this.add.text(W / 2, H - 120, '', {
       fontSize: '18px', fontFamily: "'Red Hat Text', sans-serif",
       color: '#f5e6c8', stroke: '#030508', strokeThickness: 3,
-      align: 'center', wordWrap: { width: 700 },
+      align: 'center', wordWrap: { width: W * 0.55 },
     }).setOrigin(0.5);
 
     // Plant slots display
     this.plantSlots = [];
     ESSENTIAL_ORDER.forEach((id, i) => {
-      const x = GAME_WIDTH / 2 - 200 + i * 100;
-      const y = GAME_HEIGHT - 60;
+      const x = W / 2 - 200 + i * 100;
+      const y = H - 60;
       const bg = this.add.circle(x, y, 22, 0x0a0a1a, 0.8)
         .setStrokeStyle(1, 0x3d2b7a, 0.6);
       const icon = this.add.circle(x, y, 14, 0x333333, 0.6);
@@ -75,8 +84,8 @@ export class CauldronScene extends Phaser.Scene {
 
     // Fireflies cluster (magical atmosphere)
     this.add.particles(0, 0, 'firefly', {
-      x: { min: GAME_WIDTH * 0.2, max: GAME_WIDTH * 0.8 },
-      y: { min: GAME_HEIGHT * 0.2, max: GAME_HEIGHT * 0.8 },
+      x: { min: W * 0.2, max: W * 0.8 },
+      y: { min: H * 0.2, max: H * 0.8 },
       lifespan: { min: 2000, max: 4500 },
       speed: { min: 10, max: 35 },
       scale: { start: 1.2, end: 0 },
@@ -142,16 +151,17 @@ export class CauldronScene extends Phaser.Scene {
     const el = ELEMENTS[elements[id]] || ELEMENTS.EARTH;
 
     // Animate plant falling into cauldron
+    const W = this._W, H = this._H;
     const plant = this.add.circle(
-      GAME_WIDTH / 2 + Phaser.Math.Between(-80, 80),
+      W / 2 + Phaser.Math.Between(-80, 80),
       100,
       18, el.color, 0.9
     ).setDepth(15);
 
     this.tweens.add({
       targets: plant,
-      x: GAME_WIDTH / 2,
-      y: GAME_HEIGHT / 2 + 30,
+      x: W / 2,
+      y: H / 2 + 30,
       scale: 0.1,
       alpha: 0,
       duration: 900,
@@ -178,12 +188,13 @@ export class CauldronScene extends Phaser.Scene {
   }
 
   _splash(color) {
+    const W = this._W, H = this._H;
     for (let i = 0; i < 10; i++) {
       const angle = (i / 10) * Math.PI * 2;
       const r = 15 + Math.random() * 25;
       const drop = this.add.circle(
-        GAME_WIDTH / 2 + Math.cos(angle) * 10,
-        GAME_HEIGHT / 2 + 30 + Math.sin(angle) * 10,
+        W / 2 + Math.cos(angle) * 10,
+        H / 2 + 30 + Math.sin(angle) * 10,
         4, color, 0.9
       ).setDepth(16);
       this.tweens.add({
@@ -219,7 +230,7 @@ export class CauldronScene extends Phaser.Scene {
       });
 
       this.time.delayedCall(1200, () => {
-        this.reflection.setAlpha(0).setY(GAME_HEIGHT / 2 + 30);
+        this.reflection.setAlpha(0).setY(this._H / 2 + 30);
         this.tweens.add({
           targets: this.reflection,
           alpha: 1,
@@ -238,7 +249,7 @@ export class CauldronScene extends Phaser.Scene {
     this.reflection.setVisible(false);
 
     // Flash white
-    const flash = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0)
+    const flash = this.add.rectangle(0, 0, this._W, this._H, 0xffffff, 0)
       .setOrigin(0).setDepth(200);
     this.tweens.add({
       targets: flash,
@@ -254,8 +265,9 @@ export class CauldronScene extends Phaser.Scene {
   }
 
   _showBook() {
-    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x1a0a08).setOrigin(0).setDepth(100);
-    const book = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, 'book')
+    const W = this._W, H = this._H;
+    this.add.rectangle(0, 0, W, H, 0x1a0a08).setOrigin(0).setDepth(100);
+    const book = this.add.image(W / 2, H / 2 - 60, 'book')
       .setDisplaySize(256, 320).setAlpha(0).setDepth(101);
     this.tweens.add({
       targets: book,
@@ -278,7 +290,7 @@ export class CauldronScene extends Phaser.Scene {
           },
         });
 
-        const fim = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, 'Fim', {
+        const fim = this.add.text(W / 2, H / 2 - 40, 'Fim', {
           fontSize: '38px', fontFamily: "'Red Hat Text', sans-serif",
           color: '#3e2723', fontStyle: 'italic',
         }).setOrigin(0.5).setAlpha(0).setDepth(102);
@@ -294,7 +306,7 @@ export class CauldronScene extends Phaser.Scene {
             '',
             'Clica para voltar ao início',
           ].join('\n');
-          const creditText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 100, credits, {
+          const creditText = this.add.text(W / 2, H - 100, credits, {
             fontSize: '14px', fontFamily: "'Red Hat Text', sans-serif",
             color: '#8d6e63', align: 'center',
           }).setOrigin(0.5).setAlpha(0).setDepth(102);
