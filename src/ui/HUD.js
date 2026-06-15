@@ -1004,7 +1004,17 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     }
   }
 
-  _onPlantStolen() { this._refreshInventory(); this._updateCauldronDots(); this._rebuildPlantDots(); }
+  _onPlantStolen() {
+    this._refreshInventory();
+    this._refreshSpell();
+    this._updateCauldronDots();
+    this._rebuildPlantDots();
+    if (GameState.spellJustLost) {
+      const name = SPELLS[GameState.spellJustLost]?.name;
+      if (name) this._showNarrative(`O feitiço ${name} foi perdido…`, 3500);
+      GameState.spellJustLost = null;
+    }
+  }
 
   _onSpellCast() {
     this._refreshSpell();
