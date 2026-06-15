@@ -185,7 +185,9 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._buildHUDDebugPanel(W, H, fs);
     this._buildPauseOverlay(W, H);
 
+    this.input.keyboard.off('keydown-H');
     this.input.keyboard.on('keydown-H', () => this._toggleControls());
+    this.input.keyboard.off('keydown-D');
     this.input.keyboard.on('keydown-D', (e) => { if (e.shiftKey) this._toggleHUDDebug(); });
   }
 
@@ -541,6 +543,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   // ── Controls panel — DOM overlay in index.html, toggled here ─────────────
   _buildControlsPanel(W, H, fs) {
     this._ctrlGroup = [];
+    this.input.keyboard.off('keydown-ESC');
     this.input.keyboard.on('keydown-ESC', () => {
       if (this._plantModal)      { this._closeInventoryModal(); return; }
       if (this._controlsVisible)   this._hideControls();
