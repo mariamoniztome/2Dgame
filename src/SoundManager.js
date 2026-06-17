@@ -148,4 +148,10 @@ export const SoundManager = {
     osc('square', 220, 0.15, 0.12);
     osc('square', 180, 0.15, 0.15, null, 160);
   },
+
+  // Creature steals a plant
+  plantStolen() {
+    if (_muted) return;
+    playSfx('sfx_rouba', 0.80);
+  },
 };

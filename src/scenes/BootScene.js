@@ -109,6 +109,7 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('sfx_spell',  '/assets/audio/sfx_spell.mp3');
     this.load.audio('sfx_planta', '/assets/audio/sfx_planta.mp3');
     this.load.audio('sfx_portal', '/assets/audio/sfx_portal.mp3');
+    this.load.audio('sfx_rouba',  '/assets/audio/sfx_rouba.mp3');
 
     // Graceful fallback: don't crash if Unsplash is unreachable
     this.load.on('loaderror', (file) => {

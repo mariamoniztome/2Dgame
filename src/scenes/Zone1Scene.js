@@ -1555,7 +1555,10 @@ export class Zone1Scene extends Phaser.Scene {
     if (dist < 50) {
       this._ladraoStole = true;
       const stolen = GameState.stealLastPlant();
-      if (stolen) this.game.events.emit('plantStolen', stolen);
+      if (stolen) {
+        SoundManager.plantStolen();
+        this.game.events.emit('plantStolen', stolen);
+      }
 
       const fleeAng = ang + Math.PI;
       this.tweens.add({
