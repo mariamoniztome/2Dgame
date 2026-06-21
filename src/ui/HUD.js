@@ -476,8 +476,12 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       wordWrap: { width: iWW },
     }).setOrigin(0, 0).setDepth(D + 3));
 
-    const _texKey = id => this.textures.exists(`plant_img_${id}`) ? `plant_img_${id}` :
-                          this.textures.exists(`plant_${id}`)     ? `plant_${id}` : 'plant_missing';
+    const _mapIconFirst = new Set(['trepadeira', 'ventoinha', 'farfalha', 'gotateia']);
+    const _texKey = id => {
+      if (_mapIconFirst.has(id) && this.textures.exists(`map_icone_${id}`)) return `map_icone_${id}`;
+      return this.textures.exists(`plant_img_${id}`) ? `plant_img_${id}` :
+             this.textures.exists(`plant_${id}`)     ? `plant_${id}` : 'plant_missing';
+    };
 
     const ICON_SZ = 34;
     const showInfo = (plant, spell, locked = false) => {
@@ -1109,8 +1113,11 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       if (plantId) {
         const plant     = PLANTS[plantId];
         const collected = GameState.collected.has(plantId);
-        const key = this.textures.exists(`plant_img_${plantId}`) ? `plant_img_${plantId}` :
-                    this.textures.exists(`plant_${plantId}`)     ? `plant_${plantId}` : 'plant_missing';
+        const _mapIconFirst2 = new Set(['trepadeira', 'ventoinha', 'farfalha', 'gotateia']);
+        const key = (_mapIconFirst2.has(plantId) && this.textures.exists(`map_icone_${plantId}`))
+          ? `map_icone_${plantId}`
+          : this.textures.exists(`plant_img_${plantId}`) ? `plant_img_${plantId}`
+          : this.textures.exists(`plant_${plantId}`)     ? `plant_${plantId}` : 'plant_missing';
         s.icon.setTexture(key).setDisplaySize(s.iconS, s.iconS)
           .setAlpha(collected ? 0.95 : 0.35).setTint(0xffffff);
         const el  = plant ? (ELEMENTS[plant.element] || ELEMENTS.EARTH) : ELEMENTS.EARTH;
@@ -2058,8 +2065,11 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       state.dragging = true;
       const plant = this._currentInventoryOrder?.[state.fromIdx];
       if (!plant) { this._cancelDrag(); return; }
-      const key = this.textures.exists(`plant_img_${plant.id}`) ? `plant_img_${plant.id}` :
-                  this.textures.exists(`plant_${plant.id}`)     ? `plant_${plant.id}` : 'plant_missing';
+      const _mapIconFirst3 = new Set(['trepadeira', 'ventoinha', 'farfalha', 'gotateia']);
+      const key = (_mapIconFirst3.has(plant.id) && this.textures.exists(`map_icone_${plant.id}`))
+        ? `map_icone_${plant.id}`
+        : this.textures.exists(`plant_img_${plant.id}`) ? `plant_img_${plant.id}`
+        : this.textures.exists(`plant_${plant.id}`)     ? `plant_${plant.id}` : 'plant_missing';
       const ghostR = (this._bagSlotSz ?? 40) * 0.50;
       if (this._dragGhost) this._dragGhost.destroy();
       this._dragGhost = this.add.image(ptr.x, ptr.y, key)
