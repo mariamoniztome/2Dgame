@@ -22,6 +22,9 @@ jobs:
       - name: Build Electron DMG
         run: npx electron-builder
 
+      - name: Remove quarantine
+        run: xattr -cr dist/*.dmg || true
+
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
