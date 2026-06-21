@@ -19,14 +19,22 @@ jobs:
       - name: Build Vite
         run: npm run build
 
-      - name: Build Electron DMG
-        run: npx electron-builder
+      - name: Build Electron app
+        run: npx electron-builder --mac dir
 
-      - name: Remove quarantine
-        run: xattr -cr dist/*.dmg || true
+      - name: Ad-hoc sign
+        run: codesign --force --deep --sign - "dist/mac-arm64/Bruxa Bruxinha.app"
+
+      - name: Create DMG
+        run: |
+          hdiutil create \
+            -volname "Bruxa Bruxinha" \
+            -srcfolder "dist/mac-arm64/Bruxa Bruxinha.app" \
+            -ov -format UDZO \
+            "dist/BruxaBruxinha.dmg"
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
           name: Bruxa-Bruxinha-Mac
-          path: dist/*.dmg
+          path: dist/BruxaBruxinha.dmg
