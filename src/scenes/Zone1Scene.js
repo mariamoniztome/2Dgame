@@ -164,6 +164,11 @@ export class Zone1Scene extends Phaser.Scene {
     // Note: rightward blocking when y<0 is handled by the soft guard in update()
     // so we do NOT place a _wallV here — it conflicts with the guard and traps the player.
 
+    // Decorative element colliders (built before player, registered here)
+    if (this._decoBodies.length > 0) {
+      this.physics.add.collider(this.player, this._decoBodies);
+    }
+
     // Camera — start bounded to the area selected from the map
     this.cameras.main.setZoom(2.0);
     this.cameras.main.startFollow(this.player, true, 1, 1);
@@ -453,12 +458,25 @@ export class Zone1Scene extends Phaser.Scene {
   //  Decorations — dense grid across all sub-areas; per-zone deco arrays
   //  stored for live debug adjustment.
   // ─────────────────────────────────────────────────────────────────────────
+  // Depth formula for Y-sorting: objects further south (higher Y) render in front.
+  // Offset of 2600 keeps the range positive across all zone Y values (−2246 to +1100).
+  _decoDepth(y) { return 3 + (y + 2600) * 0.003; }
+
+  _addDecoBody(x, y, ds) {
+    const w = Math.max(18, Math.round(ds * 0.20));
+    const h = Math.max(12, Math.round(ds * 0.10));
+    const rect = this.add.rectangle(x, y + ds * 0.30, w, h, 0x000000, 0);
+    this.physics.add.existing(rect, true);
+    this._decoBodies.push(rect);
+  }
+
   _buildDecorations() {
     this.decoImages    = [];   // combined (backward compat)
     this.campoDecos    = [];
     this.transicaoDecos= [];
     this.jardimDecos   = [];
     this.limiarDecos   = [];
+    this._decoBodies   = [];   // invisible static collision bodies
     const gm = this._globalSizeMult ?? 1.0;
 
     // ── Campo (x:0–ZW, y:0–ZH) ───────────────────────────────────────────
@@ -505,10 +523,12 @@ export class Zone1Scene extends Phaser.Scene {
 
     if (ck.length > 0) {
       CAMPO_POS.forEach(([x, y, s], i) => {
+        const ds = s * cm * gm;
         const img = this.add.image(x, y, ck[i % ck.length])
-          .setDisplaySize(s * cm * gm, s * cm * gm).setDepth(3);
+          .setDisplaySize(ds, ds).setDepth(this._decoDepth(y));
         this.campoDecos.push({ img, baseSize: s });
         this.decoImages.push({ img, baseSize: s });
+        this._addDecoBody(x, y, ds);
       });
     }
 
@@ -529,10 +549,12 @@ export class Zone1Scene extends Phaser.Scene {
         [ 750, -396, 551], [1043,  -57, 128], [1688, -368, 270],
       ];
       TRANS_POS.forEach(([x, y, s], i) => {
+        const ds = s * tm * gm;
         const img = this.add.image(x, y, tk[(i + 1) % tk.length])
-          .setDisplaySize(s * tm * gm, s * tm * gm).setDepth(4).setAlpha(0.82);
+          .setDisplaySize(ds, ds).setDepth(this._decoDepth(y)).setAlpha(0.82);
         this.transicaoDecos.push({ img, baseSize: s });
         this.decoImages.push({ img, baseSize: s });
+        this._addDecoBody(x, y, ds);
       });
     }
 
@@ -552,10 +574,12 @@ export class Zone1Scene extends Phaser.Scene {
         [2045, 886, 298], [2314, 680, 160], [2717, 920, 334], [2975, 997, 190], [2815, 293,  92], [3701, 950, 268],
       ];
       JARDIM_POS.forEach(([x, y, s], i) => {
+        const ds = s * jm * gm;
         const img = this.add.image(x, y, jardimKeys[i % jardimKeys.length])
-          .setDisplaySize(s * jm * gm, s * jm * gm).setDepth(3).setAlpha(0.78);
+          .setDisplaySize(ds, ds).setDepth(this._decoDepth(y)).setAlpha(0.78);
         this.jardimDecos.push({ img, baseSize: s });
         this.decoImages.push({ img, baseSize: s });
+        this._addDecoBody(x, y, ds);
       });
     }
 
@@ -577,10 +601,12 @@ export class Zone1Scene extends Phaser.Scene {
         [ 403, -1386, 240], [ 533, -1900, 109], [ 603, -1340,  57], [1039, -1486,  96], [1229, -1575, 216], [1702, -1370, 246],
       ];
       LIMIAR_POS.forEach(([x, y, s], i) => {
+        const ds = s * lm * gm;
         const img = this.add.image(x, y, lk[(i + 1) % lk.length])
-          .setDisplaySize(s * lm * gm, s * lm * gm).setDepth(3).setAlpha(0.85);
+          .setDisplaySize(ds, ds).setDepth(this._decoDepth(y)).setAlpha(0.85);
         this.limiarDecos.push({ img, baseSize: s });
         this.decoImages.push({ img, baseSize: s });
+        this._addDecoBody(x, y, ds);
       });
     }
   }
@@ -665,6 +691,7 @@ export class Zone1Scene extends Phaser.Scene {
     if (this._cutscene) return;
     if (this._waitingForFirstControls) return;
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
+    this.player.setDepth(this._decoDepth(this.player.y));
 
     // ── Hard boundary: cannot enter Parede/Limiar until vine is collected ─
     if (!this._vineClimbed && this.player.y < -this._transH + 2) {

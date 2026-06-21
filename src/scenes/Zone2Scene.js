@@ -67,6 +67,9 @@ export class Zone2Scene extends Phaser.Scene {
     this._buildBackground();
 
     this.player = new Player(this, 640, 200);
+    if (this._tree2Bodies?.length > 0) {
+      this.physics.add.collider(this.player, this._tree2Bodies);
+    }
     this._buildPlants();
     GameState.plantSpawns = PLANT_SPAWNS.map(s => ({ id: s.id, x: s.x, y: s.y }));
     this._buildCreatures();
@@ -202,11 +205,17 @@ export class Zone2Scene extends Phaser.Scene {
       );
     }
 
+    this._tree2Bodies = [];
     TREE_POS.forEach(({ x, y }) => {
       const c = TREE_COLORS[Math.floor(Math.random() * TREE_COLORS.length)];
       const r = 30 + Math.random() * 50;
-      this.add.circle(x, y, r, c, 0.8).setDepth(2);
-      this.add.circle(x + 10, y + r * 0.3, r * 0.6, c, 0.5).setDepth(2);
+      const d = 3 + (y + 100) * 0.003;
+      this.add.circle(x, y, r, c, 0.8).setDepth(d);
+      this.add.circle(x + 10, y + r * 0.3, r * 0.6, c, 0.5).setDepth(d);
+      // Invisible static body at the trunk base
+      const trunk = this.add.rectangle(x, y + 28, 46, 24, 0x000000, 0);
+      this.physics.add.existing(trunk, true);
+      this._tree2Bodies.push(trunk);
     });
   }
 
@@ -375,6 +384,7 @@ export class Zone2Scene extends Phaser.Scene {
   // ──────────────────────────────────────────────────────────────────────────
   update(time, delta) {
     this.player.update(this.cursors, this.wasd, this.keyShift, delta);
+    this.player.setDepth(3 + (this.player.y + 100) * 0.003);
     const ph = this.player.displayHeight;
     this.playerShadow.setPosition(this.player.x, this.player.y + Math.round(ph * 0.24));
     this.playerShadow.setSize(Math.round(ph * 0.16), Math.max(4, Math.round(ph * 0.038)));
