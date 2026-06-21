@@ -9,7 +9,6 @@ import { Zone2Scene }       from './scenes/Zone2Scene.js';
 import { Zone3Scene }       from './scenes/Zone3Scene.js';
 import { CauldronScene }    from './scenes/CauldronScene.js';
 import { HUDScene }         from './ui/HUD.js';
-import { DebugPanel }       from './ui/DebugPanel.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -45,7 +44,10 @@ const config = {
 
 window.game = new Phaser.Game(config);
 
-// Debug panel — toggle with backtick (`) or F2
-window.game.events.once('ready', () => {
-  window.debugPanel = new DebugPanel(window.game);
-});
+// Debug panel — only in development (excluded from production bundle)
+if (import.meta.env.DEV) {
+  window.game.events.once('ready', async () => {
+    const { DebugPanel } = await import('./ui/DebugPanel.js');
+    window.debugPanel = new DebugPanel(window.game);
+  });
+}

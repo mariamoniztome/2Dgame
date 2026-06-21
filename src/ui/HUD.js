@@ -207,15 +207,17 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._buildMuteButton(W, H, ajudaH, ajudaW);
     this._buildSpellBookButton(W, H, ajudaH, ajudaW);
     this._buildControlsPanel(W, H, fs);
-    this._buildHUDDebugPanel(W, H, fs);
+    if (import.meta.env.DEV) this._buildHUDDebugPanel(W, H, fs);
     this._buildPauseOverlay(W, H);
 
     this.input.keyboard.off('keydown-H');
     this.input.keyboard.on('keydown-H', () => this._toggleControls());
     this.input.keyboard.off('keydown-B');
     this.input.keyboard.on('keydown-B', () => this._toggleSpellBook());
-    this.input.keyboard.off('keydown-D');
-    this.input.keyboard.on('keydown-D', (e) => { if (e.shiftKey) this._toggleHUDDebug(); });
+    if (import.meta.env.DEV) {
+      this.input.keyboard.off('keydown-D');
+      this.input.keyboard.on('keydown-D', (e) => { if (e.shiftKey) this._toggleHUDDebug(); });
+    }
 
     // Scroll wheel over the spell panel → cycle spells (scroll up = previous, scroll down = next)
     this.input.off('wheel', this._onSpellWheel, this);

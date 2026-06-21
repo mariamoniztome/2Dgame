@@ -186,9 +186,11 @@ export class MapScene extends Phaser.Scene {
       fontSize: '11px', fontFamily: "'Red Hat Text', sans-serif", color: '#6a9a6a',
     }).setOrigin(0.5, 1).setDepth(5);
 
-    this.keyEsc   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-    this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
-    this.keyDebug = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.keyM   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    if (import.meta.env.DEV) {
+      this.keyDebug = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    }
 
     // Zoom with scroll wheel (centred on cursor); debug mode overrides this to resize icons
     this.input.on('wheel', (ptr, currentlyOver, _dx, deltaY) => {
@@ -262,7 +264,7 @@ export class MapScene extends Phaser.Scene {
       if (this._debugMode) { this._toggleDebug(); return; }
       if (!this._isInitial) this._returnToGame();
     }
-    if (Phaser.Input.Keyboard.JustDown(this.keyDebug)) {
+    if (import.meta.env.DEV && Phaser.Input.Keyboard.JustDown(this.keyDebug)) {
       this._toggleDebug();
     }
     if (this._debugMode && this.keyLog && Phaser.Input.Keyboard.JustDown(this.keyLog)) {
