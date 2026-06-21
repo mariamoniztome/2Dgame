@@ -111,10 +111,11 @@ class GameStateManager {
     }
   }
 
-  cycleSpell() {
+  cycleSpell(direction = 1) {
     if (!this.availableSpells.length) return;
     const idx = this.availableSpells.indexOf(this.activeSpell);
-    this.activeSpell = this.availableSpells[(idx + 1) % this.availableSpells.length];
+    const len = this.availableSpells.length;
+    this.activeSpell = this.availableSpells[((idx + direction) % len + len) % len];
   }
 
   cauldronProgress() {

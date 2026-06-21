@@ -190,6 +190,29 @@ export class MapScene extends Phaser.Scene {
     this.keyM     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
     this.keyDebug = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
 
+    // Zoom with scroll wheel (centred on cursor); debug mode overrides this to resize icons
+    this.input.on('wheel', (ptr, currentlyOver, _dx, deltaY) => {
+      if (this._debugMode) {
+        this._handleDebugWheel(currentlyOver, deltaY);
+      } else {
+        const cam   = this.cameras.main;
+        const W     = this._W, H = this._H;
+        const oldZ  = cam.zoom;
+        const newZ  = Phaser.Math.Clamp(oldZ + (deltaY > 0 ? -0.1 : 0.1), 1.0, 3.0);
+        if (newZ === oldZ) return;
+        // Keep world point under cursor fixed
+        const worldX = cam.scrollX + ptr.x / oldZ;
+        const worldY = cam.scrollY + ptr.y / oldZ;
+        cam.setZoom(newZ);
+        const maxSX = W  * (1 - 1 / newZ);
+        const maxSY = H * (1 - 1 / newZ);
+        cam.setScroll(
+          Phaser.Math.Clamp(worldX - ptr.x / newZ, 0, maxSX),
+          Phaser.Math.Clamp(worldY - ptr.y / newZ, 0, maxSY)
+        );
+      }
+    });
+
     this.cameras.main.fadeIn(500, 0, 0, 0);
   }
 
@@ -319,38 +342,36 @@ export class MapScene extends Phaser.Scene {
       }
     });
 
-    // Scroll wheel — resize object under pointer.
-    // For locks: all locks resize together (uniform size).
-    this.input.on('wheel', (_ptr, currentlyOver, _dx, deltaY) => {
-      // Find which debug entry is under the pointer
-      let entry = null;
-      for (const obj of currentlyOver) {
-        entry = this._debugObjs.find(e => e.img === obj);
-        if (entry) break;
+  }
+
+  // Resize icon under pointer in debug mode — called from the shared wheel handler
+  _handleDebugWheel(currentlyOver, deltaY) {
+    let entry = null;
+    for (const obj of currentlyOver) {
+      entry = this._debugObjs.find(e => e.img === obj);
+      if (entry) break;
+    }
+    if (!entry) entry = this._debugHover;
+    if (!entry?.img?.active) return;
+
+    const step = deltaY > 0 ? -4 : 4;
+
+    const targets = entry.group === 'lock'
+      ? this._debugObjs.filter(e => e.group === 'lock')
+      : [entry];
+
+    targets.forEach(e => {
+      const newSize = Math.max(10, e.img.displayWidth + step);
+      e.img.setDisplaySize(newSize, newSize);
+      if (e.ring) {
+        e.ring.clear();
+        e.ring.lineStyle(1.5, 0xffee44, 0.7);
+        e.ring.strokeCircle(e.img.x, e.img.y, newSize / 2 + 4);
       }
-      if (!entry) entry = this._debugHover;
-      if (!entry?.img?.active) return;
-
-      const step = deltaY > 0 ? -4 : 4;
-
-      // Locks resize uniformly — resize every lock entry
-      const targets = entry.group === 'lock'
-        ? this._debugObjs.filter(e => e.group === 'lock')
-        : [entry];
-
-      targets.forEach(e => {
-        const newSize = Math.max(10, e.img.displayWidth + step);
-        e.img.setDisplaySize(newSize, newSize);
-        if (e.ring) {
-          e.ring.clear();
-          e.ring.lineStyle(1.5, 0xffee44, 0.7);
-          e.ring.strokeCircle(e.img.x, e.img.y, newSize / 2 + 4);
-        }
-        if (e.posText) {
-          e.posText.setPosition(e.img.x, e.img.y - newSize / 2 - 10);
-          e.posText.setText(this._fmtEntry(e.img));
-        }
-      });
+      if (e.posText) {
+        e.posText.setPosition(e.img.x, e.img.y - newSize / 2 - 10);
+        e.posText.setText(this._fmtEntry(e.img));
+      }
     });
   }
 
@@ -361,9 +382,11 @@ export class MapScene extends Phaser.Scene {
     this._debugOverlays = [];
     this._debugObjs.forEach(e => { delete e.posText; delete e.ring; });
     this.input.off('drag');
-    this.input.off('wheel');
     this._debugHover = null;
     if (this.keyLog) { this.keyLog.destroy(); this.keyLog = null; }
+    // Reset zoom/scroll when leaving debug mode
+    this.cameras.main.setScroll(0, 0);
+    this.cameras.main.setZoom(1);
   }
 
   _fmtEntry(img) {
@@ -405,6 +428,8 @@ export class MapScene extends Phaser.Scene {
 
   _enterZone(key, startArea) {
     if (startArea) this.game.registry.set('startArea', startArea);
+    this.cameras.main.setZoom(1);
+    this.cameras.main.setScroll(0, 0);
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start(key);
@@ -413,6 +438,8 @@ export class MapScene extends Phaser.Scene {
 
   _returnToGame() {
     const zone = GameState.currentZone || 'Zone1';
+    this.cameras.main.setZoom(1);
+    this.cameras.main.setScroll(0, 0);
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       if (this.scene.isPaused(zone)) {

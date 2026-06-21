@@ -216,6 +216,19 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this.input.keyboard.on('keydown-B', () => this._toggleSpellBook());
     this.input.keyboard.off('keydown-D');
     this.input.keyboard.on('keydown-D', (e) => { if (e.shiftKey) this._toggleHUDDebug(); });
+
+    // Scroll wheel over the spell panel → cycle spells (scroll up = previous, scroll down = next)
+    this.input.off('wheel', this._onSpellWheel, this);
+    this.input.on('wheel',  this._onSpellWheel, this);
+  }
+
+  _onSpellWheel(ptr, _over, _dx, deltaY) {
+    const sp = this._hudBounds?.spell;
+    if (!sp) return;
+    if (ptr.x >= sp.x && ptr.x <= sp.x + sp.w && ptr.y >= sp.y && ptr.y <= sp.y + sp.h) {
+      GameState.cycleSpell(deltaY > 0 ? 1 : -1);
+      this.game.events.emit('spellChanged', GameState.activeSpell);
+    }
   }
 
   _fs(W) {
