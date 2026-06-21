@@ -19,98 +19,98 @@ export class BootScene extends Phaser.Scene {
     // ── Backgrounds (Unsplash removed — zones use local SVG backgrounds) ─
 
     // ── Zone 1 SVG assets ────────────────────────────────────────────────
-    this.load.svg('player', '/assets/zone1/bruxinha.svg', { width: 1024, height: 1024 });
+    this.load.svg('player', 'assets/zone1/bruxinha.svg', { width: 1024, height: 1024 });
     // Bruxinha directional sprite frames (idle 2-frame animations per direction)
     ['front_1','front_2','back_1','back_2','right_1','right_2','left_1','left_2'].forEach(f =>
-      this.load.svg(`player_${f}`, `/assets/zone1/bruxinha/${f}.svg`, { width: 756, height: 756 })
+      this.load.svg(`player_${f}`, `assets/zone1/bruxinha/${f}.svg`, { width: 756, height: 756 })
     );
     // Plant sprites
-    this.load.svg('plant_img_ventoinha',  '/assets/zone1/campo/ventoinha.svg',    { width: 256, height: 256 });
-    this.load.svg('plant_img_farfalha',   '/assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });
-    this.load.svg('plant_img_trepadeira', '/assets/zone1/limiar/trepadeira.svg', { width: 256, height: 256 });
-    this.load.svg('plant_img_gotateia',   '/assets/zone1/jardim/gotateia.svg',   { width: 256, height: 256 });
+    this.load.svg('plant_img_ventoinha',  'assets/zone1/campo/ventoinha.svg',    { width: 256, height: 256 });
+    this.load.svg('plant_img_farfalha',   'assets/zone1/limiar/farfalha.svg',   { width: 256, height: 256 });
+    this.load.svg('plant_img_trepadeira', 'assets/zone1/limiar/trepadeira.svg', { width: 256, height: 256 });
+    this.load.svg('plant_img_gotateia',   'assets/zone1/jardim/gotateia.svg',   { width: 256, height: 256 });
     // Ventoinha animated sprite frames (8 frames)
     for (let i = 1; i <= 8; i++) {
       const n = String(i).padStart(2, '0');
-      this.load.svg(`ventoinha_f${i}`, `/assets/plants/ventoinha/SpriteSheet_Ventoinha-${n}.svg`, { width: 256, height: 256 });
+      this.load.svg(`ventoinha_f${i}`, `assets/plants/ventoinha/SpriteSheet_Ventoinha-${n}.svg`, { width: 256, height: 256 });
     }
     // Firefly sprite — load at 512 so scale ~0.59 downscales cleanly (no upscale blur)
-    this.load.svg('z1_vagalume', '/assets/zone1/campo/vagalume.svg', { width: 512, height: 512 });
+    this.load.svg('z1_vagalume', 'assets/zone1/campo/vagalume.svg', { width: 512, height: 512 });
     // Area backgrounds and transition zone assets — loaded at native SVG viewBox size
-    this.load.svg('z1_bg_campo',    '/assets/zone1/campo/bg_campo.svg',         { width: 1920, height: 1080 });
-    this.load.svg('z1_bg_trans',    '/assets/zone1/transicao/fundo.svg',        { width: 1920, height: 525  });
-    // this.load.svg('z1_fundo_parede','/assets/zone1/transicao/fundo_parede.svg', { width: 2077, height: 1550 });
-    this.load.svg('z1_caminho',     '/assets/zone1/transicao/caminho.svg',      { width: 1920, height: 525  });
-    this.load.svg('z1_parede',      '/assets/zone1/transicao/parede.svg',       { width: 1920, height: 1735 });
+    this.load.svg('z1_bg_campo',    'assets/zone1/campo/bg_campo.svg',         { width: 1920, height: 1080 });
+    this.load.svg('z1_bg_trans',    'assets/zone1/transicao/fundo.svg',        { width: 1920, height: 525  });
+    // this.load.svg('z1_fundo_parede','assets/zone1/transicao/fundo_parede.svg', { width: 2077, height: 1550 });
+    this.load.svg('z1_caminho',     'assets/zone1/transicao/caminho.svg',      { width: 1920, height: 525  });
+    this.load.svg('z1_parede',      'assets/zone1/transicao/parede.svg',       { width: 1920, height: 1735 });
     // Location signs — 512px raster for crisp display at large sizes (up to zoom 2)
-    this.load.svg('z1_placa_campo',  '/assets/zone1/campo/placa.svg',   { width: 512, height: 512 });
-    this.load.svg('z1_placa_limiar', '/assets/zone1/limiar/placa.svg',  { width: 512, height: 512 });
-    this.load.svg('z1_placa_jardim', '/assets/zone1/jardim/placa.svg',  { width: 512, height: 512 });
+    this.load.svg('z1_placa_campo',  'assets/zone1/campo/placa.svg',   { width: 512, height: 512 });
+    this.load.svg('z1_placa_limiar', 'assets/zone1/limiar/placa.svg',  { width: 512, height: 512 });
+    this.load.svg('z1_placa_jardim', 'assets/zone1/jardim/placa.svg',  { width: 512, height: 512 });
     // Decorative elements — load at 512×512 so they stay sharp at 300–450px display size
     ['02','03','04','05','06','07','08','09','10','11','13','14','17','18','19','20','21','22','23','24','25'].forEach(n =>
-      this.load.svg(`z1_campo_${n}`, `/assets/zone1/campo/elem_${n}.svg`, { width: 512, height: 512 })
+      this.load.svg(`z1_campo_${n}`, `assets/zone1/campo/elem_${n}.svg`, { width: 512, height: 512 })
     );
     // Campo path overlay
-    this.load.svg('z1_campo_caminho', '/assets/zone1/campo/caminho.svg', { width: 1920, height: 1080 });
+    this.load.svg('z1_campo_caminho', 'assets/zone1/campo/caminho.svg', { width: 1920, height: 1080 });
     // Degradê variants for firefly and Ventoinha
-    this.load.svg('z1_vagalume_degradee',  '/assets/zone1/campo/vagalume_degradee.svg',  { width: 512, height: 512 });
-    this.load.svg('z1_ventoinha_degradee', '/assets/zone1/campo/ventoinha_degradee.svg', { width: 512, height: 512 });
+    this.load.svg('z1_vagalume_degradee',  'assets/zone1/campo/vagalume_degradee.svg',  { width: 512, height: 512 });
+    this.load.svg('z1_ventoinha_degradee', 'assets/zone1/campo/ventoinha_degradee.svg', { width: 512, height: 512 });
     ['02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30'].forEach(n =>
-      this.load.svg(`z1_limiar_${n}`, `/assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
+      this.load.svg(`z1_limiar_${n}`, `assets/zone1/limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );
     ['02','03','04','05','06','07','08','09','10','12','13','14','15','16','18','19','20'].forEach(n =>
-      this.load.svg(`z1_jardim_${n}`, `/assets/zone1/jardim/elem_${n}.svg`, { width: 512, height: 512 })
+      this.load.svg(`z1_jardim_${n}`, `assets/zone1/jardim/elem_${n}.svg`, { width: 512, height: 512 })
     );
     // Transition wall elements: Campo dos Vagalumes ↔ Limiar Secreto (y=0 border)
     ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>
-      this.load.svg(`z1_cl_${n}`, `/assets/zone1/campo_limiar/elem_${n}.svg`, { width: 512, height: 512 })
+      this.load.svg(`z1_cl_${n}`, `assets/zone1/campo_limiar/elem_${n}.svg`, { width: 512, height: 512 })
     );
     ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19'].forEach(n =>
-      this.load.svg(`z1_trans_${n}`, `/assets/zone1/transicao/elem_${n}.svg`, { width: 512, height: 512 })
+      this.load.svg(`z1_trans_${n}`, `assets/zone1/transicao/elem_${n}.svg`, { width: 512, height: 512 })
     );
 
     // ── Map assets ───────────────────────────────────────────────────────────
     // Backgrounds 1280×720 raster (1920×1080 viewBox scaled down — saves ~8 MB vs full-res)
-    this.load.svg('map_fundo01',       '/assets/map/map_fundo01.svg',       { width: 1280, height: 720 });
-    this.load.svg('map_fundo02',       '/assets/map/map_fundo02.svg',       { width: 1280, height: 720 });
+    this.load.svg('map_fundo01',       'assets/map/map_fundo01.svg',       { width: 1280, height: 720 });
+    this.load.svg('map_fundo02',       'assets/map/map_fundo02.svg',       { width: 1280, height: 720 });
     // Icons & decorations — 256px raster for circle icons, 128px for small ones
-    this.load.svg('map_icone_campo',   '/assets/map/map_icone_campo.svg',   { width: 512, height: 512 });
-    this.load.svg('map_icone_jardim',  '/assets/map/map_icone_jardim.svg',  { width: 512, height: 512 });
-    this.load.svg('map_icone_limiar',  '/assets/map/map_icone_limiar.svg',  { width: 512, height: 512 });
-    this.load.svg('map_cadeado',       '/assets/map/map_cadeado.svg',       { width: 128, height: 128 });
-    this.load.svg('map_portal',        '/assets/map/map_portal.svg',        { width: 128, height: 128 });
-    this.load.svg('portal',            '/assets/map/map_portal.svg',        { width: 256, height: 256 });
-    this.load.svg('map_icone_ventoinha',  '/assets/map/map_icone_ventoinha.svg',  { width: 128, height: 128 });
-    this.load.svg('map_icone_farfalha',   '/assets/map/map_icone_farfalha.svg',   { width: 128, height: 128 });
-    this.load.svg('map_icone_gotateia',   '/assets/map/map_icone_gotateia.svg',   { width: 128, height: 128 });
-    this.load.svg('map_icone_trepadeira', '/assets/map/map_icone_trepadeira.svg', { width: 128, height: 128 });
+    this.load.svg('map_icone_campo',   'assets/map/map_icone_campo.svg',   { width: 512, height: 512 });
+    this.load.svg('map_icone_jardim',  'assets/map/map_icone_jardim.svg',  { width: 512, height: 512 });
+    this.load.svg('map_icone_limiar',  'assets/map/map_icone_limiar.svg',  { width: 512, height: 512 });
+    this.load.svg('map_cadeado',       'assets/map/map_cadeado.svg',       { width: 128, height: 128 });
+    this.load.svg('map_portal',        'assets/map/map_portal.svg',        { width: 128, height: 128 });
+    this.load.svg('portal',            'assets/map/map_portal.svg',        { width: 256, height: 256 });
+    this.load.svg('map_icone_ventoinha',  'assets/map/map_icone_ventoinha.svg',  { width: 128, height: 128 });
+    this.load.svg('map_icone_farfalha',   'assets/map/map_icone_farfalha.svg',   { width: 128, height: 128 });
+    this.load.svg('map_icone_gotateia',   'assets/map/map_icone_gotateia.svg',   { width: 128, height: 128 });
+    this.load.svg('map_icone_trepadeira', 'assets/map/map_icone_trepadeira.svg', { width: 128, height: 128 });
 
     // ── HUD area badges (zone name plates) — 700×127 raster (viewBox 4254×769)
-    this.load.svg('badge_campo',  '/assets/ui/badge_campo.svg',  { width: 700, height: 127 });
-    this.load.svg('badge_jardim', '/assets/ui/badge_jardim.svg', { width: 700, height: 127 });
-    this.load.svg('badge_limiar', '/assets/ui/badge_limiar.svg', { width: 700, height: 127 });
+    this.load.svg('badge_campo',  'assets/ui/badge_campo.svg',  { width: 700, height: 127 });
+    this.load.svg('badge_jardim', 'assets/ui/badge_jardim.svg', { width: 700, height: 127 });
+    this.load.svg('badge_limiar', 'assets/ui/badge_limiar.svg', { width: 700, height: 127 });
     // ── Ajuda button (top-left HUD) — replace SVG file to update design
-    this.load.svg('hud_ajuda', '/assets/ui/ajuda_btn.svg', { width: 440, height: 112 });
+    this.load.svg('hud_ajuda', 'assets/ui/ajuda_btn.svg', { width: 440, height: 112 });
     // ── Minimap player star marker
-    this.load.svg('mm_star', '/assets/ui/estrela.svg', { width: 64, height: 64 });
+    this.load.svg('mm_star', 'assets/ui/estrela.svg', { width: 64, height: 64 });
     // ── Mute button icons (Lucide-style)
-    this.load.svg('hud_vol_on',    '/assets/ui/volume_on.svg',    { width: 64, height: 64 });
-    this.load.svg('hud_vol_off',   '/assets/ui/volume_off.svg',   { width: 64, height: 64 });
-    this.load.svg('hud_spellbook',  '/assets/ui/hud_spellbook.svg', { width: 64, height: 64 });
-    this.load.svg('hud_inv_icon',   '/assets/ui/icon.svg',          { width: 64, height: 64 });
+    this.load.svg('hud_vol_on',    'assets/ui/volume_on.svg',    { width: 64, height: 64 });
+    this.load.svg('hud_vol_off',   'assets/ui/volume_off.svg',   { width: 64, height: 64 });
+    this.load.svg('hud_spellbook',  'assets/ui/hud_spellbook.svg', { width: 64, height: 64 });
+    this.load.svg('hud_inv_icon',   'assets/ui/icon.svg',          { width: 64, height: 64 });
     // ── Sussurro-Ladrão creature sprite
-    this.load.svg('sussurro_ladrao', '/assets/criaturas/sussurro.svg', { width: 128, height: 128 });
+    this.load.svg('sussurro_ladrao', 'assets/criaturas/sussurro.svg', { width: 128, height: 128 });
 
     // ── Audio ────────────────────────────────────────────────────────────────
     // Background music (per zone)
     ['campo','transicao','limiar','jardim','intro'].forEach(k =>
-      this.load.audio(`music_${k}`, `/assets/audio/music_${k}.mp3`)
+      this.load.audio(`music_${k}`, `assets/audio/music_${k}.mp3`)
     );
     // Sound effects
-    this.load.audio('sfx_spell',  '/assets/audio/sfx_spell.mp3');
-    this.load.audio('sfx_planta', '/assets/audio/sfx_planta.mp3');
-    this.load.audio('sfx_portal', '/assets/audio/sfx_portal.mp3');
-    this.load.audio('sfx_rouba',  '/assets/audio/sfx_rouba.mp3');
+    this.load.audio('sfx_spell',  'assets/audio/sfx_spell.mp3');
+    this.load.audio('sfx_planta', 'assets/audio/sfx_planta.mp3');
+    this.load.audio('sfx_portal', 'assets/audio/sfx_portal.mp3');
+    this.load.audio('sfx_rouba',  'assets/audio/sfx_rouba.mp3');
 
     // Graceful fallback: don't crash if Unsplash is unreachable
     this.load.on('loaderror', (file) => {

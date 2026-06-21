@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 
 const VIDEO_SOURCES = [
-  '/assets/cena_inicial/video.mp4',
-  '/assets/cena_inicial/video.webm',
+  'assets/cena_inicial/video.mp4',
+  'assets/cena_inicial/video.webm',
 ];
 
 export class IntroVideoScene extends Phaser.Scene {
@@ -81,7 +81,7 @@ export class IntroVideoScene extends Phaser.Scene {
     };
 
     const title = document.createElement('img');
-    title.src = '/assets/loading/loading_title.svg';
+    title.src = 'assets/loading/loading_title.svg';
     title.alt = 'Bruxa, Bruxinha';
     Object.assign(title.style, {
       position:    'relative',
@@ -115,8 +115,8 @@ export class IntroVideoScene extends Phaser.Scene {
     btn.addEventListener('mousedown',  () => { btn.style.transform  = 'scale(0.96)'; });
     btn.addEventListener('mouseup',    () => { btn.style.transform  = 'scale(1)'; });
 
-    overlay.appendChild(mkImg('/assets/loading/loading_left.svg',  'l'));
-    overlay.appendChild(mkImg('/assets/loading/loading_right.svg', 'r'));
+    overlay.appendChild(mkImg('assets/loading/loading_left.svg',  'l'));
+    overlay.appendChild(mkImg('assets/loading/loading_right.svg', 'r'));
     overlay.appendChild(title);
     overlay.appendChild(btn);
     document.body.appendChild(overlay);
