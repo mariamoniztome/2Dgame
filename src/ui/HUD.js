@@ -568,12 +568,6 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       if (!collected) ico.setTint(0x888888);
       if (invPlant?.isFake) ico.setTint(0xc8a6d4);
 
-      // Lock icon overlay for uncollected
-      let lockIco = null;
-      if (!collected && this.textures.exists('map_cadeado')) {
-        lockIco = tr(this.add.image(sx, sy - SSZ * 0.06, 'map_cadeado')
-          .setDisplaySize(SSZ * 0.38, SSZ * 0.38).setAlpha(0.60).setDepth(D + 5));
-      }
 
       // Name label
       const nameText = collected
@@ -601,7 +595,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
 
       this._slots.push({ slotGfx: slotG, icon: ico, fake: null, nameLabel: lbl,
         hitZone: hz, sx, sy, slotR: SSZ / 2, iconS: icoSz });
-      plantObjList.push({ slotG, ico, lockIco, lbl, hz });
+      plantObjList.push({ slotG, ico, lbl, hz });
     });
 
     // ── Spell grid ────────────────────────────────────────────────────────────
@@ -678,7 +672,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       const onP = tab === 'plants';
       plantObjList.forEach(o => {
         o.slotG.setVisible(onP); o.ico?.setVisible(onP);
-        o.lockIco?.setVisible(onP); o.lbl?.setVisible(onP); o.hz.setVisible(onP);
+        o.lbl?.setVisible(onP); o.hz.setVisible(onP);
       });
       cntBadge.setVisible(onP);
       spellObjList.forEach(o => {
