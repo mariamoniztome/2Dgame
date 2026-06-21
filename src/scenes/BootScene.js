@@ -96,7 +96,8 @@ export class BootScene extends Phaser.Scene {
     // ── Mute button icons (Lucide-style)
     this.load.svg('hud_vol_on',    '/assets/ui/volume_on.svg',    { width: 64, height: 64 });
     this.load.svg('hud_vol_off',   '/assets/ui/volume_off.svg',   { width: 64, height: 64 });
-    this.load.svg('hud_spellbook', '/assets/ui/hud_spellbook.svg', { width: 64, height: 64 });
+    this.load.svg('hud_spellbook',  '/assets/ui/hud_spellbook.svg', { width: 64, height: 64 });
+    this.load.svg('hud_inv_icon',   '/assets/ui/icon.svg',          { width: 64, height: 64 });
     // ── Sussurro-Ladrão creature sprite
     this.load.svg('sussurro_ladrao', '/assets/criaturas/sussurro.svg', { width: 128, height: 128 });
 

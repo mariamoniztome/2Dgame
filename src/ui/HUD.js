@@ -115,10 +115,13 @@ export class HUDScene extends Phaser.Scene {
         const ctrlVis = this._controlsVisible;
         this.children.removeAll(true);
         this._slots              = [];
+        this._spellSlots         = [];
         this._plantDots          = [];
         this._ctrlGroup          = [];
         this._paSlots            = [];
         this._plantsActivasGroup = null;
+        if (this._dragGhost) { this._dragGhost.destroy(); this._dragGhost = null; }
+        this._dragState          = null;
         this._toastQueue         = queue;
         this._toastActive        = false;
         this._controlsVisible    = ctrlVis;
@@ -169,7 +172,7 @@ export class HUDScene extends Phaser.Scene {
     this._hudBounds = {};
     const fs = this._fs(W);
     this._buildSpellPanel(W, H, fs);
-    this._buildInventory(W, H, fs);
+    this._buildTabInventory(W, H, fs);
     this._buildMinimap(W, H, fs);
     this._buildAreaBadge(W, H, fs);
 
@@ -205,7 +208,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       .on('pointerdown', () => this._toggleControls());
 
     this._buildMuteButton(W, H, ajudaH, ajudaW);
-    this._buildSpellBookButton(W, H, ajudaH, ajudaW);
+    // this._buildSpellBookButton(W, H, ajudaH, ajudaW);
     this._buildControlsPanel(W, H, fs);
     if (import.meta.env.DEV) this._buildHUDDebugPanel(W, H, fs);
     this._buildPauseOverlay(W, H);
@@ -290,155 +293,414 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   }
 
 
-  // ── Inventory — 3×4 circular slots with name labels below, bottom-left ────
-  _buildInventory(W, H, fs) {
-    const COLS      = 7;
-    const MAX_SLOTS = 14;
-    const slotR     = Math.max(12, Math.round(W * 0.016));
-    const iconS     = Math.round(slotR * 1.25);
-    const gapX      = Math.max(4, Math.round(W * 0.006));
-    const nameLH    = Math.max(10, Math.round(W * 0.011));
-    const stepX     = slotR * 2 + gapX;
-    const padX      = Math.max(8, Math.round(W * 0.010));
-    const padTop    = Math.max(32, Math.round(W * 0.034));
-    const padBot    = Math.max(6, Math.round(W * 0.007));
-    const rowH      = slotR * 2 + nameLH + Math.max(3, Math.round(W * 0.004));
-    const iw        = COLS * stepX - gapX + padX * 2;
+  // ── Inventory: small pill at bottom-left, 'I' opens bag dialog ──────────────
+  _buildTabInventory(W, H, fs) {
+    this._slots              = [];
+    this._spellSlots         = [];
+    this._dragState          = null;
+    this._dragGhost          = null;
+    this._bagOpen            = false;
+    this._bagObjs            = null;
+    this._bagSlotSz          = 80;
+    this._bagActiveTab       = 'plants';
+    this._bagSwitchTab       = null;
+    this._bagSpellObjs       = null;
+    this._currentInventoryOrder = [];
+    this.inventoryCount      = null;
 
-    // Collapsed height = title area + 1 row; expanded = + 1 more row
-    const ihCollapsed = padTop + rowH + padBot;
-    const ihExpanded  = padTop + rowH * 2 + padBot;
+    if (this._dragHighlightGfx?.active) this._dragHighlightGfx.destroy();
+    this._dragHighlightGfx = this.add.graphics().setDepth(62);
 
-    const px0 = 10;
-    const r   = 10;
+    this.input.off('pointermove', this._onDragMove, this);
+    this.input.off('pointerup',   this._onDragEndGlobal, this);
+    this.input.on('pointermove', (ptr) => this._onDragMove(ptr));
+    this.input.on('pointerup',   ()     => this._onDragEndGlobal());
 
-    this._invCOLS      = COLS;
-    this._invSlotR     = slotR;
-    this._invIconS     = iconS;
-    this._invStepX     = stepX;
-    this._invRowH      = rowH;
-    this._invPadX      = padX;
-    this._invPadTop    = padTop;
-    this._invPadBot    = padBot;
-    this._invIW        = iw;
-    this._invIHc       = ihCollapsed;
-    this._invIHe       = ihExpanded;
-    this._invPX0       = px0;
-    this._invR         = r;
-    this._invH         = H;
-    this._inventoryExpanded = false;
+    this.input.keyboard.off('keydown-I');
+    this.input.keyboard.on('keydown-I', () => this._toggleBag());
 
-    // Panel background (redrawn on expand/collapse)
-    this._invGfx = this.add.graphics().setDepth(50);
-    this._drawInventoryPanel(H - 10 - ihCollapsed, ihCollapsed);
+    // Small pill — icon.svg + count, clickable to open bag
+    const btnH = Math.max(24, Math.round(W * 0.030));
+    const btnW = Math.max(74, Math.round(W * 0.074));
+    const bx   = 10;
+    const by   = H - 10;
+    const cy   = by - btnH / 2;
 
-    // Title row
-    const titleY = H - 10 - ihCollapsed + 12;
-    this._invTitleText = this.add.text(px0 + padX, titleY, 'Inventário', {
-      fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
-    }).setOrigin(0, 0).setDepth(55);
+    const pillGfx = this.add.graphics().setDepth(50);
+    pillGfx.fillStyle(C.panel, 1);
+    pillGfx.fillRoundedRect(bx, by - btnH, btnW, btnH, btnH / 2);
+    pillGfx.lineStyle(1, C.border, 0.18);
+    pillGfx.strokeRoundedRect(bx, by - btnH, btnW, btnH, btnH / 2);
 
-    this.inventoryCount = this.add.text(px0 + iw - padX - 18, titleY, '0/14', {
-      fontSize: fs.sm, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
-    }).setOrigin(1, 0).setDepth(55);
-
- 
-    // Expand toggle ▼/▲
-    this._invToggle = this.add.text(px0 + iw - padX, titleY + 8, '▼', {
-      fontSize: fs.sm, fontFamily: FU, color: C.label,
-    }).setOrigin(1, 0).setDepth(56).setInteractive({ useHandCursor: true });
-    this._invToggle.on('pointerdown', () => this._toggleInventory());
-    this._invToggle.on('pointerover', () => this._invToggle.setColor(C.text));
-    this._invToggle.on('pointerout',  () => this._invToggle.setColor(C.label));
-
-    // All 12 slots (2 rows × 6); row 2 starts hidden
-    const firstX = px0 + padX + slotR;
-    const row0Y  = H - 10 - ihCollapsed + padTop + slotR;
-    const row1Y  = row0Y + rowH;
-
-    this._slots = [];
-    for (let i = 0; i < MAX_SLOTS; i++) {
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      const sx  = firstX + col * stepX;
-      const sy  = row === 0 ? row0Y : row1Y;
-
-      const slotGfx = this.add.graphics().setDepth(51);
-      this._drawCircleSlot(slotGfx, sx, sy, slotR, C.border, 0.20);
-
-      const icon = this.add.image(sx, sy, 'plant_missing')
-        .setDisplaySize(iconS, iconS).setAlpha(0).setDepth(56);
-
-      const fake = this.add.text(sx, sy, '?', {
-        fontSize: fs.sm, fontFamily: FU, color: '#b42d27',
-      }).setOrigin(0.5).setAlpha(0).setDepth(57);
-
-      const nameLabel = this.add.text(sx, sy + slotR + 2, '', {
-        fontSize: `${Math.max(7, Math.round(W * 0.0060))}px`,
-        fontFamily: FU, color: C.label, align: 'center',
-        wordWrap: { width: stepX },
-      }).setOrigin(0.5, 0).setAlpha(0).setDepth(57);
-
-      const slotIdx = i;
-      const hitZone = this.add.zone(sx, sy, slotR * 2.2, slotR * 2.2)
-        .setInteractive({
-          hitArea: new Phaser.Geom.Circle(0, 0, slotR * 1.1),
-          hitAreaCallback: Phaser.Geom.Circle.Contains,
-          useHandCursor: true,
-        })
-        .setDepth(59)
-        .on('pointerdown', () => this._onInventorySlotClick(slotIdx));
-
-      // Row 2 hidden by default
-      if (row === 1) {
-        slotGfx.setVisible(false);
-        icon.setVisible(false);
-        fake.setVisible(false);
-        nameLabel.setVisible(false);
-        hitZone.setVisible(false);
-      }
-
-      this._slots.push({ slotGfx, icon, fake, nameLabel, hitZone, sx, sy, slotR, iconS, row });
+    const iconS = Math.round(btnH * 0.72);
+    if (this.textures.exists('hud_inv_icon')) {
+      this.add.image(bx + btnH * 0.62, cy, 'hud_inv_icon')
+        .setDisplaySize(iconS, iconS).setDepth(55);
     }
 
-    this._hudBounds.inventory = { x: px0, y: H - 10 - ihCollapsed, w: iw, h: ihCollapsed, label: 'Inventário' };
+    this._invPillText = this.add.text(bx + btnW - Math.round(btnH * 0.30), cy, '0/14', {
+      fontSize: fs.sm, fontFamily: FU, color: C.text,
+    }).setOrigin(1, 0.5).setDepth(55);
+
+    this.add.zone(bx + btnW / 2, cy, btnW, btnH)
+      .setInteractive({ useHandCursor: true }).setDepth(56)
+      .on('pointerdown', () => this._toggleBag());
+
+    this._hudBounds.inventory = { x: bx, y: by - btnH, w: btnW, h: btnH, label: 'Inventário' };
   }
 
-  _drawInventoryPanel(py0, ih) {
-    const gfx = this._invGfx;
-    gfx.clear();
-    gfx.fillStyle(C.panel, 1);
-    gfx.fillRoundedRect(this._invPX0, py0, this._invIW, ih, this._invR);
+  _toggleBag() {
+    if (this._bagOpen) this._closeBag();
+    else               this._openBag();
   }
 
-  _toggleInventory() {
-    this._inventoryExpanded = !this._inventoryExpanded;
-    const expanded = this._inventoryExpanded;
-    const H        = this._invH;
-    const ih       = expanded ? this._invIHe : this._invIHc;
-    const py0      = H - 10 - ih;
-    const deltaY   = this._invIHe - this._invIHc;
+  _openBag() {
+    if (this._bagOpen) return;
+    this._bagOpen = true;
+    const W = this.scale.width, H = this.scale.height;
+    this._pauseZone();
+    this._buildBagDialog(W, H, this._fs(W));
+  }
 
-    this._drawInventoryPanel(py0, ih);
-    this._invToggle.setText(expanded ? '▲' : '▼');
+  _closeBag() {
+    if (!this._bagOpen) return;
+    this._bagOpen      = false;
+    this._bagSwitchTab = null;
+    this._bagSpellObjs = null;
+    this._cancelDrag();
+    this._slots      = [];
+    this._spellSlots = [];
+    const objs = this._bagObjs;
+    this._bagObjs = null;
+    if (objs) {
+      const fadeable = objs.filter(o => o?.setAlpha);
+      this.tweens.add({
+        targets: fadeable, alpha: 0, duration: 160,
+        onComplete: () => objs.forEach(o => o?.destroy()),
+      });
+    }
+    this._resumeZone();
+  }
 
-    // Shift ALL content first (while row 1 is still hidden — no visual glitch)
-    const shift = expanded ? -deltaY : deltaY;
-    [
-      this._invTitleText, this.inventoryCount, this.inventorySubtitle, this._invToggle,
-      ...this._slots.flatMap(s => [s.slotGfx, s.icon, s.fake, s.nameLabel, s.hitZone]),
-    ].forEach(obj => { if (obj?.active) obj.y += shift; });
+  _buildBagDialog(W, H, fs) {
+    const DW  = Math.min(648, Math.round(W * 0.62));
+    const DH  = Math.min(468, Math.round(H * 0.75));
+    const DX  = Math.round((W - DW) / 2);
+    const DY  = Math.round((H - DH) / 2);
+    const DR  = 14;
+    const D   = 200;
 
-    // Show/hide row 1 AFTER shifting so it appears in the correct position
-    this._slots.forEach(s => {
-      if (s.row === 1) {
-        s.slotGfx.setVisible(expanded);
-        s.icon.setVisible(expanded);
-        s.fake.setVisible(expanded);
-        s.nameLabel.setVisible(expanded);
-        s.hitZone?.setVisible(expanded);
+    const all = [];
+    const tr  = o => { all.push(o); return o; };
+
+    // Overlay (click to close)
+    tr(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.52)
+      .setDepth(D - 2).setInteractive()
+      .on('pointerdown', () => this._closeBag()));
+
+    // Panel (pink — matches rest of HUD)
+    const pg = tr(this.add.graphics().setDepth(D));
+    pg.fillStyle(C.panel, 1);
+    pg.fillRoundedRect(DX, DY, DW, DH, DR);
+    pg.lineStyle(2, C.panelDk, 0.55);
+    pg.strokeRoundedRect(DX, DY, DW, DH, DR);
+    // Absorb clicks so they don't reach overlay
+    tr(this.add.zone(DX + DW / 2, DY + DH / 2, DW, DH)
+      .setInteractive().setDepth(D + 0.5).on('pointerdown', () => {}));
+
+    // Close button
+    tr(this.add.text(DX + DW - 14, DY + 16, '✕', {
+      fontSize: fs.lg, fontFamily: FU, color: C.text, fontStyle: 'bold',
+    }).setOrigin(1, 0).setDepth(D + 10).setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => this._closeBag()));
+
+    // ── Tab bar ──────────────────────────────────────────────────────────────
+    const tabH   = 52;
+    const halfDW = Math.floor(DW / 2);
+    const TG     = tr(this.add.graphics().setDepth(D + 1));
+    const tabState = { active: this._bagActiveTab || 'plants' };
+
+    const drawTabs = () => {
+      TG.clear();
+      const side = tabState.active === 'plants' ? 0 : 1;
+      TG.fillStyle(C.panelDk, 0.38);
+      TG.fillRoundedRect(
+        DX + side * halfDW, DY, halfDW, tabH,
+        side === 0 ? { tl: DR, tr: 0, bl: 0, br: 0 } : { tl: 0, tr: DR, bl: 0, br: 0 }
+      );
+      TG.lineStyle(1, C.border, 0.14);
+      TG.lineBetween(DX, DY + tabH, DX + DW, DY + tabH);
+      TG.lineBetween(DX + halfDW, DY + 10, DX + halfDW, DY + tabH - 10);
+    };
+    drawTabs();
+
+    const tpBtn = tr(this.add.text(DX + halfDW / 2, DY + tabH / 2, 'Plantas', {
+      fontSize: fs.md, fontFamily: FU, color: C.text,
+      fontStyle: tabState.active === 'plants' ? 'bold' : 'normal',
+    }).setOrigin(0.5).setDepth(D + 2).setInteractive({ useHandCursor: true }));
+
+    const tsBtn = tr(this.add.text(DX + halfDW + halfDW / 2, DY + tabH / 2, 'Feitiços', {
+      fontSize: fs.md, fontFamily: FU, color: C.text,
+      fontStyle: tabState.active === 'spells' ? 'bold' : 'normal',
+    }).setOrigin(0.5).setDepth(D + 2).setInteractive({ useHandCursor: true }));
+
+    // ── Info bar ─────────────────────────────────────────────────────────────
+    const IH  = 122;
+    const IY  = DY + DH - IH;
+    const ibg = tr(this.add.graphics().setDepth(D + 1));
+    ibg.fillStyle(C.panelDk, 0.22);
+    ibg.fillRoundedRect(DX + 10, IY + 5, DW - 20, IH - 9, 8);
+    ibg.lineStyle(1, C.panelDk, 0.45);
+    ibg.strokeRoundedRect(DX + 10, IY + 5, DW - 20, IH - 9, 8);
+
+    const iIcon = this.add.image(DX + 28, IY + IH / 2, 'plant_missing')
+      .setDisplaySize(34, 34).setAlpha(0).setDepth(D + 3);
+    all.push(iIcon);
+    const iTX   = DX + 54;
+    const iWW   = DW - 74;
+    const ifsXs = `${Math.max(9, parseInt(fs.sm) - 2)}px`;
+    const iName = tr(this.add.text(iTX, IY + 10, '', {
+      fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
+      wordWrap: { width: iWW },
+    }).setOrigin(0, 0).setDepth(D + 3));
+    const iSub  = tr(this.add.text(iTX, IY + 30, '', {
+      fontSize: fs.sm, fontFamily: FU, color: C.text,
+      wordWrap: { width: iWW },
+    }).setOrigin(0, 0).setDepth(D + 3));
+    const iDesc = tr(this.add.text(iTX, IY + 50, '', {
+      fontSize: fs.sm, fontFamily: FU, color: C.text,
+      wordWrap: { width: iWW },
+    }).setOrigin(0, 0).setDepth(D + 3));
+    const iSpells = tr(this.add.text(iTX, IY + 88, '', {
+      fontSize: ifsXs, fontFamily: FU, color: '#333333', fontStyle: 'italic',
+      wordWrap: { width: iWW },
+    }).setOrigin(0, 0).setDepth(D + 3));
+
+    const _texKey = id => this.textures.exists(`plant_img_${id}`) ? `plant_img_${id}` :
+                          this.textures.exists(`plant_${id}`)     ? `plant_${id}` : 'plant_missing';
+
+    const ICON_SZ = 34;
+    const showInfo = (plant, spell, locked = false) => {
+      if (plant) {
+        iIcon.setTexture(_texKey(plant.id)).setDisplaySize(ICON_SZ, ICON_SZ).setAlpha(locked ? 0.30 : 1);
+        if (locked) {
+          iName.setText(plant.name).setColor('#888888').setFontStyle('bold');
+          iSub.setText(`Zona ${plant.zone}`).setColor('#aaaaaa');
+          iDesc.setText('').setColor('#888888');
+          iSpells.setText(`Procura-me na Zona ${plant.zone}`).setColor('#b42d27');
+        } else {
+          const el   = ELEM_PT[plant.element] || plant.element;
+          const lore = GDD_LORE[plant.id];
+          const relSpells = Object.values(SPELLS).filter(s => (s.plants || []).includes(plant.id));
+          iName.setText(plant.isFake ? '???' : plant.name).setColor(C.text).setFontStyle('bold');
+          iSub.setText(`${el} · ${plant.rarity} · Zona ${plant.zone}`).setColor('#333333');
+          iDesc.setText(lore?.desc || '').setColor(C.text);
+          const sNames = relSpells.map(s => s.name).join(', ');
+          iSpells.setText(sNames || '').setColor('#333333');
+        }
+      } else if (spell) {
+        iIcon.setTexture(spell.textureKey || 'plant_missing').setDisplaySize(ICON_SZ, ICON_SZ).setAlpha(1);
+        iName.setText(spell.name).setColor(C.text).setFontStyle('bold');
+        const ingreds = (spell.plants || []).map(pid => PLANTS[pid]?.name || pid).join(' + ');
+        iSub.setText(ingreds).setColor('#333333');
+        iDesc.setText(spell.description || '').setColor(C.text);
+        iSpells.setText('').setColor('#333333');
+      } else {
+        iIcon.setAlpha(0);
+        const hint = tabState.active === 'spells'
+          ? 'Clica num feitiço para saberes mais'
+          : 'Clica numa planta para saberes mais';
+        iName.setText(hint).setColor('#666666').setFontStyle('normal');
+        iSub.setText(''); iDesc.setText(''); iSpells.setText('');
       }
+    };
+
+    // ── Plant grid ────────────────────────────────────────────────────────────
+    const PCOLS  = 7;
+    const CPX    = 18;
+    const CW     = DW - CPX * 2;
+    const SGAP   = 10;
+    const SSZ    = Math.floor((CW - (PCOLS - 1) * SGAP) / PCOLS);
+    const SSTEPX = SSZ + SGAP;
+    const CTY    = DY + tabH + 8;
+    const R0CY   = CTY + SSZ / 2 + 8;
+    const SHH    = 8;
+    const RHGAP  = 11;
+    const R1CY   = R0CY + SSZ / 2 + RHGAP + SHH + RHGAP + SSZ / 2;
+    const FX     = DX + CPX;
+
+    this._bagSlotSz = SSZ;
+
+    // Plant count badge (top-right of tab bar)
+    const cntBadge = tr(this.add.text(DX + DW - 42, DY + tabH / 2, `${GameState.inventory.length}/14`, {
+      fontSize: fs.sm, fontFamily: FU, color: '#b42d27', fontStyle: 'bold',
+    }).setOrigin(1, 0.5).setDepth(D + 2));
+
+    // All 14 plants in zone order — collected ones draggable, locked ones show hint
+    const ALL_PLANTS = Object.values(PLANTS);
+    this._currentInventoryOrder = ALL_PLANTS.map(p =>
+      GameState.inventory.find(ip => ip.id === p.id) || null);
+
+    this._slots = [];
+    const plantObjList = [];
+
+    ALL_PLANTS.forEach((plantDef, i) => {
+      const col       = i % PCOLS;
+      const rowI      = Math.floor(i / PCOLS);
+      const sx        = FX + col * SSTEPX + SSZ / 2;
+      const sy        = rowI === 0 ? R0CY : R1CY;
+      const invPlant  = this._currentInventoryOrder[i];     // null if not collected
+      const collected = !!invPlant;
+      const el        = ELEMENTS[plantDef.element] || ELEMENTS.EARTH;
+      const elCol     = collected ? el.color : 0xaaaaaa;
+
+      const slotG = tr(this.add.graphics().setDepth(D + 3));
+      slotG.fillStyle(0xffffff, collected ? 0.42 : 0.14);
+      slotG.fillRoundedRect(sx - SSZ / 2, sy - SSZ / 2, SSZ, SSZ, 8);
+      slotG.lineStyle(collected ? 1.8 : 1, elCol, collected ? 0.55 : 0.18);
+      slotG.strokeRoundedRect(sx - SSZ / 2, sy - SSZ / 2, SSZ, SSZ, 8);
+
+      // Plant image — fixed size so SVG and PNG look consistent
+      const icoSz = Math.min(Math.round(SSZ * 0.52), 42);
+      const ico = tr(this.add.image(sx, sy - SSZ * 0.06, _texKey(plantDef.id))
+        .setDisplaySize(icoSz, icoSz)
+        .setAlpha(collected ? 1 : 0.22).setDepth(D + 4));
+      if (!collected) ico.setTint(0x888888);
+      if (invPlant?.isFake) ico.setTint(0xc8a6d4);
+
+      // Lock icon overlay for uncollected
+      let lockIco = null;
+      if (!collected && this.textures.exists('map_cadeado')) {
+        lockIco = tr(this.add.image(sx, sy - SSZ * 0.06, 'map_cadeado')
+          .setDisplaySize(SSZ * 0.38, SSZ * 0.38).setAlpha(0.60).setDepth(D + 5));
+      }
+
+      // Name label
+      const nameText = collected
+        ? (invPlant.isFake ? '?' : plantDef.name)
+        : plantDef.name;
+      const lbl = tr(this.add.text(sx, sy + SSZ / 2 - 7, nameText, {
+        fontSize: `${Math.max(7, Math.round(SSZ * 0.115))}px`, fontFamily: FU,
+        color: collected ? (invPlant?.isFake ? '#b42d27' : C.text) : '#999999',
+        align: 'center', wordWrap: { width: SSZ - 4 },
+      }).setOrigin(0.5, 1).setDepth(D + 4));
+
+      const slotI = i;
+      const hz = tr(this.add.zone(sx, sy, SSZ * 1.05, SSZ * 1.05)
+        .setInteractive({ useHandCursor: true }).setDepth(D + 6));
+
+      hz.on('pointerdown', (ptr) => {
+        showInfo(invPlant || plantDef, null, !collected);
+        if (collected) this._onShelfDown(slotI, ptr);
+      });
+      if (collected) {
+        hz.on('pointerup',   () => this._onShelfUp(slotI));
+        hz.on('pointerover', () => this._onShelfOver(slotI));
+        hz.on('pointerout',  () => this._onShelfOut());
+      }
+
+      this._slots.push({ slotGfx: slotG, icon: ico, fake: null, nameLabel: lbl,
+        hitZone: hz, sx, sy, slotR: SSZ / 2, iconS: icoSz });
+      plantObjList.push({ slotG, ico, lockIco, lbl, hz });
     });
+
+    // ── Spell grid ────────────────────────────────────────────────────────────
+    const SCOLS  = 4;
+    // Cap slot height so 2 rows + gaps fit inside content area (above info bar)
+    const maxSSSZ = Math.floor((DH - tabH - IH - 36 - RHGAP * 2) / 2);
+    const SSSZ   = Math.min(Math.floor((CW - (SCOLS - 1) * SGAP) / SCOLS), maxSSSZ);
+    const SSTEP  = SSSZ + SGAP;
+    const SR0CY  = CTY + SSSZ / 2 + 8;
+    const SR1CY  = SR0CY + SSSZ / 2 + RHGAP * 2 + SSSZ / 2;
+    const SFX    = DX + (DW - (SCOLS * SSSZ + (SCOLS - 1) * SGAP)) / 2;
+
+    this._spellSlots = [];
+    const spellObjList = [];
+
+    SPELL_ORDER.forEach((spellId, i) => {
+      const col   = i % SCOLS;
+      const rowI  = Math.floor(i / SCOLS);
+      const sx    = SFX + col * SSTEP + SSSZ / 2;
+      const sy    = rowI === 0 ? SR0CY : SR1CY;
+      const spell = SPELLS[spellId];
+      const avail = GameState.availableSpells.includes(spellId);
+
+      const slotG = tr(this.add.graphics().setDepth(D + 3).setVisible(false));
+      const drawSS = () => {
+        slotG.clear();
+        const isAct = GameState.activeSpell === spellId;
+        const isAv  = GameState.availableSpells.includes(spellId);
+        slotG.fillStyle(isAv ? (isAct ? (spell?.color || 0xf6a3b3) : 0xffffff) : 0xffffff,
+          isAv ? (isAct ? 0.45 : 0.30) : 0.12);
+        slotG.fillRoundedRect(sx - SSSZ / 2, sy - SSSZ / 2, SSSZ, SSSZ, 10);
+        slotG.lineStyle(isAct ? 2.5 : 1.5,
+          isAct ? (spell?.color || C.accent) : 0x8b6340,
+          isAv ? (isAct ? 1 : 0.38) : 0.14);
+        slotG.strokeRoundedRect(sx - SSSZ / 2, sy - SSSZ / 2, SSSZ, SSSZ, 10);
+      };
+      drawSS();
+
+      const ico = tr(this.add.image(sx, sy - SSSZ * 0.06, spell?.textureKey || 'plant_missing')
+        .setDisplaySize(SSSZ * 0.54, SSSZ * 0.54)
+        .setAlpha(avail ? 0.92 : 0.15).setTint(avail ? 0xffffff : 0x888888)
+        .setDepth(D + 4).setVisible(false));
+
+      const lbl = tr(this.add.text(sx, sy + SSSZ / 2 - 7, spell?.name || '?', {
+        fontSize: `${Math.max(7, Math.round(SSSZ * 0.115))}px`, fontFamily: FU,
+        color: avail ? C.text : '#aaaaaa', align: 'center', wordWrap: { width: SSSZ - 4 },
+      }).setOrigin(0.5, 1).setDepth(D + 4).setVisible(false));
+
+      const hz = tr(this.add.zone(sx, sy, SSSZ * 1.05, SSSZ * 1.05)
+        .setInteractive({ useHandCursor: avail }).setDepth(D + 6).setVisible(false));
+      if (avail) {
+        hz.on('pointerdown', () => {
+          showInfo(null, spell);
+          GameState.activeSpell = spellId;
+          this.game.events.emit('spellChanged');
+          this._refreshSpell();
+          this._bagSpellObjs?.forEach(o => o.draw());
+        });
+      }
+
+      this._spellSlots.push({ slotGfx: slotG, icon: ico, nameLabel: lbl,
+        hitZone: hz, sx, sy, spellId, spR: SSSZ / 2, spIconS: SSSZ * 0.54 });
+      spellObjList.push({ slotG, ico, lbl, hz, draw: drawSS, sx, sy, spR: SSSZ / 2 });
+    });
+    this._bagSpellObjs = spellObjList;
+
+    // ── Tab switch ────────────────────────────────────────────────────────────
+    this._bagSwitchTab = (tab) => {
+      tabState.active      = tab;
+      this._bagActiveTab   = tab;
+      drawTabs();
+      tpBtn.setFontStyle(tab === 'plants' ? 'bold' : 'normal');
+      tsBtn.setFontStyle(tab === 'spells' ? 'bold' : 'normal');
+      const onP = tab === 'plants';
+      plantObjList.forEach(o => {
+        o.slotG.setVisible(onP); o.ico?.setVisible(onP);
+        o.lockIco?.setVisible(onP); o.lbl?.setVisible(onP); o.hz.setVisible(onP);
+      });
+      cntBadge.setVisible(onP);
+      spellObjList.forEach(o => {
+        o.slotG.setVisible(!onP); o.ico.setVisible(!onP);
+        o.lbl.setVisible(!onP); o.hz.setVisible(!onP);
+      });
+      showInfo(null, null);
+    };
+
+    tpBtn.on('pointerdown', () => this._bagSwitchTab('plants'));
+    tsBtn.on('pointerdown', () => this._bagSwitchTab('spells'));
+
+    // Restore last active tab + set initial info bar hint
+    if (tabState.active === 'spells') this._bagSwitchTab('spells');
+    else showInfo(null, null);
+
+    // Fade in — exclude iIcon (managed by showInfo only)
+    const fadeable = all.filter(o => o?.setAlpha && o !== iIcon);
+    fadeable.forEach(o => o.setAlpha(0));
+    this.tweens.add({ targets: fadeable, alpha: 1, duration: 180 });
+
+    this._bagObjs = all;
   }
 
   _drawCircleSlot(gfx, sx, sy, r, strokeCol, strokeAlpha) {
@@ -588,8 +850,9 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     this._ctrlGroup = [];
     this.input.keyboard.off('keydown-ESC');
     this.input.keyboard.on('keydown-ESC', () => {
+      if (this._bagOpen)         { this._closeBag();            return; }
       if (this._plantModal)      { this._closeInventoryModal(); return; }
-      if (this._spellBookModal)  { this._closeSpellBook(); return; }
+      if (this._spellBookModal)  { this._closeSpellBook();      return; }
       if (this._controlsVisible)   this._hideControls();
       else if (this._userPaused)   this._toggleSpacePause();
     });
@@ -786,7 +1049,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   update() { this._updateMinimap(); }
 
   // ── Refresh ───────────────────────────────────────────────────────────────
-  _refresh() { this._refreshInventory(); this._refreshSpell(); this._updateCauldronDots(); this._refreshObjective(); }
+  _refresh() { this._refreshInventory(); this._refreshSpellTab(); this._refreshSpell(); this._updateCauldronDots(); this._refreshObjective(); }
 
   _refreshObjective() {
     if (!this._objDots?.length) return;
@@ -804,32 +1067,29 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
 
   _refreshInventory() {
     const comboIds = _comboPlantIds();
-    const sorted   = [...GameState.inventory].sort((a, b) => {
-      return (comboIds.has(a.id) ? 0 : 1) - (comboIds.has(b.id) ? 0 : 1);
-    });
+    const sorted   = [...GameState.inventory].sort((a, b) =>
+      (comboIds.has(a.id) ? 0 : 1) - (comboIds.has(b.id) ? 0 : 1));
+
     this._currentInventoryOrder = sorted;
+    this._invPillText?.setText(`${sorted.length}/14`);
 
-    this.inventoryCount?.setText(`${sorted.length}/14`);
+    if (this._bagOpen) {
+      // Rebuild the dialog to show updated data
+      const tab = this._bagActiveTab || 'plants';
+      const W = this.scale.width, H = this.scale.height;
+      const objs = this._bagObjs;
+      this._bagObjs    = null;
+      this._bagSwitchTab = null;
+      this._bagSpellObjs = null;
+      this._slots      = [];
+      this._spellSlots = [];
+      if (objs) objs.forEach(o => o?.destroy());
+      this._buildBagDialog(W, H, this._fs(W));
+      if (tab === 'spells') this._bagSwitchTab?.('spells');
+      return;
+    }
 
-    this._slots.forEach((s, i) => {
-      const plant = sorted[i];
-      if (plant) {
-        const el  = ELEMENTS[plant.element] || ELEMENTS.EARTH;
-        const col = plant.isFake ? 0x886688 : el.color;
-        const key = this.textures.exists(`plant_img_${plant.id}`) ? `plant_img_${plant.id}` :
-                    this.textures.exists(`plant_${plant.id}`)     ? `plant_${plant.id}` : 'plant_missing';
-        s.icon.setTexture(key).setDisplaySize(s.iconS, s.iconS).setAlpha(0.97).setTint(0xffffff);
-        if (plant.isFake) s.icon.setTint(0xc8a6d4);
-        s.fake.setAlpha(plant.isFake ? 1 : 0);
-        this._drawCircleSlot(s.slotGfx, s.sx, s.sy, s.slotR, col, 0.85);
-        s.nameLabel?.setText(plant.name || '').setAlpha(1);
-      } else {
-        s.icon.setAlpha(0);
-        s.fake.setAlpha(0);
-        this._drawCircleSlot(s.slotGfx, s.sx, s.sy, s.slotR, C.border, 0.18);
-        s.nameLabel?.setText('').setAlpha(0);
-      }
-    });
+    // No visible panel when bag is closed — nothing to update
   }
 
   _refreshSpell() {
@@ -1405,6 +1665,13 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
 
   _rebuildHUD() {
     if (!this.sys.isActive()) return;
+    if (this._bagOpen) {
+      this._bagOpen = false;
+      this._bagObjs?.forEach(o => o?.destroy());
+      this._bagObjs      = null;
+      this._bagSwitchTab = null;
+      this._bagSpellObjs = null;
+    }
     if (this._plantModal) {
       const { objs, escFn } = this._plantModal;
       this._plantModal = null;
@@ -1503,146 +1770,146 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
   }
 
   // ── Spell book button — right side, just below the spell panel ───────────
-  _buildSpellBookButton(W, H, ajudaH, ajudaW) {
-    const btnS = ajudaH;
-    const panelLeft = this._spellPanelLeft ?? (W - 10 - Math.round(W * 0.185));
-    const bx = panelLeft - 6 - btnS / 2;
-    const by = 10 + btnS / 2;
+  // _buildSpellBookButton(W, H, ajudaH, ajudaW) {
+  //   const btnS = ajudaH;
+  //   const panelLeft = this._spellPanelLeft ?? (W - 10 - Math.round(W * 0.185));
+  //   const bx = panelLeft - 6 - btnS / 2;
+  //   const by = 10 + btnS / 2;
 
-    const gfx = this.add.graphics().setDepth(55);
-    gfx.fillStyle(C.panel, 1);
-    gfx.fillRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
-    gfx.lineStyle(1.5, C.border, 0.4);
-    gfx.strokeRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
+  //   const gfx = this.add.graphics().setDepth(55);
+  //   gfx.fillStyle(C.panel, 1);
+  //   gfx.fillRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
+  //   gfx.lineStyle(1.5, C.border, 0.4);
+  //   gfx.strokeRoundedRect(bx - btnS / 2, by - btnS / 2, btnS, btnS, btnS / 2);
 
-    const iconS = Math.round(btnS * 0.68);
-    const icon  = this.textures.exists('hud_spellbook')
-      ? this.add.image(bx, by, 'hud_spellbook').setDisplaySize(iconS, iconS)
-      : this.add.image(bx, by, 'book').setDisplaySize(iconS, iconS);
-    icon.setDepth(56);
+  //   const iconS = Math.round(btnS * 0.68);
+  //   const icon  = this.textures.exists('hud_spellbook')
+  //     ? this.add.image(bx, by, 'hud_spellbook').setDisplaySize(iconS, iconS)
+  //     : this.add.image(bx, by, 'book').setDisplaySize(iconS, iconS);
+  //   icon.setDepth(56);
 
-    this.add.zone(bx, by, btnS, btnS)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(57)
-      .on('pointerdown', () => this._toggleSpellBook());
-  }
+  //   this.add.zone(bx, by, btnS, btnS)
+  //     .setInteractive({ useHandCursor: true })
+  //     .setDepth(57)
+  //     .on('pointerdown', () => this._toggleSpellBook());
+  // }
 
-  _toggleSpellBook() {
-    this._spellBookModal ? this._closeSpellBook() : this._showSpellBook();
-  }
+  // _toggleSpellBook() {
+  //   this._spellBookModal ? this._closeSpellBook() : this._showSpellBook();
+  // }
 
   // ── Spell book modal — lists all spells, locked ones at low opacity ────────
-  _showSpellBook() {
-    if (this._spellBookModal) return;
-    this._pauseZone();
+  // _showSpellBook() {
+  //   if (this._spellBookModal) return;
+  //   this._pauseZone();
 
-    const W    = this.scale.width, H = this.scale.height;
-    const fs   = this._fs(W);
-    const DEEP = 203;
-    const pad  = 16;
-    const mw   = Math.min(500, Math.round(W * 0.50));
-    const OX   = -9000;
+  //   const W    = this.scale.width, H = this.scale.height;
+  //   const fs   = this._fs(W);
+  //   const DEEP = 203;
+  //   const pad  = 16;
+  //   const mw   = Math.min(500, Math.round(W * 0.50));
+  //   const OX   = -9000;
 
-    const allItems = []; // { obj, targetAlpha }
-    const divLines = []; // raw dy values for divider lines
-    let dy = pad;
+  //   const allItems = []; // { obj, targetAlpha }
+  //   const divLines = []; // raw dy values for divider lines
+  //   let dy = pad;
 
-    const addT = (text, style, relX = pad, targetAlpha = 1) => {
-      const o = this.add.text(OX, dy, text, {
-        ...style, wordWrap: { width: mw - relX - pad },
-      }).setDepth(DEEP).setOrigin(0, 0).setAlpha(0);
-      allItems.push({ obj: o, relX, targetAlpha });
-      dy += o.height;
-      return o;
-    };
-    const gap = n => { dy += n; };
+  //   const addT = (text, style, relX = pad, targetAlpha = 1) => {
+  //     const o = this.add.text(OX, dy, text, {
+  //       ...style, wordWrap: { width: mw - relX - pad },
+  //     }).setDepth(DEEP).setOrigin(0, 0).setAlpha(0);
+  //     allItems.push({ obj: o, relX, targetAlpha });
+  //     dy += o.height;
+  //     return o;
+  //   };
+  //   const gap = n => { dy += n; };
 
-    addT('Livro de Feitiços', { fontSize: fs.xl, fontFamily: FU, color: C.text, fontStyle: 'bold' });
-    gap(6);
-    divLines.push(dy + 3);
-    gap(14);
+  //   addT('Livro de Feitiços', { fontSize: fs.xl, fontFamily: FU, color: C.text, fontStyle: 'bold' });
+  //   gap(6);
+  //   divLines.push(dy + 3);
+  //   gap(14);
 
-    SPELL_ORDER.forEach((id, i) => {
-      const spell = SPELLS[id];
-      if (!spell) return;
-      const unlocked = GameState.availableSpells.includes(id);
-      const a        = unlocked ? 1 : 0.40;
+  //   SPELL_ORDER.forEach((id, i) => {
+  //     const spell = SPELLS[id];
+  //     if (!spell) return;
+  //     const unlocked = GameState.availableSpells.includes(id);
+  //     const a        = unlocked ? 1 : 0.40;
 
-      const ingredNames = (spell.plants || []).map(pid => PLANTS[pid]?.name || pid).join(' + ');
+  //     const ingredNames = (spell.plants || []).map(pid => PLANTS[pid]?.name || pid).join(' + ');
 
-      addT(spell.name, {
-        fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
-      }, pad, a);
-      gap(2);
+  //     addT(spell.name, {
+  //       fontSize: fs.md, fontFamily: FU, color: C.text, fontStyle: 'bold',
+  //     }, pad, a);
+  //     gap(2);
 
-      addT(`Zona ${spell.unlockZone}  ·  ${ingredNames}`, {
-        fontSize: `${Math.max(9, parseInt(fs.sm) - 1)}px`, fontFamily: FU, color: C.text,
-      }, pad + 8, a * 0.80);
-      gap(3);
+  //     addT(`Zona ${spell.unlockZone}  ·  ${ingredNames}`, {
+  //       fontSize: `${Math.max(9, parseInt(fs.sm) - 1)}px`, fontFamily: FU, color: C.text,
+  //     }, pad + 8, a * 0.80);
+  //     gap(3);
 
-      addT(spell.description, {
-        fontSize: fs.sm, fontFamily: FU, color: C.text,
-      }, pad + 8, a);
-      gap(8);
+  //     addT(spell.description, {
+  //       fontSize: fs.sm, fontFamily: FU, color: C.text,
+  //     }, pad + 8, a);
+  //     gap(8);
 
-      if (i < SPELL_ORDER.length - 1) {
-        divLines.push(dy - 2);
-        gap(10);
-      }
-    });
+  //     if (i < SPELL_ORDER.length - 1) {
+  //       divLines.push(dy - 2);
+  //       gap(10);
+  //     }
+  //   });
 
-    gap(pad);
-    const cardH = dy;
-    const cardX = Math.round((W - mw) / 2);
-    const cardY = Math.round(Math.max(10, Math.min(H - cardH - 10, (H - cardH) / 2)));
+  //   gap(pad);
+  //   const cardH = dy;
+  //   const cardX = Math.round((W - mw) / 2);
+  //   const cardY = Math.round(Math.max(10, Math.min(H - cardH - 10, (H - cardH) / 2)));
 
-    allItems.forEach(({ obj, relX }) => obj.setX(cardX + relX).setY(obj.y + cardY));
+  //   allItems.forEach(({ obj, relX }) => obj.setX(cardX + relX).setY(obj.y + cardY));
 
-    const bgGfx = this.add.graphics().setDepth(DEEP - 1).setAlpha(0);
-    bgGfx.fillStyle(C.panel, 1);
-    bgGfx.fillRoundedRect(cardX, cardY, mw, cardH, 12);
-    bgGfx.lineStyle(1.5, C.border, 0.30);
-    bgGfx.strokeRoundedRect(cardX, cardY, mw, cardH, 12);
-    bgGfx.lineStyle(1, C.panelDk, 0.75);
-    divLines.forEach(ly => bgGfx.lineBetween(cardX + pad, cardY + ly, cardX + mw - pad, cardY + ly));
+  //   const bgGfx = this.add.graphics().setDepth(DEEP - 1).setAlpha(0);
+  //   bgGfx.fillStyle(C.panel, 1);
+  //   bgGfx.fillRoundedRect(cardX, cardY, mw, cardH, 12);
+  //   bgGfx.lineStyle(1.5, C.border, 0.30);
+  //   bgGfx.strokeRoundedRect(cardX, cardY, mw, cardH, 12);
+  //   bgGfx.lineStyle(1, C.panelDk, 0.75);
+  //   divLines.forEach(ly => bgGfx.lineBetween(cardX + pad, cardY + ly, cardX + mw - pad, cardY + ly));
 
-    const cardZone = this.add.zone(cardX + mw / 2, cardY + cardH / 2, mw, cardH)
-      .setDepth(DEEP - 0.5).setInteractive().on('pointerdown', () => {});
+  //   const cardZone = this.add.zone(cardX + mw / 2, cardY + cardH / 2, mw, cardH)
+  //     .setDepth(DEEP - 0.5).setInteractive().on('pointerdown', () => {});
 
-    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.48)
-      .setDepth(DEEP - 2).setInteractive().setAlpha(0)
-      .on('pointerdown', () => this._closeSpellBook());
+  //   const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.48)
+  //     .setDepth(DEEP - 2).setInteractive().setAlpha(0)
+  //     .on('pointerdown', () => this._closeSpellBook());
 
-    const closeBtn = this.add.text(cardX + mw - 8, cardY + 8, '✕', {
-      fontSize: fs.lg, fontFamily: FU, color: C.text,
-    }).setDepth(DEEP + 1).setOrigin(1, 0).setAlpha(0)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this._closeSpellBook());
+  //   const closeBtn = this.add.text(cardX + mw - 8, cardY + 8, '✕', {
+  //     fontSize: fs.lg, fontFamily: FU, color: C.text,
+  //   }).setDepth(DEEP + 1).setOrigin(1, 0).setAlpha(0)
+  //     .setInteractive({ useHandCursor: true })
+  //     .on('pointerdown', () => this._closeSpellBook());
 
-    const frameObjs = [overlay, bgGfx, closeBtn];
-    this.tweens.add({ targets: frameObjs, alpha: 1, duration: 200 });
-    allItems.forEach(({ obj, targetAlpha }) => {
-      this.tweens.add({ targets: obj, alpha: targetAlpha, duration: 200 });
-    });
+  //   const frameObjs = [overlay, bgGfx, closeBtn];
+  //   this.tweens.add({ targets: frameObjs, alpha: 1, duration: 200 });
+  //   allItems.forEach(({ obj, targetAlpha }) => {
+  //     this.tweens.add({ targets: obj, alpha: targetAlpha, duration: 200 });
+  //   });
 
-    const allObjs = [...frameObjs, cardZone, ...allItems.map(a => a.obj)];
-    const escFn = () => this._closeSpellBook();
-    this.input.keyboard.once('keydown-ESC', escFn);
-    this._spellBookModal = { objs: allObjs, escFn };
-  }
+  //   const allObjs = [...frameObjs, cardZone, ...allItems.map(a => a.obj)];
+  //   const escFn = () => this._closeSpellBook();
+  //   this.input.keyboard.once('keydown-ESC', escFn);
+  //   this._spellBookModal = { objs: allObjs, escFn };
+  // }
 
-  _closeSpellBook() {
-    if (!this._spellBookModal) return;
-    const { objs, escFn } = this._spellBookModal;
-    this._spellBookModal = null;
-    this.input.keyboard.off('keydown-ESC', escFn);
-    const fadeable = objs.filter(o => o?.setAlpha);
-    this.tweens.add({
-      targets: fadeable, alpha: 0, duration: 180,
-      onComplete: () => objs.forEach(o => o?.destroy()),
-    });
-    this._resumeZone();
-  }
+  // _closeSpellBook() {
+  //   if (!this._spellBookModal) return;
+  //   const { objs, escFn } = this._spellBookModal;
+  //   this._spellBookModal = null;
+  //   this.input.keyboard.off('keydown-ESC', escFn);
+  //   const fadeable = objs.filter(o => o?.setAlpha);
+  //   this.tweens.add({
+  //     targets: fadeable, alpha: 0, duration: 180,
+  //     onComplete: () => objs.forEach(o => o?.destroy()),
+  //   });
+  //   this._resumeZone();
+  // }
 
   // ── Pause overlay (Space key) ─────────────────────────────────────────────
   _buildPauseOverlay(W, H) {
@@ -1736,5 +2003,131 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
       ),
     ];
     this._copyToClipboard(lines.join('\n'));
+  }
+
+  // ── Spell tab ─────────────────────────────────────────────────────────────
+  _refreshSpellTab() {
+    if (!this._spellSlots?.length) return;
+    // When bag is open, redraw via stored draw functions (rounded rects)
+    if (this._bagOpen) {
+      this._bagSpellObjs?.forEach(o => o.draw?.());
+      return;
+    }
+  }
+
+  // ── Shelf drag & drop ─────────────────────────────────────────────────────
+  _onShelfDown(slotIdx, ptr) {
+    const plant = this._currentInventoryOrder?.[slotIdx];
+    if (!plant) return;
+    this._dragState = { fromIdx: slotIdx, startX: ptr.x, startY: ptr.y, dragging: false };
+  }
+
+  _onShelfUp(slotIdx) {
+    if (!this._dragState) return;
+    const { fromIdx, dragging } = this._dragState;
+    if (!dragging) {
+      // Info bar already updated in pointerdown; just cancel drag state
+      this._cancelDrag();
+      return;
+    }
+    if (slotIdx === fromIdx) { this._cancelDrag(); return; }
+    const plantA = this._currentInventoryOrder?.[fromIdx];
+    const plantB = this._currentInventoryOrder?.[slotIdx];
+    this._cancelDrag();
+    if (plantA && plantB) this._tryCombinePlants(plantA.id, plantB.id, slotIdx);
+  }
+
+  _onShelfOver(slotIdx) {
+    if (!this._dragState?.dragging) return;
+    if (slotIdx === this._dragState.fromIdx) return;
+    const target = this._currentInventoryOrder?.[slotIdx];
+    if (!target) return;
+    const slot = this._slots[slotIdx];
+    if (!slot) return;
+    const sz = slot.slotR * 2;
+    this._dragHighlightGfx?.clear()
+      .lineStyle(2.5, 0xffe066, 1)
+      .strokeRoundedRect(slot.sx - slot.slotR - 4, slot.sy - slot.slotR - 4, sz + 8, sz + 8, 8);
+  }
+
+  _onShelfOut() {
+    if (!this._dragState?.dragging) return;
+    this._dragHighlightGfx?.clear();
+  }
+
+  _onDragMove(ptr) {
+    if (!this._dragState) return;
+    const state = this._dragState;
+    if (!state.dragging) {
+      const dist = Math.hypot(ptr.x - state.startX, ptr.y - state.startY);
+      if (dist < 8) return;
+      state.dragging = true;
+      const plant = this._currentInventoryOrder?.[state.fromIdx];
+      if (!plant) { this._cancelDrag(); return; }
+      const key = this.textures.exists(`plant_img_${plant.id}`) ? `plant_img_${plant.id}` :
+                  this.textures.exists(`plant_${plant.id}`)     ? `plant_${plant.id}` : 'plant_missing';
+      const ghostR = (this._bagSlotSz ?? 40) * 0.50;
+      if (this._dragGhost) this._dragGhost.destroy();
+      this._dragGhost = this.add.image(ptr.x, ptr.y, key)
+        .setDisplaySize(ghostR * 2, ghostR * 2).setAlpha(0.72).setDepth(80);
+      const slot = this._slots[state.fromIdx];
+      if (slot?.icon) slot.icon.setAlpha(0.28);
+    }
+    this._dragGhost?.setPosition(ptr.x, ptr.y);
+  }
+
+  _onDragEndGlobal() {
+    if (!this._dragState) return;
+    this._cancelDrag();
+  }
+
+  _cancelDrag() {
+    if (this._dragGhost) { this._dragGhost.destroy(); this._dragGhost = null; }
+    this._dragHighlightGfx?.clear();
+    if (this._dragState) {
+      const slot = this._slots[this._dragState.fromIdx];
+      if (slot?.icon?.active) slot.icon.setAlpha(1);
+    }
+    this._dragState = null;
+  }
+
+  _tryCombinePlants(plantIdA, plantIdB, dropSlotIdx) {
+    const matched = Object.values(SPELLS).find(spell => {
+      const p = spell.plants || [];
+      return p.includes(plantIdA) && p.includes(plantIdB);
+    });
+    const slot = this._slots[dropSlotIdx];
+    if (matched && GameState.availableSpells.includes(matched.id)) {
+      if (slot) this._showCombineDiscovery(matched, slot.sx, slot.sy);
+      this.time.delayedCall(900, () => this._bagSwitchTab?.('spells'));
+    } else if (matched) {
+      this._showNarrative(`Para ${matched.name} ainda te faltam plantas…`, 3000);
+    } else {
+      // No recipe — shake the target icon
+      if (slot?.icon?.active) {
+        const origX = slot.sx;
+        this.tweens.add({
+          targets: slot.icon,
+          x: { from: origX - 4, to: origX + 4 },
+          duration: 55, yoyo: true, repeat: 3,
+          onComplete: () => slot.icon?.setX(origX),
+        });
+      }
+    }
+  }
+
+  _showCombineDiscovery(spell, x, y) {
+    const gfx = this.add.graphics().setDepth(85);
+    const col  = spell.color || 0xffe066;
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const len   = 16 + Math.random() * 14;
+      gfx.lineStyle(2, col, 0.9);
+      gfx.lineBetween(x, y, x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+    }
+    this.tweens.add({ targets: gfx, alpha: 0, duration: 600,
+      onComplete: () => gfx.destroy() });
+    this._showNarrative(`✨ ${spell.name} descoberto!`, 3500);
+    SoundManager.spellUnlocked?.();
   }
 }
