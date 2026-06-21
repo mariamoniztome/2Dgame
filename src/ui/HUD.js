@@ -759,7 +759,7 @@ const ajudaW = Math.round(ajudaH * (220 / 56));
     // Clickable hit zone — opens the world map (same as M key)
     this.add.zone(cx, cy, R * 2, R * 2)
       .setInteractive({
-        hitArea: new Phaser.Geom.Circle(0, 0, R),
+        hitArea: new Phaser.Geom.Circle(R, R, R),
         hitAreaCallback: Phaser.Geom.Circle.Contains,
         useHandCursor: true,
       })
